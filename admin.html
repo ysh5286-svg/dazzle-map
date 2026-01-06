@@ -8,38 +8,51 @@
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <style>
+        .bulk-textarea { width: 100%; height: 200px; font-size: 12px; font-family: monospace; padding: 10px; border: 1px solid #ccc; background: #f4f4f4; margin-bottom: 10px; }
+        .bulk-status { font-size: 12px; color: #e74c3c; margin-top: 5px; font-weight: bold; max-height: 100px; overflow-y: auto; }
+        
+        /* 선택 모달 리스트 스타일 강화 */
+        .shop-select-item { display: flex; justify-content: space-between; align-items: center; }
+        .shop-select-info { flex: 1; cursor: pointer; }
+        .btn-promote { background: #fff; border: 1px solid #f1c40f; color: #f39c12; font-size: 11px; padding: 4px 8px; border-radius: 4px; cursor: pointer; margin-left: 8px; white-space: nowrap; }
+        .btn-promote:hover { background: #f1c40f; color: white; }
+    </style>
 </head>
 <body>
     <div class="search-container">
         <div class="search-box-wrapper" style="background:#c0392b; color:white; flex-direction:row; justify-content:space-between; align-items:center;">
             <strong>🔒 관리자</strong>
             <div style="display:flex; gap:5px;">
-                <button onclick="openAddModal()" style="background:#2c3e50; color:white; border:none; padding:6px 10px; border-radius:5px; font-weight:bold; cursor:pointer; font-size:12px;">
-                    ➕ 업체등록
-                </button>
-                <button onclick="location.href='index.html'" style="background:white; color:#c0392b; border:none; padding:6px 10px; border-radius:5px; font-weight:bold; cursor:pointer; font-size:12px;">
-                    나가기
-                </button>
+                <button onclick="openBulkModal()" style="background:#f1c40f; color:#333; border:none; padding:6px 10px; border-radius:5px; font-weight:bold; cursor:pointer; font-size:12px;">⚡ 일괄등록</button>
+                <button onclick="openAddModal()" style="background:#2c3e50; color:white; border:none; padding:6px 10px; border-radius:5px; font-weight:bold; cursor:pointer; font-size:12px;">➕ 개별등록</button>
+                <button onclick="location.href='index.html'" style="background:white; color:#c0392b; border:none; padding:6px 10px; border-radius:5px; font-weight:bold; cursor:pointer; font-size:12px;">나가기</button>
             </div>
         </div>
     </div>
     
     <div class="admin-notice" style="position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(192, 57, 43, 0.9); color: white; padding: 10px 20px; border-radius: 30px; font-size: 13px; z-index: 200; pointer-events: none; text-align: center; width: 80%;">
-        지도 클릭 또는 상단 [업체등록] 버튼 사용
+        지도 클릭 또는 상단 버튼 사용
     </div>
     <div id="map"></div>
+
+    <div id="selectModal" class="modal-overlay">
+        <div class="modal-box">
+            <button class="modal-close-x" onclick="closeSelectModal()">×</button>
+            <h3 class="modal-title" style="font-size:16px; margin-bottom:15px;">👇 수정할 매장을 선택하세요</h3>
+            <p style="font-size:11px; color:#666; margin-bottom:10px;">[대표로 위로 올리기]를 누르면 해당 가게가 마커의 얼굴이 됩니다.</p>
+            <div id="selectList" class="shop-select-list"></div>
+        </div>
+    </div>
 
     <div id="shopModal" class="modal-overlay">
         <div class="modal-box">
             <button class="modal-close-x" onclick="closeModal()">×</button>
             <h3 class="modal-title">업체 정보 관리</h3>
             <input type="hidden" id="shopId"><input type="hidden" id="shopLat"><input type="hidden" id="shopLng">
-
             <div class="form-group"><label class="form-label">업체명</label><input type="text" id="shopName" class="form-input"></div>
-            
             <div class="form-grid">
-                <div class="form-group">
-                    <label class="form-label">업종 (카테고리)</label>
+                <div class="form-group"><label class="form-label">업종</label>
                     <div class="multi-select-container">
                         <label class="check-item"><input type="checkbox" name="category" value="한식"> 한식</label>
                         <label class="check-item"><input type="checkbox" name="category" value="중식"> 중식</label>
@@ -56,15 +69,9 @@
                         <label class="check-item"><input type="checkbox" name="category" value="포장/배달"> 포장/배달</label>
                     </div>
                 </div>
-                <div class="form-group"><label class="form-label">지역</label>
-                    <select id="shopRegion" class="form-select">
-                        <option value="">선택</option><option value="수성구">수성구</option><option value="중구">중구</option><option value="동구">동구</option><option value="서구">서구</option><option value="남구">남구</option><option value="북구">북구</option><option value="달서구">달서구</option><option value="달성군">달성군</option><option value="군위군">군위군</option><option value="칠곡군">칠곡군</option><option value="경산">경산</option><option value="청도">청도</option><option value="대구 밖">대구 밖</option>
-                    </select>
-                </div>
+                <div class="form-group"><label class="form-label">지역</label><select id="shopRegion" class="form-select"><option value="">선택</option><option value="수성구">수성구</option><option value="중구">중구</option><option value="동구">동구</option><option value="서구">서구</option><option value="남구">남구</option><option value="북구">북구</option><option value="달서구">달서구</option><option value="달성군">달성군</option><option value="군위군">군위군</option><option value="칠곡군">칠곡군</option><option value="경산">경산</option><option value="청도">청도</option><option value="대구 밖">대구 밖</option></select></div>
             </div>
-
-            <div class="form-group">
-                <label class="form-label">목적/분위기 (중복선택)</label>
+            <div class="form-group"><label class="form-label">목적</label>
                 <div class="multi-select-container">
                     <label class="check-item"><input type="checkbox" name="purpose" value="노포"> 노포</label>
                     <label class="check-item"><input type="checkbox" name="purpose" value="데이트"> 데이트</label>
@@ -77,220 +84,242 @@
                     <label class="check-item"><input type="checkbox" name="purpose" value="야간영업"> 야간영업</label>
                 </div>
             </div>
-
             <div class="form-grid">
                 <div class="form-group"><label class="form-label">상권</label><input type="text" id="shopArea" class="form-input"></div>
                 <div class="form-group"><label class="form-label">대표메뉴</label><input type="text" id="shopMenu" class="form-input"></div>
             </div>
-
-            <div style="background:#f8f9fa; padding:10px; border-radius:5px; margin-bottom:10px;">
-                <label class="form-label">⭐ 평점 (0~5)</label>
-                <div class="form-grid">
-                    <div class="form-group"><label class="form-label">총점</label><input type="number" id="shopTotalScore" class="form-input" step="0.1" max="5"></div>
-                    <div class="form-group"><label class="form-label">맛</label><input type="number" id="scoreTaste" class="form-input" step="0.1" max="5"></div>
-                    <div class="form-group"><label class="form-label">가성비</label><input type="number" id="scoreValue" class="form-input" step="0.1" max="5"></div>
-                    <div class="form-group"><label class="form-label">분위기</label><input type="number" id="scoreMood" class="form-input" step="0.1" max="5"></div>
-                    <div class="form-group"><label class="form-label">친절도</label><input type="number" id="scoreKind" class="form-input" step="0.1" max="5"></div>
-                </div>
-            </div>
-
+            <div style="background:#f8f9fa; padding:10px; margin-bottom:10px;"><label class="form-label">⭐ 평점</label><div class="form-grid"><div class="form-group"><label class="form-label">총점</label><input type="number" id="shopTotalScore" class="form-input" step="0.1"></div><div class="form-group"><label class="form-label">맛</label><input type="number" id="scoreTaste" class="form-input" step="0.1"></div><div class="form-group"><label class="form-label">가성비</label><input type="number" id="scoreValue" class="form-input" step="0.1"></div><div class="form-group"><label class="form-label">분위기</label><input type="number" id="scoreMood" class="form-input" step="0.1"></div><div class="form-group"><label class="form-label">친절도</label><input type="number" id="scoreKind" class="form-input" step="0.1"></div></div></div>
             <div class="form-group"><label class="form-label">설명</label><textarea id="shopDesc" class="form-textarea"></textarea></div>
-            <div class="form-group"><label class="form-label">주소</label><input type="text" id="shopAddress" class="form-input" placeholder="도로명 주소 입력 (예: 동성로3길 20)"></div>
+            <div class="form-group"><label class="form-label">주소</label><input type="text" id="shopAddress" class="form-input"></div>
             <div class="form-group"><label class="form-label">이미지 URL</label><input type="text" id="shopImage" class="form-input"></div>
             <div class="form-group"><label class="form-label">링크</label><input type="text" id="shopLink" class="form-input"></div>
+            <div class="modal-btns"><button class="btn-delete" id="btnDelete">삭제</button><button class="btn-save" onclick="saveShop()">저장</button></div>
+        </div>
+    </div>
 
-            <div class="modal-btns">
-                <button class="btn-delete" id="btnDelete">삭제</button>
-                <button class="btn-save" onclick="saveShop()">저장</button>
-            </div>
+    <div id="bulkModal" class="modal-overlay">
+        <div class="modal-box" style="max-width:600px;">
+            <button class="modal-close-x" onclick="closeBulkModal()">×</button>
+            <h3 class="modal-title">⚡ 데이터 일괄 등록</h3>
+            <textarea id="bulkDataInput" class="bulk-textarea" placeholder='[JSON 데이터]'></textarea>
+            <div id="bulkStatus" class="bulk-status"></div>
+            <div class="modal-btns"><button class="btn-save" style="background:#f1c40f; color:#333;" onclick="processBulkData()">🚀 실행하기</button></div>
         </div>
     </div>
 
     <script type="module">
         import { db, initMap, createMarker } from "./common.js";
-        import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        // 🔥 deleteDoc import 확인 완료
+        import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // 비밀번호 확인
         var password = prompt("관리자 비밀번호:");
         if (password !== "2364") { document.body.innerHTML = "⛔ 접근 거부"; throw new Error("비밀번호 오류"); }
 
         var map = initMap();
-        let overlayMap = {};
+        let markerList = [];
 
         window.closeModal = function() { $('#shopModal').removeClass('show'); }
+        window.closeBulkModal = function() { $('#bulkModal').removeClass('show'); }
+        window.closeSelectModal = function() { $('#selectModal').removeClass('show'); }
 
-        // [업체등록] 버튼 클릭 (주소로 등록 모드)
         window.openAddModal = function() {
-            $('#shopId').val(''); 
-            $('input[type="text"], input[type="number"], textarea').val('');
-            $('select').val('');
-            $('input[type="checkbox"]').prop('checked', false);
-            
-            // 좌표 초기화
-            $('#shopLat').val(''); 
-            $('#shopLng').val('');
-            $('#shopTotalScore').val(5.0);
-            
-            $('#btnDelete').hide(); 
-            $('.modal-title').text('✨ 주소로 업체 추가'); 
-            $('#shopModal').addClass('show');
+            $('#shopId').val(''); $('input, textarea').val(''); $('select').val(''); $('input[type="checkbox"]').prop('checked', false);
+            $('#shopLat').val(''); $('#shopLng').val(''); $('#shopTotalScore').val(5.0);
+            $('#btnDelete').hide(); $('.modal-title').text('✨ 개별 업체 추가'); $('#shopModal').addClass('show');
+        }
+        window.openBulkModal = function() { $('#bulkDataInput').val(''); $('#bulkStatus').text(''); $('#bulkModal').addClass('show'); }
+
+        // 지도 렌더링 (그룹핑 + 정렬)
+        onSnapshot(collection(db, "shops"), (snapshot) => {
+            markerList.forEach(m => m.setMap(null));
+            markerList = [];
+            const shops = [];
+            snapshot.forEach(doc => shops.push({ id: doc.id, ...doc.data() }));
+
+            // 🔥 [핵심] 최신 수정된 순서(updatedAt 내림차순)로 정렬 -> 0번 인덱스가 대표가 됨
+            shops.sort((a, b) => {
+                const dateA = a.updatedAt ? (a.updatedAt.seconds || 0) : 0;
+                const dateB = b.updatedAt ? (b.updatedAt.seconds || 0) : 0;
+                return dateB - dateA;
+            });
+
+            const groups = {};
+            shops.forEach(s => {
+                if(!s.lat) return;
+                const key = s.lat.toFixed(5) + "," + s.lng.toFixed(5);
+                if(!groups[key]) groups[key] = [];
+                groups[key].push(s);
+            });
+
+            for(const key in groups) {
+                const marker = createMarker(map, groups[key], (list) => {
+                    if (list.length === 1) openEditModal(list[0]);
+                    else showSelectModal(list);
+                });
+                if(marker) markerList.push(marker);
+            }
+        });
+
+        // 🔥 [수정됨] 목록 모달: 대표 설정 버튼 추가
+        function showSelectModal(list) {
+            const el = document.getElementById('selectList');
+            el.innerHTML = '';
+            list.forEach(shop => {
+                const div = document.createElement('div');
+                div.className = 'shop-select-item';
+                
+                // 클릭 영역 (수정하러 가기)
+                const infoDiv = document.createElement('div');
+                infoDiv.className = 'shop-select-info';
+                infoDiv.innerHTML = `<span class="shop-select-name">${shop.name}</span> <span style="font-size:11px; color:#888;">${shop.category || ''}</span>`;
+                infoDiv.onclick = () => { closeSelectModal(); openEditModal(shop); };
+
+                // 버튼 영역 (맨 위로 올리기)
+                const promoteBtn = document.createElement('button');
+                promoteBtn.className = 'btn-promote';
+                promoteBtn.innerHTML = '⭐ 대표로 위로 올리기';
+                promoteBtn.onclick = async (e) => {
+                    e.stopPropagation(); // 부모 클릭 방지
+                    if(confirm(`'${shop.name}'을(를) 이 위치의 대표(맨 위)로 설정하시겠습니까?`)) {
+                        try {
+                            // updatedAt을 현재 시간으로 업데이트 -> 자동 정렬 1등 됨
+                            await updateDoc(doc(db, "shops", shop.id), { updatedAt: new Date() });
+                            alert("완료! 대표 업체로 설정되었습니다.");
+                            closeSelectModal();
+                        } catch(err) { alert("오류: " + err.message); }
+                    }
+                };
+
+                div.appendChild(infoDiv);
+                div.appendChild(promoteBtn);
+                el.appendChild(div);
+            });
+            $('#selectModal').addClass('show');
         }
 
-        // 주소 -> 좌표 변환 함수
+        function openEditModal(d) {
+            $('#shopId').val(d.id); $('#shopName').val(d.name); $('#shopRegion').val(d.region); 
+            $('#shopArea').val(d.area); $('#shopMenu').val(d.menu);
+            $('#shopTotalScore').val(d.totalScore); $('#scoreTaste').val(d.scoreTaste);
+            $('#scoreValue').val(d.scoreValue); $('#scoreMood').val(d.scoreMood); $('#scoreKind').val(d.scoreKind);
+            $('#shopDesc').val(d.desc); $('#shopAddress').val(d.address);
+            $('#shopImage').val(d.imageUrl); $('#shopLink').val(d.link);
+            $('#shopLat').val(d.lat); $('#shopLng').val(d.lng);
+            $('input[name="purpose"]').prop('checked', false);
+            if (d.purpose) (Array.isArray(d.purpose)?d.purpose:[d.purpose]).forEach(p=> $(`input[name="purpose"][value="${p}"]`).prop('checked', true));
+            $('input[name="category"]').prop('checked', false);
+            if (d.category) (Array.isArray(d.category)?d.category:[d.category]).forEach(c=> $(`input[name="category"][value="${c}"]`).prop('checked', true));
+            
+            // 🔥 삭제 버튼 강제 표시
+            $('#btnDelete').show(); 
+            $('.modal-title').text('📝 정보 수정'); $('#shopModal').addClass('show');
+        }
+
         async function geocodeAddress(address) {
-            return new Promise((resolve, reject) => {
+            return new Promise((resolve) => {
                 if (!address) return resolve(null);
-                
-                console.log("주소 검색 시작:", address);
-
-                // 네이버 지도에 물어보기
                 naver.maps.Service.geocode({ query: address }, function(status, response) {
-                    
-                    if (status !== naver.maps.Service.Status.OK) {
-                        console.log("검색 실패. Status:", status);
-                        return resolve(null);
-                    }
-
-                    // v2 방식 (최신)
-                    if (response.v2 && response.v2.addresses && response.v2.addresses.length > 0) {
-                        const item = response.v2.addresses[0];
-                        resolve({ lat: parseFloat(item.y), lng: parseFloat(item.x) });
-                    } 
-                    // v1 방식 (구형 호환)
-                    else if (response.result && response.result.items && response.result.items.length > 0) {
-                        const item = response.result.items[0];
-                        resolve({ lat: parseFloat(item.point.y || item.y), lng: parseFloat(item.point.x || item.x) });
-                    } 
-                    else {
-                        console.log("검색 결과 0개");
-                        resolve(null);
-                    }
+                    if (status === naver.maps.Service.Status.OK) {
+                        if (response.v2 && response.v2.addresses.length > 0) resolve({ lat: parseFloat(response.v2.addresses[0].y), lng: parseFloat(response.v2.addresses[0].x) });
+                        else if (response.result && response.result.items.length > 0) resolve({ lat: parseFloat(response.result.items[0].point.y), lng: parseFloat(response.result.items[0].point.x) });
+                        else resolve(null);
+                    } else resolve(null);
                 });
             });
         }
 
-        // 저장 버튼 눌렀을 때
         window.saveShop = async function() {
-            var id = $('#shopId').val(); 
-            var purposes = [], categories = [];
-            $('input[name="purpose"]:checked').each(function() { purposes.push($(this).val()); });
-            $('input[name="category"]:checked').each(function() { categories.push($(this).val()); });
-
-            var inputAddress = $('#shopAddress').val();
-            var currentLat = parseFloat($('#shopLat').val()); // 핀으로 찍은 좌표
-            var currentLng = parseFloat($('#shopLng').val());
-
+            var id = $('#shopId').val();
             var data = {
-                name: $('#shopName').val(), 
-                category: categories, region: $('#shopRegion').val(), purpose: purposes, 
-                area: $('#shopArea').val(), menu: $('#shopMenu').val(),
+                name: $('#shopName').val(),
+                category: [], purpose: [],
+                region: $('#shopRegion').val(), area: $('#shopArea').val(), menu: $('#shopMenu').val(),
                 totalScore: $('#shopTotalScore').val(), scoreTaste: $('#scoreTaste').val(), scoreValue: $('#scoreValue').val(),
                 scoreMood: $('#scoreMood').val(), scoreKind: $('#scoreKind').val(),
-                desc: $('#shopDesc').val(), address: inputAddress, imageUrl: $('#shopImage').val(), link: $('#shopLink').val(),
-                updatedAt: new Date()
+                desc: $('#shopDesc').val(), address: $('#shopAddress').val(), imageUrl: $('#shopImage').val(), link: $('#shopLink').val(),
+                lat: parseFloat($('#shopLat').val()), lng: parseFloat($('#shopLng').val()), updatedAt: new Date()
             };
+            $('input[name="category"]:checked').each(function() { data.category.push($(this).val()); });
+            $('input[name="purpose"]:checked').each(function() { data.purpose.push($(this).val()); });
 
-            if (!data.name) { alert("업체명을 입력하세요."); return; }
+            if (!data.name) { alert("업체명 입력 필수"); return; }
 
-            // 1. 주소가 있으면 검색 시도
-            let geocodeSuccess = false;
-            if (inputAddress) {
-                const res = await geocodeAddress(inputAddress);
-                if (res) {
-                    data.lat = res.lat; 
-                    data.lng = res.lng;
-                    geocodeSuccess = true;
-                    console.log("주소 검색 성공:", res);
-                }
-            }
-
-            // 2. 위치 결정 (주소 실패 시 처리)
-            if (!geocodeSuccess) {
-                // 지도에 찍어둔 핀이라도 있는 경우
-                if (!isNaN(currentLat) && !isNaN(currentLng)) {
-                    if (inputAddress) {
-                        // 주소는 썼는데 검색은 실패한 경우
-                        if(confirm("입력하신 주소 위치를 못 찾겠습니다.\n(주소를 조금 더 짧게 써보세요)\n\n대신 지금 지도에 표시된 핀 위치로 저장할까요?")) {
-                            data.lat = currentLat;
-                            data.lng = currentLng;
-                        } else {
-                            return; // 저장 취소
-                        }
-                    } else {
-                        // 주소 안 쓰고 핀으로만 등록하는 경우
-                        data.lat = currentLat;
-                        data.lng = currentLng;
-                    }
-                } else {
-                    // 핀도 없고 주소 검색도 실패한 경우
-                    alert("위치를 찾을 수 없습니다.\n\n1. 정확한 '도로명 주소'를 입력하거나\n2. 취소 후 지도를 클릭해서 위치를 잡아주세요.");
+            // 중복 방지 (신규 등록 시)
+            if (!id && data.address) {
+                const q = query(collection(db, "shops"), where("address", "==", data.address));
+                const snap = await getDocs(q);
+                if (!snap.empty) {
+                    alert(`⛔ 이미 등록된 주소입니다.\n업체명: ${snap.docs[0].data().name}`);
                     return;
                 }
             }
 
+            if (!id && data.address && isNaN(data.lat)) {
+                const res = await geocodeAddress(data.address);
+                if (res) { data.lat = res.lat; data.lng = res.lng; }
+                else if (!confirm("주소 위치 못찾음. 그냥 등록?")) return;
+            }
+
             try {
-                if (id) { await updateDoc(doc(db, "shops", id), data); alert("수정되었습니다."); } 
-                else { data.createdAt = new Date(); await addDoc(collection(db, "shops"), data); alert("등록되었습니다."); }
-                closeModal();
-            } catch (err) { alert("저장 실패: " + err.message); }
+                if (id) await updateDoc(doc(db, "shops", id), data);
+                else { data.createdAt = new Date(); await addDoc(collection(db, "shops"), data); }
+                alert("저장됨"); closeModal();
+            } catch (e) { alert("에러: " + e.message); }
         }
 
+        window.processBulkData = async function() {
+            const raw = $('#bulkDataInput').val();
+            if(!raw) return alert("데이터 없음");
+            try {
+                const list = JSON.parse(raw);
+                if(!confirm(list.length + "개 처리 시작?")) return;
+                const status = $('#bulkStatus');
+                
+                for(let i=0; i<list.length; i++) {
+                    const item = list[i];
+                    status.text(`${i+1}/${list.length} : ${item.name}`);
+                    
+                    const q = query(collection(db, "shops"), where("name", "==", item.name));
+                    const snap = await getDocs(q);
+                    
+                    if(item.address && (!item.lat || !item.lng)) {
+                        const res = await geocodeAddress(item.address);
+                        if(res) { item.lat = res.lat; item.lng = res.lng; }
+                    }
+                    
+                    item.updatedAt = new Date();
+                    if(!snap.empty) {
+                        await updateDoc(doc(db, "shops", snap.docs[0].id), item);
+                    } else {
+                        item.createdAt = new Date();
+                        await addDoc(collection(db, "shops"), item);
+                    }
+                    await new Promise(r=>setTimeout(r, 100));
+                }
+                alert("완료"); closeBulkModal();
+            } catch(e) { alert("JSON 에러: " + e.message); }
+        }
+
+        // 🔥 [수리완료] 삭제 버튼 동작
         $('#btnDelete').on('click', async function() {
             var id = $('#shopId').val();
-            if (confirm("정말 삭제하시겠습니까?")) {
-                try { await deleteDoc(doc(db, "shops", id)); alert("삭제되었습니다."); closeModal(); } catch (err) { alert("오류: " + err.message); }
+            if (!id) { alert("삭제할 대상을 찾을 수 없습니다."); return; }
+            
+            if (confirm("정말 삭제하시겠습니까? (복구 불가)")) {
+                try { 
+                    await deleteDoc(doc(db, "shops", id)); 
+                    alert("삭제되었습니다."); 
+                    closeModal(); 
+                } catch (err) { 
+                    alert("삭제 실패: " + err.message); 
+                }
             }
         });
 
-        // 지도 클릭 시 (핀 찍기)
         naver.maps.Event.addListener(map, 'click', function(e) {
-            $('#shopId').val(''); 
-            $('input[type="text"], input[type="number"], textarea').val('');
-            $('select').val('');
-            $('input[type="checkbox"]').prop('checked', false);
-            
-            // 클릭한 좌표 저장
-            $('#shopLat').val(e.coord.lat()); 
-            $('#shopLng').val(e.coord.lng());
-            $('#shopTotalScore').val(5.0);
-            
-            $('#btnDelete').hide(); 
-            $('.modal-title').text('✨ 핀 위치에 등록'); 
-            $('#shopModal').addClass('show');
-        });
-
-        onSnapshot(collection(db, "shops"), (snapshot) => {
-            snapshot.docChanges().forEach((change) => {
-                const data = change.doc.data();
-                const id = change.doc.id;
-                
-                if (change.type === "added" || change.type === "modified") {
-                    if (overlayMap[id]) overlayMap[id].setMap(null);
-                    
-                    overlayMap[id] = createMarker(map, {
-                        ...data, id: id,
-                        onClick: function(d) {
-                            $('#shopId').val(id); 
-                            $('#shopName').val(d.name); 
-                            $('#shopRegion').val(d.region); $('#shopArea').val(d.area); $('#shopMenu').val(d.menu);
-                            $('#shopTotalScore').val(d.totalScore); $('#scoreTaste').val(d.scoreTaste);
-                            $('#scoreValue').val(d.scoreValue); $('#scoreMood').val(d.scoreMood); $('#scoreKind').val(d.scoreKind);
-                            $('#shopDesc').val(d.desc); $('#shopAddress').val(d.address);
-                            $('#shopImage').val(d.imageUrl); $('#shopLink').val(d.link);
-                            $('#shopLat').val(d.lat); $('#shopLng').val(d.lng);
-                            
-                            $('input[name="purpose"]').prop('checked', false);
-                            if (d.purpose) { (Array.isArray(d.purpose) ? d.purpose : [d.purpose]).forEach(p => $(`input[name="purpose"][value="${p}"]`).prop('checked', true)); }
-                            $('input[name="category"]').prop('checked', false);
-                            if (d.category) { (Array.isArray(d.category) ? d.category : [d.category]).forEach(c => $(`input[name="category"][value="${c}"]`).prop('checked', true)); }
-
-                            $('#btnDelete').show(); $('.modal-title').text('📝 정보 수정'); $('#shopModal').addClass('show');
-                        }
-                    });
-                } else if (change.type === "removed") {
-                    if (overlayMap[id]) { overlayMap[id].setMap(null); delete overlayMap[id]; }
-                }
-            });
+            $('#shopId').val(''); $('input, textarea').val(''); $('select').val(''); $('input[type="checkbox"]').prop('checked', false);
+            $('#shopLat').val(e.coord.lat()); $('#shopLng').val(e.coord.lng()); $('#shopTotalScore').val(5.0);
+            $('#btnDelete').hide(); $('.modal-title').text('✨ 위치 선택됨'); $('#shopModal').addClass('show');
         });
     </script>
 </body>
