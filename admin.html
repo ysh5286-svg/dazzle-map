@@ -16,13 +16,13 @@
         .shop-select-info { flex: 1; cursor: pointer; }
         .btn-promote { background: #fff; border: 1px solid #f1c40f; color: #f39c12; font-size: 11px; padding: 4px 8px; border-radius: 4px; cursor: pointer; margin-left: 8px; white-space: nowrap; }
         .btn-promote:hover { background: #f1c40f; color: white; }
-
-        /* 🔥 [NEW] 관리자 검색창 스타일 */
-        .admin-search-input {
-            padding: 6px 10px; border: 1px solid #c0392b; border-radius: 5px; 
-            font-size: 13px; width: 150px; outline: none; color: #333;
-        }
+        .admin-search-input { padding: 6px 10px; border: 1px solid #c0392b; border-radius: 5px; font-size: 13px; width: 150px; outline: none; color: #333; }
         .admin-search-input::placeholder { color: #aaa; }
+
+        /* 🔥 [NEW] 중복 확인 메시지 스타일 */
+        .dup-msg { font-size: 12px; margin-left: 10px; font-weight: bold; }
+        .dup-error { color: #e74c3c; }
+        .dup-ok { color: #2ecc71; }
     </style>
 </head>
 <body>
@@ -30,7 +30,7 @@
         <div class="search-box-wrapper" style="background:#c0392b; color:white; flex-direction:row; justify-content:space-between; align-items:center;">
             <div style="display:flex; align-items:center; gap:10px;">
                 <strong>🔒 관리자</strong>
-                <input type="text" id="adminSearch" class="admin-search-input" placeholder="🔍 업체명 검색(중복확인)">
+                <input type="text" id="adminSearch" class="admin-search-input" placeholder="🔍 마커 찾기">
             </div>
             <div style="display:flex; gap:5px;">
                 <button onclick="openBulkModal()" style="background:#f1c40f; color:#333; border:none; padding:6px 10px; border-radius:5px; font-weight:bold; cursor:pointer; font-size:12px;">⚡ 일괄등록</button>
@@ -59,7 +59,14 @@
             <button class="modal-close-x" onclick="closeModal()">×</button>
             <h3 class="modal-title">업체 정보 관리</h3>
             <input type="hidden" id="shopId"><input type="hidden" id="shopLat"><input type="hidden" id="shopLng">
-            <div class="form-group"><label class="form-label">업체명</label><input type="text" id="shopName" class="form-input"></div>
+            
+            <div class="form-group">
+                <label class="form-label">
+                    업체명 <span id="dupMsg" class="dup-msg"></span>
+                </label>
+                <input type="text" id="shopName" class="form-input" placeholder="상호명을 입력하세요">
+            </div>
+
             <div class="form-grid">
                 <div class="form-group"><label class="form-label">업종</label>
                     <div class="multi-select-container">
@@ -98,7 +105,19 @@
                 <div class="form-group"><label class="form-label">대표메뉴</label><input type="text" id="shopMenu" class="form-input"></div>
             </div>
             
-            <div style="background:#f8f9fa; padding:10px; margin-bottom:10px;"><label class="form-label">⭐ 평점 (0.25단위)</label><div class="form-grid"><div class="form-group"><label class="form-label">총점</label><input type="number" id="shopTotalScore" class="form-input" step="0.25"></div><div class="form-group"><label class="form-label">맛</label><input type="number" id="scoreTaste" class="form-input" step="0.25"></div><div class="form-group"><label class="form-label">가성비</label><input type="number" id="scoreValue" class="form-input" step="0.25"></div><div class="form-group"><label class="form-label">분위기</label><input type="number" id="scoreMood" class="form-input" step="0.25"></div><div class="form-group"><label class="form-label">친절도</label><input type="number" id="scoreKind" class="form-input" step="0.25"></div></div></div>
+            <div style="background:#f8f9fa; padding:10px; margin-bottom:10px;">
+                <label class="form-label">⭐ 평점 (0.25단위)</label>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label" style="color:#c0392b;">총점 (비워두면 자동계산)</label>
+                        <input type="number" id="shopTotalScore" class="form-input" step="0.1" style="font-weight:bold;" placeholder="자동">
+                    </div>
+                    <div class="form-group"><label class="form-label">맛</label><input type="number" id="scoreTaste" class="form-input calc-score" step="0.25"></div>
+                    <div class="form-group"><label class="form-label">가성비</label><input type="number" id="scoreValue" class="form-input calc-score" step="0.25"></div>
+                    <div class="form-group"><label class="form-label">분위기</label><input type="number" id="scoreMood" class="form-input calc-score" step="0.25"></div>
+                    <div class="form-group"><label class="form-label">친절도</label><input type="number" id="scoreKind" class="form-input calc-score" step="0.25"></div>
+                </div>
+            </div>
             
             <div class="form-group"><label class="form-label">설명</label><textarea id="shopDesc" class="form-textarea"></textarea></div>
             <div class="form-group"><label class="form-label">주소</label><input type="text" id="shopAddress" class="form-input"></div>
@@ -130,7 +149,7 @@
 
         var map = initMap();
         let markerList = [];
-        let allShopsData = []; // 검색을 위한 전체 데이터 보관용
+        let allShopsData = []; // 중복 체크를 위해 로컬에 저장
 
         window.closeModal = function() { $('#shopModal').removeClass('show'); }
         window.closeBulkModal = function() { $('#bulkModal').removeClass('show'); }
@@ -138,15 +157,15 @@
 
         window.openAddModal = function() {
             $('#shopId').val(''); 
-            $('input[type="text"], input[type="number"], textarea').val(''); 
-            $('select').val(''); 
+            $('input, textarea').val(''); $('select').val(''); 
             $('input[type="checkbox"]').prop('checked', false);
             
             $('#shopLat').val(''); $('#shopLng').val(''); 
             
-            // 🔥 [수정됨] 기본 총점 0으로 설정
-            $('#shopTotalScore').val(0); 
-            $('#scoreTaste').val(0); $('#scoreValue').val(0); $('#scoreMood').val(0); $('#scoreKind').val(0);
+            // 점수 초기화
+            $('#shopTotalScore').val(''); // 비워두기 (자동계산 유도)
+            $('.calc-score').val(0);
+            $('#dupMsg').text(''); // 중복 메시지 초기화
 
             $('#btnDelete').hide(); 
             $('.modal-title').text('✨ 개별 업체 추가'); 
@@ -154,23 +173,52 @@
         }
         window.openBulkModal = function() { $('#bulkDataInput').val(''); $('#bulkStatus').text(''); $('#bulkModal').addClass('show'); }
 
-        // 데이터 로드 및 렌더링
+        // 🔥 [NEW] 실시간 중복 체크 (DB조회 X, 로컬 데이터 활용)
+        $('#shopName').on('input', function() {
+            const name = $(this).val().trim();
+            const msg = $('#dupMsg');
+            const currentId = $('#shopId').val(); // 수정 모드일 때 자기 자신 제외용
+
+            if (!name) { msg.text(''); return; }
+
+            // 기존 데이터 중 이름이 같은 게 있는지 확인 (수정 중인 내 ID는 제외)
+            const exists = allShopsData.some(shop => shop.name === name && shop.id !== currentId);
+
+            if (exists) {
+                msg.text('⛔ 이미 등록된 업체입니다!').removeClass('dup-ok').addClass('dup-error');
+            } else {
+                msg.text('✅ 등록 가능한 업체입니다.').removeClass('dup-error').addClass('dup-ok');
+            }
+        });
+
+        // 점수 입력 시 총점 미리보기 (입력 안하면 나중에 저장할때 계산됨)
+        $('.calc-score').on('input change', function() {
+            const taste = parseFloat($('#scoreTaste').val()) || 0;
+            const value = parseFloat($('#scoreValue').val()) || 0;
+            const mood = parseFloat($('#scoreMood').val()) || 0;
+            const kind = parseFloat($('#scoreKind').val()) || 0;
+            
+            // 사용자가 총점을 직접 건드리지 않았을 때만 자동 채움
+            if ($('#shopTotalScore').val() === '') {
+                const avg = (taste + value + mood + kind) / 4;
+                // 여기서는 보여주기만 하고, 실제 저장은 saveShop에서 처리 가능
+                // 사용자 편의를 위해 placeholder 느낌으로 놔둘 수도 있음
+            }
+        });
+
         onSnapshot(collection(db, "shops"), (snapshot) => {
             allShopsData = [];
             snapshot.forEach(doc => allShopsData.push({ id: doc.id, ...doc.data() }));
             
-            // 정렬
             allShopsData.sort((a, b) => {
                 const dateA = a.updatedAt ? (a.updatedAt.seconds || 0) : 0;
                 const dateB = b.updatedAt ? (b.updatedAt.seconds || 0) : 0;
                 return dateB - dateA;
             });
 
-            // 초기 렌더링
             renderMarkers(allShopsData);
         });
 
-        // 🔥 [NEW] 마커 렌더링 함수 (검색 필터 적용을 위해 분리)
         function renderMarkers(shops) {
             markerList.forEach(m => m.setMap(null));
             markerList = [];
@@ -192,10 +240,8 @@
             }
         }
 
-        // 🔥 [NEW] 검색 기능 (실시간 필터링)
         $('#adminSearch').on('keyup', function() {
             const keyword = $(this).val().toLowerCase();
-            // 이름에 키워드가 포함된 가게만 필터링
             const filteredShops = allShopsData.filter(shop => shop.name.toLowerCase().includes(keyword));
             renderMarkers(filteredShops);
         });
@@ -237,15 +283,14 @@
             $('#shopDesc').val(d.desc); $('#shopAddress').val(d.address);
             $('#shopImage').val(d.imageUrl); $('#shopLink').val(d.link);
             $('#shopLat').val(d.lat); $('#shopLng').val(d.lng);
-            
+            $('#dupMsg').text(''); // 수정 시 중복 메시지 초기화
+
             $('input[name="purpose"]').prop('checked', false);
             if (d.purpose) (Array.isArray(d.purpose)?d.purpose:[d.purpose]).forEach(p=> $(`input[name="purpose"][value="${p}"]`).prop('checked', true));
-            
             $('input[name="category"]').prop('checked', false);
             if (d.category) (Array.isArray(d.category)?d.category:[d.category]).forEach(c=> $(`input[name="category"][value="${c}"]`).prop('checked', true));
             
-            $('#btnDelete').show(); 
-            $('.modal-title').text('📝 정보 수정'); $('#shopModal').addClass('show');
+            $('#btnDelete').show(); $('.modal-title').text('📝 정보 수정'); $('#shopModal').addClass('show');
         }
 
         async function geocodeAddress(address) {
@@ -263,12 +308,28 @@
 
         window.saveShop = async function() {
             var id = $('#shopId').val();
+            
+            // 점수 가져오기
+            const taste = parseFloat($('#scoreTaste').val()) || 0;
+            const value = parseFloat($('#scoreValue').val()) || 0;
+            const mood = parseFloat($('#scoreMood').val()) || 0;
+            const kind = parseFloat($('#scoreKind').val()) || 0;
+            
+            // 🔥 [핵심] 총점 칸이 비어있거나 0이면 자동 계산, 아니면 입력값 사용
+            let finalTotal = parseFloat($('#shopTotalScore').val());
+            if (!finalTotal || finalTotal === 0) {
+                finalTotal = ((taste + value + mood + kind) / 4).toFixed(1);
+            }
+
             var data = {
                 name: $('#shopName').val(),
                 category: [], purpose: [],
                 region: $('#shopRegion').val(), area: $('#shopArea').val(), menu: $('#shopMenu').val(),
-                totalScore: $('#shopTotalScore').val(), scoreTaste: $('#scoreTaste').val(), scoreValue: $('#scoreValue').val(),
-                scoreMood: $('#scoreMood').val(), scoreKind: $('#scoreKind').val(),
+                
+                totalScore: finalTotal, // 계산된 총점 저장
+                scoreTaste: taste, scoreValue: value,
+                scoreMood: mood, scoreKind: kind,
+                
                 desc: $('#shopDesc').val(), address: $('#shopAddress').val(), imageUrl: $('#shopImage').val(), link: $('#shopLink').val(),
                 lat: parseFloat($('#shopLat').val()), lng: parseFloat($('#shopLng').val()), updatedAt: new Date()
             };
@@ -332,16 +393,13 @@
         }
 
         naver.maps.Event.addListener(map, 'click', function(e) {
-            $('#shopId').val(''); 
-            $('input[type="text"], input[type="number"], textarea').val(''); 
-            $('select').val(''); 
+            $('#shopId').val(''); $('input, textarea').val(''); $('select').val(''); 
             $('input[type="checkbox"]').prop('checked', false);
             
             $('#shopLat').val(e.coord.lat()); $('#shopLng').val(e.coord.lng()); 
             
-            // 🔥 [수정됨] 클릭 시에도 기본값 0으로 설정
-            $('#shopTotalScore').val(0); 
-            $('#scoreTaste').val(0); $('#scoreValue').val(0); $('#scoreMood').val(0); $('#scoreKind').val(0);
+            $('#shopTotalScore').val(''); $('.calc-score').val(0);
+            $('#dupMsg').text('');
 
             $('#btnDelete').hide(); $('.modal-title').text('✨ 위치 선택됨'); $('#shopModal').addClass('show');
         });
