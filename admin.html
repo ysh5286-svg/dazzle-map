@@ -16,12 +16,22 @@
         .shop-select-info { flex: 1; cursor: pointer; }
         .btn-promote { background: #fff; border: 1px solid #f1c40f; color: #f39c12; font-size: 11px; padding: 4px 8px; border-radius: 4px; cursor: pointer; margin-left: 8px; white-space: nowrap; }
         .btn-promote:hover { background: #f1c40f; color: white; }
+
+        /* 🔥 [NEW] 관리자 검색창 스타일 */
+        .admin-search-input {
+            padding: 6px 10px; border: 1px solid #c0392b; border-radius: 5px; 
+            font-size: 13px; width: 150px; outline: none; color: #333;
+        }
+        .admin-search-input::placeholder { color: #aaa; }
     </style>
 </head>
 <body>
     <div class="search-container">
         <div class="search-box-wrapper" style="background:#c0392b; color:white; flex-direction:row; justify-content:space-between; align-items:center;">
-            <strong>🔒 관리자</strong>
+            <div style="display:flex; align-items:center; gap:10px;">
+                <strong>🔒 관리자</strong>
+                <input type="text" id="adminSearch" class="admin-search-input" placeholder="🔍 업체명 검색(중복확인)">
+            </div>
             <div style="display:flex; gap:5px;">
                 <button onclick="openBulkModal()" style="background:#f1c40f; color:#333; border:none; padding:6px 10px; border-radius:5px; font-weight:bold; cursor:pointer; font-size:12px;">⚡ 일괄등록</button>
                 <button onclick="openAddModal()" style="background:#2c3e50; color:white; border:none; padding:6px 10px; border-radius:5px; font-weight:bold; cursor:pointer; font-size:12px;">➕ 개별등록</button>
@@ -51,7 +61,7 @@
             <input type="hidden" id="shopId"><input type="hidden" id="shopLat"><input type="hidden" id="shopLng">
             <div class="form-group"><label class="form-label">업체명</label><input type="text" id="shopName" class="form-input"></div>
             <div class="form-grid">
-                <div class="form-group"><label class="form-label">업종 (다중 선택 가능)</label>
+                <div class="form-group"><label class="form-label">업종</label>
                     <div class="multi-select-container">
                         <label class="check-item"><input type="checkbox" name="category" value="한식"> 한식</label>
                         <label class="check-item"><input type="checkbox" name="category" value="중식"> 중식</label>
@@ -70,7 +80,7 @@
                 </div>
                 <div class="form-group"><label class="form-label">지역</label><select id="shopRegion" class="form-select"><option value="">선택</option><option value="수성구">수성구</option><option value="중구">중구</option><option value="동구">동구</option><option value="서구">서구</option><option value="남구">남구</option><option value="북구">북구</option><option value="달서구">달서구</option><option value="달성군">달성군</option><option value="군위군">군위군</option><option value="칠곡군">칠곡군</option><option value="경산">경산</option><option value="청도">청도</option><option value="대구 밖">대구 밖</option></select></div>
             </div>
-            <div class="form-group"><label class="form-label">목적 (다중 선택 가능)</label>
+            <div class="form-group"><label class="form-label">목적</label>
                 <div class="multi-select-container">
                     <label class="check-item"><input type="checkbox" name="purpose" value="노포"> 노포</label>
                     <label class="check-item"><input type="checkbox" name="purpose" value="데이트"> 데이트</label>
@@ -87,13 +97,13 @@
                 <div class="form-group"><label class="form-label">상권</label><input type="text" id="shopArea" class="form-input"></div>
                 <div class="form-group"><label class="form-label">대표메뉴</label><input type="text" id="shopMenu" class="form-input"></div>
             </div>
-            <div style="background:#f8f9fa; padding:10px; margin-bottom:10px;"><label class="form-label">⭐ 평점</label><div class="form-grid"><div class="form-group"><label class="form-label">총점</label><input type="number" id="shopTotalScore" class="form-input" step="0.1"></div><div class="form-group"><label class="form-label">맛</label><input type="number" id="scoreTaste" class="form-input" step="0.1"></div><div class="form-group"><label class="form-label">가성비</label><input type="number" id="scoreValue" class="form-input" step="0.1"></div><div class="form-group"><label class="form-label">분위기</label><input type="number" id="scoreMood" class="form-input" step="0.1"></div><div class="form-group"><label class="form-label">친절도</label><input type="number" id="scoreKind" class="form-input" step="0.1"></div></div></div>
+            
+            <div style="background:#f8f9fa; padding:10px; margin-bottom:10px;"><label class="form-label">⭐ 평점 (0.25단위)</label><div class="form-grid"><div class="form-group"><label class="form-label">총점</label><input type="number" id="shopTotalScore" class="form-input" step="0.25"></div><div class="form-group"><label class="form-label">맛</label><input type="number" id="scoreTaste" class="form-input" step="0.25"></div><div class="form-group"><label class="form-label">가성비</label><input type="number" id="scoreValue" class="form-input" step="0.25"></div><div class="form-group"><label class="form-label">분위기</label><input type="number" id="scoreMood" class="form-input" step="0.25"></div><div class="form-group"><label class="form-label">친절도</label><input type="number" id="scoreKind" class="form-input" step="0.25"></div></div></div>
+            
             <div class="form-group"><label class="form-label">설명</label><textarea id="shopDesc" class="form-textarea"></textarea></div>
             <div class="form-group"><label class="form-label">주소</label><input type="text" id="shopAddress" class="form-input"></div>
             <div class="form-group"><label class="form-label">이미지 URL</label><input type="text" id="shopImage" class="form-input"></div>
-            
             <div class="form-group"><label class="form-label">네이버 플레이스 링크</label><input type="text" id="shopLink" class="form-input"></div>
-            
             <div class="modal-btns">
                 <button class="btn-delete" id="btnDelete" onclick="deleteCurrentShop()">삭제</button>
                 <button class="btn-save" onclick="saveShop()">저장</button>
@@ -120,6 +130,7 @@
 
         var map = initMap();
         let markerList = [];
+        let allShopsData = []; // 검색을 위한 전체 데이터 보관용
 
         window.closeModal = function() { $('#shopModal').removeClass('show'); }
         window.closeBulkModal = function() { $('#bulkModal').removeClass('show'); }
@@ -129,27 +140,40 @@
             $('#shopId').val(''); 
             $('input[type="text"], input[type="number"], textarea').val(''); 
             $('select').val(''); 
-            // 🔥 [중요] 체크박스 초기화 (모두 해제)
             $('input[type="checkbox"]').prop('checked', false);
             
-            $('#shopLat').val(''); $('#shopLng').val(''); $('#shopTotalScore').val(5.0);
+            $('#shopLat').val(''); $('#shopLng').val(''); 
+            
+            // 🔥 [수정됨] 기본 총점 0으로 설정
+            $('#shopTotalScore').val(0); 
+            $('#scoreTaste').val(0); $('#scoreValue').val(0); $('#scoreMood').val(0); $('#scoreKind').val(0);
+
             $('#btnDelete').hide(); 
             $('.modal-title').text('✨ 개별 업체 추가'); 
             $('#shopModal').addClass('show');
         }
         window.openBulkModal = function() { $('#bulkDataInput').val(''); $('#bulkStatus').text(''); $('#bulkModal').addClass('show'); }
 
+        // 데이터 로드 및 렌더링
         onSnapshot(collection(db, "shops"), (snapshot) => {
-            markerList.forEach(m => m.setMap(null));
-            markerList = [];
-            const shops = [];
-            snapshot.forEach(doc => shops.push({ id: doc.id, ...doc.data() }));
-
-            shops.sort((a, b) => {
+            allShopsData = [];
+            snapshot.forEach(doc => allShopsData.push({ id: doc.id, ...doc.data() }));
+            
+            // 정렬
+            allShopsData.sort((a, b) => {
                 const dateA = a.updatedAt ? (a.updatedAt.seconds || 0) : 0;
                 const dateB = b.updatedAt ? (b.updatedAt.seconds || 0) : 0;
                 return dateB - dateA;
             });
+
+            // 초기 렌더링
+            renderMarkers(allShopsData);
+        });
+
+        // 🔥 [NEW] 마커 렌더링 함수 (검색 필터 적용을 위해 분리)
+        function renderMarkers(shops) {
+            markerList.forEach(m => m.setMap(null));
+            markerList = [];
 
             const groups = {};
             shops.forEach(s => {
@@ -166,6 +190,14 @@
                 });
                 if(marker) markerList.push(marker);
             }
+        }
+
+        // 🔥 [NEW] 검색 기능 (실시간 필터링)
+        $('#adminSearch').on('keyup', function() {
+            const keyword = $(this).val().toLowerCase();
+            // 이름에 키워드가 포함된 가게만 필터링
+            const filteredShops = allShopsData.filter(shop => shop.name.toLowerCase().includes(keyword));
+            renderMarkers(filteredShops);
         });
 
         function showSelectModal(list) {
@@ -206,7 +238,6 @@
             $('#shopImage').val(d.imageUrl); $('#shopLink').val(d.link);
             $('#shopLat').val(d.lat); $('#shopLng').val(d.lng);
             
-            // 🔥 [중요] 기존 체크 해제 후, 해당되는 것만 체크
             $('input[name="purpose"]').prop('checked', false);
             if (d.purpose) (Array.isArray(d.purpose)?d.purpose:[d.purpose]).forEach(p=> $(`input[name="purpose"][value="${p}"]`).prop('checked', true));
             
@@ -242,7 +273,6 @@
                 lat: parseFloat($('#shopLat').val()), lng: parseFloat($('#shopLng').val()), updatedAt: new Date()
             };
             
-            // 🔥 [핵심 수정] :checked 된 것만 가져오도록 수정됨
             $('input[name="category"]:checked').each(function() { data.category.push($(this).val()); });
             $('input[name="purpose"]:checked').each(function() { data.purpose.push($(this).val()); });
 
@@ -305,10 +335,14 @@
             $('#shopId').val(''); 
             $('input[type="text"], input[type="number"], textarea').val(''); 
             $('select').val(''); 
-            // 🔥 [중요] 체크박스 초기화
             $('input[type="checkbox"]').prop('checked', false);
             
-            $('#shopLat').val(e.coord.lat()); $('#shopLng').val(e.coord.lng()); $('#shopTotalScore').val(5.0);
+            $('#shopLat').val(e.coord.lat()); $('#shopLng').val(e.coord.lng()); 
+            
+            // 🔥 [수정됨] 클릭 시에도 기본값 0으로 설정
+            $('#shopTotalScore').val(0); 
+            $('#scoreTaste').val(0); $('#scoreValue').val(0); $('#scoreMood').val(0); $('#scoreKind').val(0);
+
             $('#btnDelete').hide(); $('.modal-title').text('✨ 위치 선택됨'); $('#shopModal').addClass('show');
         });
     </script>
