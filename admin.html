@@ -12,7 +12,6 @@
         .bulk-textarea { width: 100%; height: 200px; font-size: 12px; font-family: monospace; padding: 10px; border: 1px solid #ccc; background: #f4f4f4; margin-bottom: 10px; }
         .bulk-status { font-size: 12px; color: #e74c3c; margin-top: 5px; font-weight: bold; max-height: 100px; overflow-y: auto; }
         
-        /* 선택 모달 리스트 스타일 강화 */
         .shop-select-item { display: flex; justify-content: space-between; align-items: center; }
         .shop-select-info { flex: 1; cursor: pointer; }
         .btn-promote { background: #fff; border: 1px solid #f1c40f; color: #f39c12; font-size: 11px; padding: 4px 8px; border-radius: 4px; cursor: pointer; margin-left: 8px; white-space: nowrap; }
@@ -52,7 +51,7 @@
             <input type="hidden" id="shopId"><input type="hidden" id="shopLat"><input type="hidden" id="shopLng">
             <div class="form-group"><label class="form-label">업체명</label><input type="text" id="shopName" class="form-input"></div>
             <div class="form-grid">
-                <div class="form-group"><label class="form-label">업종</label>
+                <div class="form-group"><label class="form-label">업종 (다중 선택 가능)</label>
                     <div class="multi-select-container">
                         <label class="check-item"><input type="checkbox" name="category" value="한식"> 한식</label>
                         <label class="check-item"><input type="checkbox" name="category" value="중식"> 중식</label>
@@ -71,7 +70,7 @@
                 </div>
                 <div class="form-group"><label class="form-label">지역</label><select id="shopRegion" class="form-select"><option value="">선택</option><option value="수성구">수성구</option><option value="중구">중구</option><option value="동구">동구</option><option value="서구">서구</option><option value="남구">남구</option><option value="북구">북구</option><option value="달서구">달서구</option><option value="달성군">달성군</option><option value="군위군">군위군</option><option value="칠곡군">칠곡군</option><option value="경산">경산</option><option value="청도">청도</option><option value="대구 밖">대구 밖</option></select></div>
             </div>
-            <div class="form-group"><label class="form-label">목적</label>
+            <div class="form-group"><label class="form-label">목적 (다중 선택 가능)</label>
                 <div class="multi-select-container">
                     <label class="check-item"><input type="checkbox" name="purpose" value="노포"> 노포</label>
                     <label class="check-item"><input type="checkbox" name="purpose" value="데이트"> 데이트</label>
@@ -92,8 +91,13 @@
             <div class="form-group"><label class="form-label">설명</label><textarea id="shopDesc" class="form-textarea"></textarea></div>
             <div class="form-group"><label class="form-label">주소</label><input type="text" id="shopAddress" class="form-input"></div>
             <div class="form-group"><label class="form-label">이미지 URL</label><input type="text" id="shopImage" class="form-input"></div>
-            <div class="form-group"><label class="form-label">링크</label><input type="text" id="shopLink" class="form-input"></div>
-            <div class="modal-btns"><button class="btn-delete" id="btnDelete">삭제</button><button class="btn-save" onclick="saveShop()">저장</button></div>
+            
+            <div class="form-group"><label class="form-label">네이버 플레이스 링크</label><input type="text" id="shopLink" class="form-input"></div>
+            
+            <div class="modal-btns">
+                <button class="btn-delete" id="btnDelete" onclick="deleteCurrentShop()">삭제</button>
+                <button class="btn-save" onclick="saveShop()">저장</button>
+            </div>
         </div>
     </div>
 
@@ -109,7 +113,6 @@
 
     <script type="module">
         import { db, initMap, createMarker } from "./common.js";
-        // 🔥 deleteDoc import 확인 완료
         import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         var password = prompt("관리자 비밀번호:");
@@ -123,20 +126,25 @@
         window.closeSelectModal = function() { $('#selectModal').removeClass('show'); }
 
         window.openAddModal = function() {
-            $('#shopId').val(''); $('input, textarea').val(''); $('select').val(''); $('input[type="checkbox"]').prop('checked', false);
+            $('#shopId').val(''); 
+            $('input[type="text"], input[type="number"], textarea').val(''); 
+            $('select').val(''); 
+            // 🔥 [중요] 체크박스 초기화 (모두 해제)
+            $('input[type="checkbox"]').prop('checked', false);
+            
             $('#shopLat').val(''); $('#shopLng').val(''); $('#shopTotalScore').val(5.0);
-            $('#btnDelete').hide(); $('.modal-title').text('✨ 개별 업체 추가'); $('#shopModal').addClass('show');
+            $('#btnDelete').hide(); 
+            $('.modal-title').text('✨ 개별 업체 추가'); 
+            $('#shopModal').addClass('show');
         }
         window.openBulkModal = function() { $('#bulkDataInput').val(''); $('#bulkStatus').text(''); $('#bulkModal').addClass('show'); }
 
-        // 지도 렌더링 (그룹핑 + 정렬)
         onSnapshot(collection(db, "shops"), (snapshot) => {
             markerList.forEach(m => m.setMap(null));
             markerList = [];
             const shops = [];
             snapshot.forEach(doc => shops.push({ id: doc.id, ...doc.data() }));
 
-            // 🔥 [핵심] 최신 수정된 순서(updatedAt 내림차순)로 정렬 -> 0번 인덱스가 대표가 됨
             shops.sort((a, b) => {
                 const dateA = a.updatedAt ? (a.updatedAt.seconds || 0) : 0;
                 const dateB = b.updatedAt ? (b.updatedAt.seconds || 0) : 0;
@@ -160,39 +168,31 @@
             }
         });
 
-        // 🔥 [수정됨] 목록 모달: 대표 설정 버튼 추가
         function showSelectModal(list) {
             const el = document.getElementById('selectList');
             el.innerHTML = '';
             list.forEach(shop => {
                 const div = document.createElement('div');
                 div.className = 'shop-select-item';
-                
-                // 클릭 영역 (수정하러 가기)
                 const infoDiv = document.createElement('div');
                 infoDiv.className = 'shop-select-info';
                 infoDiv.innerHTML = `<span class="shop-select-name">${shop.name}</span> <span style="font-size:11px; color:#888;">${shop.category || ''}</span>`;
                 infoDiv.onclick = () => { closeSelectModal(); openEditModal(shop); };
 
-                // 버튼 영역 (맨 위로 올리기)
                 const promoteBtn = document.createElement('button');
                 promoteBtn.className = 'btn-promote';
                 promoteBtn.innerHTML = '⭐ 대표로 위로 올리기';
                 promoteBtn.onclick = async (e) => {
-                    e.stopPropagation(); // 부모 클릭 방지
+                    e.stopPropagation();
                     if(confirm(`'${shop.name}'을(를) 이 위치의 대표(맨 위)로 설정하시겠습니까?`)) {
                         try {
-                            // updatedAt을 현재 시간으로 업데이트 -> 자동 정렬 1등 됨
                             await updateDoc(doc(db, "shops", shop.id), { updatedAt: new Date() });
                             alert("완료! 대표 업체로 설정되었습니다.");
                             closeSelectModal();
                         } catch(err) { alert("오류: " + err.message); }
                     }
                 };
-
-                div.appendChild(infoDiv);
-                div.appendChild(promoteBtn);
-                el.appendChild(div);
+                div.appendChild(infoDiv); div.appendChild(promoteBtn); el.appendChild(div);
             });
             $('#selectModal').addClass('show');
         }
@@ -205,12 +205,14 @@
             $('#shopDesc').val(d.desc); $('#shopAddress').val(d.address);
             $('#shopImage').val(d.imageUrl); $('#shopLink').val(d.link);
             $('#shopLat').val(d.lat); $('#shopLng').val(d.lng);
+            
+            // 🔥 [중요] 기존 체크 해제 후, 해당되는 것만 체크
             $('input[name="purpose"]').prop('checked', false);
             if (d.purpose) (Array.isArray(d.purpose)?d.purpose:[d.purpose]).forEach(p=> $(`input[name="purpose"][value="${p}"]`).prop('checked', true));
+            
             $('input[name="category"]').prop('checked', false);
             if (d.category) (Array.isArray(d.category)?d.category:[d.category]).forEach(c=> $(`input[name="category"][value="${c}"]`).prop('checked', true));
             
-            // 🔥 삭제 버튼 강제 표시
             $('#btnDelete').show(); 
             $('.modal-title').text('📝 정보 수정'); $('#shopModal').addClass('show');
         }
@@ -239,19 +241,17 @@
                 desc: $('#shopDesc').val(), address: $('#shopAddress').val(), imageUrl: $('#shopImage').val(), link: $('#shopLink').val(),
                 lat: parseFloat($('#shopLat').val()), lng: parseFloat($('#shopLng').val()), updatedAt: new Date()
             };
+            
+            // 🔥 [핵심 수정] :checked 된 것만 가져오도록 수정됨
             $('input[name="category"]:checked').each(function() { data.category.push($(this).val()); });
             $('input[name="purpose"]:checked').each(function() { data.purpose.push($(this).val()); });
 
             if (!data.name) { alert("업체명 입력 필수"); return; }
 
-            // 중복 방지 (신규 등록 시)
             if (!id && data.address) {
                 const q = query(collection(db, "shops"), where("address", "==", data.address));
                 const snap = await getDocs(q);
-                if (!snap.empty) {
-                    alert(`⛔ 이미 등록된 주소입니다.\n업체명: ${snap.docs[0].data().name}`);
-                    return;
-                }
+                if (!snap.empty) { alert(`⛔ 이미 등록된 주소입니다.\n업체명: ${snap.docs[0].data().name}`); return; }
             }
 
             if (!id && data.address && isNaN(data.lat)) {
@@ -274,50 +274,40 @@
                 const list = JSON.parse(raw);
                 if(!confirm(list.length + "개 처리 시작?")) return;
                 const status = $('#bulkStatus');
-                
                 for(let i=0; i<list.length; i++) {
                     const item = list[i];
                     status.text(`${i+1}/${list.length} : ${item.name}`);
-                    
                     const q = query(collection(db, "shops"), where("name", "==", item.name));
                     const snap = await getDocs(q);
-                    
                     if(item.address && (!item.lat || !item.lng)) {
                         const res = await geocodeAddress(item.address);
                         if(res) { item.lat = res.lat; item.lng = res.lng; }
                     }
-                    
                     item.updatedAt = new Date();
-                    if(!snap.empty) {
-                        await updateDoc(doc(db, "shops", snap.docs[0].id), item);
-                    } else {
-                        item.createdAt = new Date();
-                        await addDoc(collection(db, "shops"), item);
-                    }
+                    if(!snap.empty) await updateDoc(doc(db, "shops", snap.docs[0].id), item);
+                    else { item.createdAt = new Date(); await addDoc(collection(db, "shops"), item); }
                     await new Promise(r=>setTimeout(r, 100));
                 }
                 alert("완료"); closeBulkModal();
             } catch(e) { alert("JSON 에러: " + e.message); }
         }
 
-        // 🔥 [수리완료] 삭제 버튼 동작
-        $('#btnDelete').on('click', async function() {
+        window.deleteCurrentShop = async function() {
             var id = $('#shopId').val();
             if (!id) { alert("삭제할 대상을 찾을 수 없습니다."); return; }
-            
             if (confirm("정말 삭제하시겠습니까? (복구 불가)")) {
-                try { 
-                    await deleteDoc(doc(db, "shops", id)); 
-                    alert("삭제되었습니다."); 
-                    closeModal(); 
-                } catch (err) { 
-                    alert("삭제 실패: " + err.message); 
-                }
+                try { await deleteDoc(doc(db, "shops", id)); alert("삭제되었습니다."); closeModal(); } 
+                catch (err) { alert("삭제 실패: " + err.message); }
             }
-        });
+        }
 
         naver.maps.Event.addListener(map, 'click', function(e) {
-            $('#shopId').val(''); $('input, textarea').val(''); $('select').val(''); $('input[type="checkbox"]').prop('checked', false);
+            $('#shopId').val(''); 
+            $('input[type="text"], input[type="number"], textarea').val(''); 
+            $('select').val(''); 
+            // 🔥 [중요] 체크박스 초기화
+            $('input[type="checkbox"]').prop('checked', false);
+            
             $('#shopLat').val(e.coord.lat()); $('#shopLng').val(e.coord.lng()); $('#shopTotalScore').val(5.0);
             $('#btnDelete').hide(); $('.modal-title').text('✨ 위치 선택됨'); $('#shopModal').addClass('show');
         });
