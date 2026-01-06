@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>다즐피플 대구 맛집</title>
+    <script type="text/javascript" src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=krsv42ftzf&submodules=geocoder"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="search-container">
+        <div class="search-box-wrapper">
+            <div class="search-filters">
+                <select id="filterRegion" class="search-select" onchange="applyAllFilters()">
+                    <option value="">📍 지역 전체</option><option value="수성구">수성구</option><option value="중구">중구</option><option value="동구">동구</option><option value="서구">서구</option><option value="남구">남구</option><option value="북구">북구</option><option value="달서구">달서구</option><option value="달성군">달성군</option><option value="군위군">군위군</option><option value="칠곡군">칠곡군</option><option value="경산">경산</option><option value="청도">청도</option><option value="대구 밖">대구 밖</option>
+                </select>
+                <select id="filterCategory" class="search-select" onchange="applyAllFilters()">
+                    <option value="">🍜 업종 전체</option><option value="한식">한식</option><option value="중식">중식</option><option value="일식">일식</option><option value="양식">양식</option><option value="분식">분식</option><option value="고기/구이">고기/구이</option><option value="회/해산물">회/해산물</option><option value="아시안">아시안</option><option value="술집">술집</option><option value="카페/디저트">카페/디저트</option><option value="빵집">빵집</option><option value="패스트푸드">패스트푸드</option><option value="포장/배달">포장/배달</option>
+                </select>
+                <select id="filterPurpose" class="search-select" onchange="applyAllFilters()">
+                    <option value="">✨ 분위기 전체</option><option value="노포">노포</option><option value="데이트">데이트</option><option value="단체회식">단체회식</option><option value="혼밥/혼술">혼밥/혼술</option><option value="무한리필">무한리필</option><option value="이색맛집">이색맛집</option><option value="뷰맛집">뷰맛집</option><option value="상견례">상견례</option><option value="야간영업">야간영업</option>
+                </select>
+            </div>
+            <div class="search-input-row">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="keyword" class="search-input" placeholder="맛집 이름 검색..." onkeyup="applyAllFilters()">
+            </div>
+        </div>
+    </div>
+
+    <div id="faqPanel" class="faq-panel">
+        <div class="faq-header">
+            <h3>자주 묻는 질문</h3>
+            <button class="faq-close" onclick="toggleFaq()">✕</button>
+        </div>
+        <div class="faq-body">
+            <div class="faq-item">
+                <div class="faq-q">Q. 다즐피플 보물지도는 무엇인가요?</div>
+                <div class="faq-a">대구 찐맛집 정보를 한눈에 볼 수 있는 서비스입니다. 광고 없이 실제 추천 맛집만 모았습니다.</div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-q">Q. 우리 가게도 등록하고 싶어요!</div>
+                <div class="faq-a">우측 하단 [사장님 로그인] 버튼을 눌러 관리자에게 문의하거나 직접 등록할 수 있습니다.</div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-q">Q. 정보가 정확한가요?</div>
+                <div class="faq-a">다즐피플 팀이 직접 검증한 정보들로 구성되어 있습니다.</div>
+            </div>
+            
+            <hr style="margin: 20px 0; border:0; border-top:1px solid #eee;">
+            
+            <div style="display:flex; flex-direction:column; gap:10px;">
+                <a href="https://open.kakao.com/o/gaV5kk8h" target="_blank" class="panel-btn" style="background:#fee500; color:#3c1e1e;">💬 오픈채팅 참여하기</a>
+                <a href="https://www.heredaegu.com" target="_blank" class="panel-btn" style="background:#2c3e50;">🎮 게임기 하러가기</a>
+                <a href="https://litt.ly/dazzlepeople" target="_blank" class="panel-btn" style="background:#e1306c;">📱 SNS 구경가기</a>
+            </div>
+        </div>
+    </div>
+
+    <div id="infoPanel" class="info-panel">
+        <div class="panel-header" id="panelHeader">
+            <button class="panel-close" onclick="closePanel()">✕</button>
+        </div>
+        <div class="panel-body">
+            <div>
+                <h2 class="panel-title" id="panelTitle">가게 이름</h2>
+                <div class="panel-meta" id="panelMeta">
+                    </div>
+            </div>
+
+            <div class="rating-box">
+                <div class="rating-left">
+                    <div class="total-score" id="panelTotal">0.0</div>
+                    <div class="total-label">총점</div>
+                </div>
+                <div class="rating-grid">
+                    <div class="detail-score"><span>맛</span> <div class="progress-bg"><div id="barTaste" class="progress-bar"></div></div></div>
+                    <div class="detail-score"><span>가성비</span> <div class="progress-bg"><div id="barValue" class="progress-bar"></div></div></div>
+                    <div class="detail-score"><span>분위기</span> <div class="progress-bg"><div id="barMood" class="progress-bar"></div></div></div>
+                    <div class="detail-score"><span>친절도</span> <div class="progress-bg"><div id="barKind" class="progress-bar"></div></div></div>
+                </div>
+            </div>
+
+            <div class="info-row"><span class="info-label">메뉴</span> <span class="info-text" id="panelMenu"></span></div>
+            <div class="info-row"><span class="info-label">주소</span> <span class="info-text" id="panelAddr"></span></div>
+            <div class="info-row"><span class="info-label">설명</span> <span class="info-text" id="panelDesc"></span></div>
+            <a href="#" id="panelLink" target="_blank" class="panel-btn">네이버 플레이스 보기</a>
+        </div>
+    </div>
+
+    <div class="bottom-bar">
+        <div class="bottom-left">
+            <button class="bar-btn btn-usage" onclick="toggleFaq()">📖 사용법(FAQ)</button>
+        </div>
+        <div class="bottom-center">
+            © Dazzle People
+        </div>
+        <div class="bottom-right">
+            <button class="bar-btn btn-owner" onclick="location.href='admin.html'">☕ 사장님 로그인</button>
+        </div>
+    </div>
+
+    <div id="map"></div>
+
+    <script>
+        function toggleFaq() {
+            var panel = document.getElementById('faqPanel');
+            panel.classList.toggle('show');
+        }
+        function closePanel() { 
+            document.getElementById('infoPanel').classList.remove('show'); 
+        }
+    </script>
+
+    <script type="module">
+        import { db, initMap, createMarker } from "./common.js";
+        import { collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        var map = initMap();
+        let allShops = [];
+        let overlayMap = {};
+
+        // 지도 빈 곳 클릭 시 패널들 닫기
+        naver.maps.Event.addListener(map, "click", function() {
+            closePanel();
+            document.getElementById('faqPanel').classList.remove('show');
+        });
+
+        if(db) {
+            onSnapshot(collection(db, "shops"), (snapshot) => {
+                snapshot.docChanges().forEach((change) => {
+                    const data = change.doc.data();
+                    const id = change.doc.id;
+                    if (change.type === "added" || change.type === "modified") {
+                        if (overlayMap[id]) overlayMap[id].setMap(null);
+                        allShops = allShops.filter(s => s.id !== id);
+                        allShops.push({ id: id, ...data });
+                        
+                        overlayMap[id] = createMarker(map, {
+                            ...data, id: id,
+                            onClick: function(d) { showPanel(d); }
+                        });
+                        applyAllFilters();
+                    } else if (change.type === "removed") {
+                        if (overlayMap[id]) { overlayMap[id].setMap(null); delete overlayMap[id]; }
+                        allShops = allShops.filter(s => s.id !== id);
+                        closePanel();
+                    }
+                });
+            });
+        }
+
+        window.applyAllFilters = function() {
+            var region = $('#filterRegion').val();
+            var category = $('#filterCategory').val();
+            var purpose = $('#filterPurpose').val();
+            var keyword = $('#keyword').val().toLowerCase();
+
+            allShops.forEach(shop => {
+                var overlay = overlayMap[shop.id];
+                if (!overlay) return;
+
+                var matchRegion = (region === "") || (shop.region === region);
+                var shopCategories = Array.isArray(shop.category) ? shop.category : [shop.category];
+                var matchCategory = (category === "") || shopCategories.includes(category);
+                
+                var shopPurposes = Array.isArray(shop.purpose) ? shop.purpose : [shop.purpose];
+                var matchPurpose = (purpose === "") || shopPurposes.includes(purpose);
+                
+                var targetText = (shop.name + " " + (shop.menu || "")).toLowerCase();
+                var matchKeyword = targetText.includes(keyword);
+
+                if (matchRegion && matchCategory && matchPurpose && matchKeyword) overlay.setMap(map);
+                else overlay.setMap(null);
+            });
+        };
+
+        function showPanel(data) {
+            var img = data.imageUrl || 'https://via.placeholder.com/400x200?text=No+Image';
+            $('#panelHeader').css('background-image', `url(${img})`);
+            $('#panelTitle').text(data.name);
+            
+            var categories = Array.isArray(data.category) ? data.category : [data.category];
+            var purposes = Array.isArray(data.purpose) ? data.purpose : [data.purpose];
+            var tags = [...categories, data.region, ...purposes, data.area].filter(Boolean);
+            
+            $('#panelMeta').html(tags.map(t => `<span class="panel-tag">#${t}</span>`).join(''));
+            $('#panelTotal').text(data.totalScore || '0.0');
+            
+            setTimeout(() => {
+                $('#barTaste').css('width', (data.scoreTaste || 0) * 20 + '%');
+                $('#barValue').css('width', (data.scoreValue || 0) * 20 + '%');
+                $('#barMood').css('width', (data.scoreMood || 0) * 20 + '%');
+                $('#barKind').css('width', (data.scoreKind || 0) * 20 + '%');
+            }, 100);
+
+            $('#panelMenu').text(data.menu || '-');
+            $('#panelAddr').text(data.address || '-');
+            $('#panelDesc').text(data.desc || '설명 없음');
+            $('#panelLink').attr('href', data.link || '#');
+            
+            // 상세 패널 열 때 FAQ는 닫기
+            document.getElementById('faqPanel').classList.remove('show');
+            $('#infoPanel').addClass('show');
+        }
+    </script>
+</body>
+</html>
