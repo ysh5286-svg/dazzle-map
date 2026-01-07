@@ -195,7 +195,7 @@
     <div id="map"></div>
 
     <script>
-        // ... (기존 게임 관련 스크립트 그대로 유지) ...
+        // ... (기존 게임/UI 관련 로직) ...
         function toggleFaq() { document.getElementById('faqPanel').classList.toggle('show'); }
         function closePanel() { document.getElementById('infoPanel').classList.remove('show'); }
         function closeSelectModal() { document.getElementById('selectModal').classList.remove('show'); }
@@ -224,43 +224,71 @@
         window.spinRoulette=function(){ if(isSpinning)return; if(currentFoods.length<2){ alert("메뉴 2개 이상 필요!"); return; } isSpinning=true; document.getElementById('spinBtn').innerText="...DoRoRo..."; const r=Math.floor(Math.random()*360); rCurrentRotation+=(360*5+r); rCanvas.style.transition="transform 4s cubic-bezier(0.25,0.1,0.25,1)"; rCanvas.style.transform=`rotate(${rCurrentRotation}deg)`; setTimeout(()=>{ isSpinning=false; document.getElementById('spinBtn').innerText="돌려 돌려! START"; fireConfetti(); },4000); }
         function fireConfetti(){ const c=['#f00','#0f0','#00f','#ff0','#0ff']; for(let i=0;i<50;i++){ const d=document.createElement('div'); d.className='confetti'; d.style.left=Math.random()*100+'vw'; d.style.top='-10px'; d.style.backgroundColor=c[Math.floor(Math.random()*c.length)]; d.style.animationDuration=(Math.random()*2+2)+'s'; document.body.appendChild(d); setTimeout(()=>d.remove(),4000); } }
 
-        // 🔥 [앱 설치 및 공유 로직]
-        let deferredPrompt;
+        // 🔥 [확실하게 작동하는 카카오 공유 및 앱 설치]
         const installBtn = document.getElementById('installBtn');
         const installBtnPanel = document.getElementById('btnInstallPanel');
+        let deferredPrompt;
 
-        // 카카오 초기화
+        // [1] 카카오 초기화 (페이지 로드 시 즉시 실행)
         try {
-            if(Kakao && !Kakao.isInitialized()) {
-                Kakao.init('4c7a04105835e7f5b9b6346c33cd0d5d'); // 대표님이 주신 키 적용됨
+            if (window.Kakao && !window.Kakao.isInitialized()) {
+                window.Kakao.init('4c7a04105835e7f5b9b6346c33cd0d5d');
             }
-        } catch(e) { console.error("Kakao init failed", e); }
+        } catch(e) { console.error("Kakao init error", e); }
 
+        // [2] 공유 버튼 클릭 함수 (디버깅 알림 추가)
         window.shareKakao = function() {
-            if(!Kakao || !Kakao.isInitialized()) {
-                alert("카카오 SDK가 초기화되지 않았습니다. 새로고침 해주세요."); return;
+            // alert('공유 버튼 눌림!'); // 반응 테스트용 (필요시 주석 해제)
+            
+            if (!window.Kakao || !window.Kakao.isInitialized()) {
+                alert('카카오 SDK 로딩 중입니다. 새로고침 후 다시 시도해주세요.');
+                return;
             }
-            Kakao.Share.sendDefault({
+
+            window.Kakao.Share.sendDefault({
                 objectType: 'feed',
                 content: {
-                    title: '🗺️ 대구핫플여기 보물지도',
-                    description: '실패 없는 대구 찐맛집 지도를 확인해보세요!',
+                    title: '대구핫플여기 보물지도',
+                    description: '대구 찐맛집과 핫플을 한눈에! 실패 없는 맛집 지도',
                     imageUrl: 'https://search.pstatic.net/common/?src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20260106_269%2F1767704133801UGRCw_JPEG%2FGemini_Generated_Image_b2zgovb2zgovb2zg.jpg',
-                    link: { mobileWebUrl: 'https://www.heredaegu.com', webUrl: 'https://www.heredaegu.com' }
+                    link: {
+                        mobileWebUrl: 'https://www.heredaegu.com',
+                        webUrl: 'https://www.heredaegu.com'
+                    }
                 },
                 buttons: [
-                    { title: '지도 보러가기', link: { mobileWebUrl: 'https://www.heredaegu.com', webUrl: 'https://www.heredaegu.com' } }
+                    {
+                        title: '지도 보러가기',
+                        link: {
+                            mobileWebUrl: 'https://www.heredaegu.com',
+                            webUrl: 'https://www.heredaegu.com'
+                        }
+                    }
                 ]
             });
-        }
+        };
+
+        // [3] 앱 설치 로직
+        const isIos = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
-            // 설치 가능한 환경일 때만 버튼 보이기
+            // 안드로이드: 설치 가능할 때 버튼 표시
             if(installBtn) installBtn.style.display = 'block'; 
             if(installBtnPanel) installBtnPanel.style.display = 'block';
         });
+
+        // 아이폰은 강제로 버튼을 보여주고 안내 문구 띄우기
+        if(isIos) {
+            if(installBtnPanel) {
+                installBtnPanel.style.display = 'block';
+                installBtnPanel.innerText = "⬇️ 앱 설치 (아이폰)";
+                installBtnPanel.onclick = function() {
+                    alert("아이폰은 하단 공유 버튼(네모 화살표)을 누르고\n'홈 화면에 추가'를 선택해주세요!");
+                };
+            }
+        }
 
         window.triggerInstall = function() {
             if(!deferredPrompt) return;
@@ -274,19 +302,18 @@
             });
         };
 
-        // 기존 하단바 버튼 연결
         if(installBtn) installBtn.addEventListener('click', triggerInstall);
     </script>
 
     <script type="module">
         import { db, initMap, createMarker } from "./common.js";
-        // 🔥 getDocs를 사용하여 1회만 호출 (비용 절약)
         import { collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         var map = initMap();
         let allShops = [];
         let markerList = [];
 
+        // ... (나머지 지도 로직은 동일) ...
         const LANDMARKS = {
             "팔공산": { lat: 35.9899, lng: 128.6961 }, "갓바위": { lat: 35.9758, lng: 128.7694 },
             "반월당": { lat: 35.8644, lng: 128.5933 }, "동성로": { lat: 35.8710, lng: 128.5960 },
@@ -305,33 +332,24 @@
             closePanel(); document.getElementById('faqPanel').classList.remove('show');
         });
 
-        // 🔥 [핵심 1] 처음에 데이터 딱 1번만 가져오기
         if(db) {
             getDocs(collection(db, "shops")).then((snapshot) => {
                 allShops = [];
                 snapshot.forEach((doc) => allShops.push({ id: doc.id, ...doc.data() }));
-                
-                // 가져오자마자 한번 그리기 (보이는 것만)
                 updateVisibleMarkers();
             }).catch(e => console.error("Error:", e));
         }
 
-        // 🔥 [핵심 2] 지도가 멈출 때마다(idle) 보이는 마커만 계산해서 다시 그리기
         naver.maps.Event.addListener(map, 'idle', updateVisibleMarkers);
 
-        // 🔥 [핵심 3] 화면에 보이는 가게만 골라내는 함수 (비용 0원)
         function updateVisibleMarkers() {
-            const bounds = map.getBounds(); // 현재 화면 좌표 범위
-            
-            // 필터링 적용된 가게들 중에서 + 화면 안에 있는 것만
-            // (1차로 검색 필터, 2차로 좌표 필터)
+            const bounds = map.getBounds();
             const filtered = filterShops(allShops);
             const visibleShops = filtered.filter(shop => {
                 if(!shop.lat || !shop.lng) return false;
                 const pos = new naver.maps.LatLng(shop.lat, shop.lng);
                 return bounds.hasLatLng(pos);
             });
-
             renderMarkers(visibleShops);
         }
 
@@ -402,13 +420,11 @@
             });
 
             for(const key in groups) {
-                // 대표 설정: updatedAt이 가장 최신인 것이 0번
                 groups[key].sort((a, b) => {
                     const dateA = a.updatedAt ? (a.updatedAt.seconds || 0) : 0;
                     const dateB = b.updatedAt ? (b.updatedAt.seconds || 0) : 0;
                     return dateB - dateA;
                 });
-
                 const marker = createMarker(map, groups[key], function(clickedList) {
                     if (clickedList.length === 1) showPanel(clickedList[0]);
                     else showSelectModal(clickedList);
@@ -453,12 +469,10 @@
                 if (keywords.length > 0) {
                     matchKeyword = keywords.every(term => searchableText.includes(term));
                 }
-
                 return matchRegion && matchCategory && matchPurpose && matchKeyword;
             });
         }
 
-        // 필터 변경 시에도 화면에 보이는 것만 다시 그리기 위해 updateVisibleMarkers 호출
         window.applyAllFilters = function() { updateVisibleMarkers(); };
 
         function showPanel(data) {
@@ -484,7 +498,6 @@
             $('#infoPanel').addClass('show');
         }
 
-        // 🔥 [PWA 서비스 워커 등록]
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('./sw.js')
                 .then(() => console.log('서비스 워커 등록 완료'))
