@@ -6,34 +6,20 @@
     
     <title>대구핫플여기 보물지도</title>
     
-    <link rel="manifest" href="./manifest.json">
+    <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#c0392b">
     <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/google/material-design-icons/master/png/maps/local_dining/materialicons/48dp/2x/baseline_local_dining_black_48dp.png">
+
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🗺️</text></svg>">
-    
     <meta property="og:title" content="🗺️ 대구핫플여기 보물지도">
-    <meta property="og:description" content="대구 찐맛집과 핫플을 한눈에! 실패 없는 맛집 지도">
+    <meta property="og:description" content="대구 찐맛집과 핫플을 한눈에!&#10;실패 없는 맛집 지도">
     <meta property="og:image" content="https://search.pstatic.net/common/?src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20260106_269%2F1767704133801UGRCw_JPEG%2FGemini_Generated_Image_b2zgovb2zgovb2zg.jpg">
     <meta property="og:url" content="https://www.heredaegu.com">
 
     <script type="text/javascript" src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=krsv42ftzf&submodules=geocoder"></script>
-    
-    <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js" integrity="sha384-DKYJZ8NLiK8MN4/C5ONxK765Gsq+25054qEQ2OWr+D2y59v33N8J+19Z7B5cI64C" crossorigin="anonymous"></script>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
-    
-    <style>
-        .faq-btns-row { display: flex; gap: 8px; margin-bottom: 15px; }
-        .faq-action-btn { 
-            flex: 1; border: none; padding: 12px 0; border-radius: 8px; 
-            font-weight: bold; font-size: 13px; cursor: pointer; 
-            display: flex; align-items: center; justify-content: center; gap: 5px; 
-            transition: transform 0.1s;
-        }
-        .faq-action-btn:active { transform: scale(0.96); }
-    </style>
 </head>
 <body>
     <div class="search-container">
@@ -51,7 +37,7 @@
             </div>
             <div class="search-input-row">
                 <span class="search-icon">🔍</span>
-                <input type="text" id="keyword" class="search-input" placeholder="예: 동성로 파스타" onkeyup="applyAllFilters()">
+                <input type="text" id="keyword" class="search-input" placeholder="예: 동성로 파스타 (띄어쓰기로 교차검색)" onkeyup="applyAllFilters()">
             </div>
         </div>
     </div>
@@ -61,24 +47,17 @@
         <div class="faq-body">
             <div class="faq-item"><div class="faq-q">Q. 다즐피플 보물지도는 무엇인가요?</div><div class="faq-a">대구 찐맛집 정보를 한눈에 볼 수 있는 서비스입니다.</div></div>
             <div class="faq-item"><div class="faq-q">Q. 어떤 기준으로 선정되나요?</div><div class="faq-a">'대구 찐맛집 평가단'이 직접 검증하고 엄선한 로컬 찐맛집 & 핫플만 모았습니다.</div></div>
+            <div class="faq-item"><div class="faq-q">Q. 우리 가게도 등록하고 싶어요!</div><div class="faq-a">우측 하단 [보물지도 등록요청] 버튼을 눌러 신청해주세요.</div></div>
             
             <hr style="margin:20px 0; border:0; border-top:1px solid #eee;">
             <div style="display:flex; flex-direction:column; gap:10px;">
                 <a href="https://open.kakao.com/o/gaV5kk8h" target="_blank" class="panel-btn" style="background:#fee500; color:#3c1e1e;">💬 대구핫플여기 찐맛집 정보방</a>
                 <button onclick="openGameModal()" class="panel-btn" style="background:#2c3e50;">🎮 오늘 뭐 먹지?</button>
+                <a href="https://litt.ly/dazzlepeople" target="_blank" class="panel-btn" style="background:#e1306c;">📱 SNS 구경가기</a>
             </div>
         </div>
 
         <div class="faq-footer">
-            <div class="faq-btns-row">
-                <button onclick="shareKakao()" class="faq-action-btn" style="background:#FEE500; color:#3c1e1e;">
-                    💬 친구에게 공유
-                </button>
-                <button id="btnInstallPanel" onclick="triggerInstall()" class="faq-action-btn" style="background:#3498db; color:white; display:flex;">
-                    ⬇️ 앱 다운로드
-                </button>
-            </div>
-
             <div class="company-box">
                 <strong>다즐피플 (대표: 윤성호)</strong><br>
                 사업자번호: 535-25-01793<br>
@@ -98,18 +77,24 @@
     <div id="gameModal" class="modal-overlay">
         <div class="modal-box" style="max-width:400px; padding:0;">
             <button class="modal-close-x" style="z-index:10; top:10px; right:10px;" onclick="closeGameModal()">×</button>
+            
             <div class="game-container" style="padding:25px;">
                 <div id="gameMain">
                     <div class="game-title">🍽️ 오늘 뭐 먹지?</div>
                     <div class="game-selection">
                         <div class="game-card" onclick="startWorldCupGame()">
-                            <span class="game-icon">🏆</span><span class="game-name">음식 월드컵</span>
+                            <span class="game-icon">🏆</span>
+                            <span class="game-name">음식 월드컵</span>
+                            <span class="game-desc">토너먼트로<br>신중하게!</span>
                         </div>
                         <div class="game-card" onclick="startRouletteGame()">
-                            <span class="game-icon">🎡</span><span class="game-name">랜덤 돌림판</span>
+                            <span class="game-icon">🎡</span>
+                            <span class="game-name">랜덤 돌림판</span>
+                            <span class="game-desc">운명에<br>맡겨요!</span>
                         </div>
                     </div>
                 </div>
+
                 <div id="wcGame" class="wc-container">
                     <div class="wc-round-badge" id="wcRoundBadge">16강</div>
                     <div class="wc-vs-box">
@@ -117,13 +102,16 @@
                         <div style="font-weight:bold; color:#e74c3c; font-style:italic;">VS</div>
                         <div class="wc-card" onclick="wcChoose(1)"><div id="wcImgRight" class="wc-img"></div><div id="wcNameRight" class="wc-name"></div></div>
                     </div>
+                    <button onclick="resetGame()" style="font-size:12px; color:#999; border:none; background:none; text-decoration:underline; cursor:pointer;">처음으로</button>
                 </div>
+
                 <div id="wcResult" class="hidden" style="text-align:center;">
                     <div style="font-size:12px; font-weight:bold; color:#888; margin-bottom:10px;">👑 최후의 승자 👑</div>
                     <div id="wcWinnerImg" style="font-size:80px; margin-bottom:10px;"></div>
                     <div id="wcWinnerName" style="font-size:24px; font-weight:bold; color:#3498db; margin-bottom:20px;"></div>
                     <button onclick="resetGame()" class="spin-btn" style="background:#333;">처음으로 돌아가기</button>
                 </div>
+
                 <div id="rouletteGame" class="roulette-container">
                     <div class="roulette-mode-btns">
                         <button onclick="setRouletteMode('lunch')" id="btn-lunch" class="roulette-btn active">점심</button>
@@ -133,7 +121,7 @@
                     </div>
                     <div id="customInputArea" class="custom-input-box">
                         <div class="custom-input-row">
-                            <input type="text" id="customItemInput" class="custom-input" placeholder="메뉴 입력">
+                            <input type="text" id="customItemInput" class="custom-input" placeholder="메뉴 입력" onkeypress="if(event.key==='Enter') addCustomItem()">
                             <button onclick="addCustomItem()" class="custom-add-btn">추가</button>
                         </div>
                         <div id="customItemList" class="custom-list"></div>
@@ -186,109 +174,7 @@
     <div id="map"></div>
 
     <script>
-        // ----------------------------------------------------
-        // 🔥 [1] 카카오톡 & 앱 설치 핵심 로직 (강력 초기화)
-        // ----------------------------------------------------
-        
-        let deferredPrompt; // 설치 이벤트 저장용
-        const installBtn = document.getElementById('installBtn');
-        const installBtnPanel = document.getElementById('btnInstallPanel');
-        const isIos = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-
-        // 페이지 로드 시 카카오 강제 초기화
-        window.onload = function() {
-            try {
-                if (window.Kakao && !window.Kakao.isInitialized()) {
-                    window.Kakao.init('4c7a04105835e7f5b9b6346c33cd0d5d');
-                    console.log("카카오 초기화 완료 (OnLoad)");
-                }
-            } catch (e) { console.error(e); }
-        };
-
-        // 카카오 공유하기 버튼 클릭 함수
-        window.shareKakao = function() {
-            // 버튼 누를 때 한번 더 초기화 시도 (안정성 확보)
-            if (window.Kakao && !window.Kakao.isInitialized()) {
-                try {
-                    window.Kakao.init('4c7a04105835e7f5b9b6346c33cd0d5d');
-                } catch(e) {}
-            }
-
-            if (!window.Kakao || !window.Kakao.isInitialized()) {
-                alert('카카오 SDK가 아직 로딩되지 않았습니다. 3초 뒤 다시 눌러주세요!');
-                return;
-            }
-
-            window.Kakao.Share.sendDefault({
-                objectType: 'feed',
-                content: {
-                    title: '대구핫플여기 보물지도',
-                    description: '대구 현지인이 추천하는 실패 없는 맛집 지도!',
-                    imageUrl: 'https://search.pstatic.net/common/?src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20260106_269%2F1767704133801UGRCw_JPEG%2FGemini_Generated_Image_b2zgovb2zgovb2zg.jpg',
-                    link: {
-                        mobileWebUrl: 'https://www.heredaegu.com',
-                        webUrl: 'https://www.heredaegu.com'
-                    }
-                },
-                buttons: [
-                    { title: '지도 보러가기', link: { mobileWebUrl: 'https://www.heredaegu.com', webUrl: 'https://www.heredaegu.com' } }
-                ]
-            });
-        };
-
-        // 앱 설치 이벤트 감지 (안드로이드/PC용)
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            // 설치 가능하면 버튼 활성화
-            if(installBtn) installBtn.style.display = 'block';
-            if(installBtnPanel) {
-                installBtnPanel.style.display = 'flex'; // 강제 표시
-                installBtnPanel.innerText = "⬇️ 앱 다운로드"; // 텍스트 복구
-            }
-        });
-
-        // 앱 설치 버튼 클릭 함수
-        window.triggerInstall = function() {
-            // 1. 아이폰인 경우
-            if (isIos) {
-                alert("아이폰은 브라우저 하단 [공유] 버튼(네모 화살표)을 누르고\n'홈 화면에 추가'를 선택해주세요!");
-                return;
-            }
-            
-            // 2. 설치 이벤트가 없는 경우 (이미 설치했거나, 보안문제 등)
-            if (!deferredPrompt) {
-                // 주소창에 자물쇠(HTTPS)가 있는지 확인
-                if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
-                    alert("보안 접속(HTTPS)이 아닙니다. 주소창이 https:// 로 시작하는지 확인해주세요.");
-                } else {
-                    alert("이미 앱이 설치되어 있거나, 설치를 지원하지 않는 브라우저입니다.\n(크롬/삼성인터넷 권장)");
-                }
-                return;
-            }
-
-            // 3. 설치 실행
-            deferredPrompt.prompt();
-            deferredPrompt.userChoice.then((choiceResult) => {
-                if (choiceResult.outcome === 'accepted') {
-                    if(installBtn) installBtn.style.display = 'none';
-                    // 패널 버튼은 숨기지 않고 텍스트만 변경 (선택사항)
-                    if(installBtnPanel) installBtnPanel.innerText = "✅ 설치 완료";
-                }
-                deferredPrompt = null;
-            });
-        };
-
-        // 초기 상태: 아이폰이면 버튼 텍스트 변경
-        if (isIos && installBtnPanel) {
-            installBtnPanel.innerText = "⬇️ 앱 설치 (아이폰)";
-        }
-
-        // ----------------------------------------------------
-        // 🔥 [2] 기존 지도 및 게임 로직 (유지)
-        // ----------------------------------------------------
-        
-        // ... (나머지 스크립트 그대로) ...
+        // ... (기존 게임 관련 스크립트 그대로 유지) ...
         function toggleFaq() { document.getElementById('faqPanel').classList.toggle('show'); }
         function closePanel() { document.getElementById('infoPanel').classList.remove('show'); }
         function closeSelectModal() { document.getElementById('selectModal').classList.remove('show'); }
@@ -316,12 +202,11 @@
         function drawRoulette(){ if(!rCanvas)return; const n=currentFoods.length; if(n===0){ rCtx.clearRect(0,0,rCanvas.width,rCanvas.height); return; } const arc=(2*Math.PI)/n,dpr=window.devicePixelRatio||1,rect=rCanvas.getBoundingClientRect(); rCanvas.width=rect.width*dpr; rCanvas.height=rect.height*dpr; rCtx.scale(dpr,dpr); const r=rect.width/2; rCtx.clearRect(0,0,rect.width,rect.height); for(let i=0;i<n;i++){ const a=i*arc-Math.PI/2; rCtx.beginPath(); rCtx.moveTo(r,r); rCtx.arc(r,r,r,a,a+arc); rCtx.fillStyle=colors[i%colors.length]; rCtx.fill(); rCtx.stroke(); rCtx.save(); rCtx.translate(r,r); rCtx.rotate(a+arc/2); rCtx.textAlign="right"; rCtx.fillStyle="#333"; const fs=Math.max(12,Math.min(24,200/n)); rCtx.font=`bold ${fs}px 'Noto Sans KR'`; rCtx.fillText(currentFoods[i],r-20,5); rCtx.restore(); } }
         window.spinRoulette=function(){ if(isSpinning)return; if(currentFoods.length<2){ alert("메뉴 2개 이상 필요!"); return; } isSpinning=true; document.getElementById('spinBtn').innerText="...DoRoRo..."; const r=Math.floor(Math.random()*360); rCurrentRotation+=(360*5+r); rCanvas.style.transition="transform 4s cubic-bezier(0.25,0.1,0.25,1)"; rCanvas.style.transform=`rotate(${rCurrentRotation}deg)`; setTimeout(()=>{ isSpinning=false; document.getElementById('spinBtn').innerText="돌려 돌려! START"; fireConfetti(); },4000); }
         function fireConfetti(){ const c=['#f00','#0f0','#00f','#ff0','#0ff']; for(let i=0;i<50;i++){ const d=document.createElement('div'); d.className='confetti'; d.style.left=Math.random()*100+'vw'; d.style.top='-10px'; d.style.backgroundColor=c[Math.floor(Math.random()*c.length)]; d.style.animationDuration=(Math.random()*2+2)+'s'; document.body.appendChild(d); setTimeout(()=>d.remove(),4000); } }
-
-        if(installBtn) installBtn.addEventListener('click', triggerInstall);
     </script>
 
     <script type="module">
         import { db, initMap, createMarker } from "./common.js";
+        // 🔥 getDocs를 사용하여 1회만 호출 (비용 절약)
         import { collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         var map = initMap();
@@ -346,24 +231,33 @@
             closePanel(); document.getElementById('faqPanel').classList.remove('show');
         });
 
+        // 🔥 [핵심 1] 처음에 데이터 딱 1번만 가져오기
         if(db) {
             getDocs(collection(db, "shops")).then((snapshot) => {
                 allShops = [];
                 snapshot.forEach((doc) => allShops.push({ id: doc.id, ...doc.data() }));
+                
+                // 가져오자마자 한번 그리기 (보이는 것만)
                 updateVisibleMarkers();
             }).catch(e => console.error("Error:", e));
         }
 
+        // 🔥 [핵심 2] 지도가 멈출 때마다(idle) 보이는 마커만 계산해서 다시 그리기
         naver.maps.Event.addListener(map, 'idle', updateVisibleMarkers);
 
+        // 🔥 [핵심 3] 화면에 보이는 가게만 골라내는 함수 (비용 0원)
         function updateVisibleMarkers() {
-            const bounds = map.getBounds();
+            const bounds = map.getBounds(); // 현재 화면 좌표 범위
+            
+            // 필터링 적용된 가게들 중에서 + 화면 안에 있는 것만
+            // (1차로 검색 필터, 2차로 좌표 필터)
             const filtered = filterShops(allShops);
             const visibleShops = filtered.filter(shop => {
                 if(!shop.lat || !shop.lng) return false;
                 const pos = new naver.maps.LatLng(shop.lat, shop.lng);
                 return bounds.hasLatLng(pos);
             });
+
             renderMarkers(visibleShops);
         }
 
@@ -424,6 +318,7 @@
         function renderMarkers(shops) {
             markerList.forEach(m => m.setMap(null));
             markerList = [];
+            
             const groups = {};
             shops.forEach(shop => {
                 if(!shop.lat || !shop.lng) return;
@@ -431,12 +326,15 @@
                 if(!groups[key]) groups[key] = [];
                 groups[key].push(shop);
             });
+
             for(const key in groups) {
+                // 대표 설정: updatedAt이 가장 최신인 것이 0번
                 groups[key].sort((a, b) => {
                     const dateA = a.updatedAt ? (a.updatedAt.seconds || 0) : 0;
                     const dateB = b.updatedAt ? (b.updatedAt.seconds || 0) : 0;
                     return dateB - dateA;
                 });
+
                 const marker = createMarker(map, groups[key], function(clickedList) {
                     if (clickedList.length === 1) showPanel(clickedList[0]);
                     else showSelectModal(clickedList);
@@ -465,23 +363,28 @@
             var purpose = $('#filterPurpose').val();
             var keywordInput = $('#keyword').val().toLowerCase().trim();
             var keywords = keywordInput.split(/\s+/).filter(t => t.length > 0);
+
             return shops.filter(shop => {
                 var matchRegion = (region === "") || (shop.region === region);
                 var shopCategories = Array.isArray(shop.category) ? shop.category : [shop.category];
                 var matchCategory = (category === "") || shopCategories.includes(category);
                 var shopPurposes = Array.isArray(shop.purpose) ? shop.purpose : [shop.purpose];
                 var matchPurpose = (purpose === "") || shopPurposes.includes(purpose);
+                
                 var searchableText = (
                     shop.name + " " + (shop.menu || "") + " " + (shop.area || "") + " " + (shop.address || "") + " " + shopCategories.join(" ")
                 ).toLowerCase();
+
                 var matchKeyword = true;
                 if (keywords.length > 0) {
                     matchKeyword = keywords.every(term => searchableText.includes(term));
                 }
+
                 return matchRegion && matchCategory && matchPurpose && matchKeyword;
             });
         }
-        
+
+        // 필터 변경 시에도 화면에 보이는 것만 다시 그리기 위해 updateVisibleMarkers 호출
         window.applyAllFilters = function() { updateVisibleMarkers(); };
 
         function showPanel(data) {
@@ -507,11 +410,33 @@
             $('#infoPanel').addClass('show');
         }
 
+        // 🔥 [PWA 서비스 워커 등록]
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('./sw.js')
                 .then(() => console.log('서비스 워커 등록 완료'))
                 .catch(err => console.log('서비스 워커 실패', err));
         }
+
+        // 🔥 [앱 설치 버튼 로직]
+        let deferredPrompt;
+        const installBtn = document.getElementById('installBtn');
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            installBtn.style.display = 'block'; // 설치 가능하면 버튼 보이기
+        });
+
+        installBtn.addEventListener('click', (e) => {
+            if(!deferredPrompt) return;
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then((choiceResult) => {
+                if (choiceResult.outcome === 'accepted') {
+                    installBtn.style.display = 'none';
+                }
+                deferredPrompt = null;
+            });
+        });
     </script>
 </body>
 </html>
