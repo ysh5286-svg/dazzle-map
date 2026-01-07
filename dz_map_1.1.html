@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>관리자 모드 (Final V2.0)</title>
+    <title>관리자 모드 (Final V2.1)</title>
     <script type="text/javascript" src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=krsv42ftzf&submodules=geocoder"></script>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
@@ -126,7 +126,6 @@
         let markerList = [];
         let allShopsData = [];
 
-        // 🔥 [중요] 체크박스 목록 정의 (여기서 수정하면 전체 반영됨)
         const CAT_LIST = ['한식', '중식', '일식', '양식', '분식', '고기/구이', '회/해산물', '아시안', '술집', '카페/디저트', '빵집', '패스트푸드', '포장/배달'];
         const PUR_LIST = ['노포', '데이트', '단체회식', '혼밥/혼술', '무한리필', '이색맛집', '뷰맛집', '상견례', '야간영업'];
 
@@ -134,14 +133,10 @@
         window.closeBulkModal = function() { $('#bulkModal').removeClass('show'); }
         window.closeSelectModal = function() { $('#selectModal').removeClass('show'); }
 
-        // 🔥 [핵심 기능] 체크박스 새로 그리기 (기존꺼 삭제 후 재생성 -> 유령 데이터 방지)
         function renderCheckboxes(containerId, name, items, selected = []) {
             const container = document.getElementById(containerId);
-            container.innerHTML = ''; // 싹 지우기
-            
-            // selected가 단일 문자열이면 배열로 변환
+            container.innerHTML = '';
             const selectedList = Array.isArray(selected) ? selected : (selected ? [selected] : []);
-
             items.forEach(item => {
                 const isChecked = selectedList.includes(item);
                 const label = document.createElement('label');
@@ -155,16 +150,12 @@
             $('#shopId').val(''); 
             $('input[type="text"], input[type="number"], textarea').val(''); 
             $('select').val(''); 
-            
-            // 🔥 [중요] 모달 열 때마다 체크박스 새로 생성 (선택된 것 없음)
             renderCheckboxes('categoryContainer', 'category', CAT_LIST, []);
             renderCheckboxes('purposeContainer', 'purpose', PUR_LIST, []);
-            
             $('#shopLat').val(''); $('#shopLng').val(''); 
             $('#shopTotalScore').val(''); 
             $('.calc-score').val(0);
             $('#dupMsg').text('');
-
             $('#btnDelete').hide(); 
             $('.modal-title').text('✨ 개별 업체 추가'); 
             $('#shopModal').addClass('show');
@@ -188,7 +179,7 @@
             const mood = parseFloat($('#scoreMood').val()) || 0;
             const kind = parseFloat($('#scoreKind').val()) || 0;
             if ($('#shopTotalScore').val() === '') {
-                const avg = (taste + value + mood + kind) / 4;
+                // const avg = (taste + value + mood + kind) / 4; 
             }
         });
 
@@ -240,7 +231,7 @@
                 infoDiv.onclick = () => { closeSelectModal(); openEditModal(shop); };
                 const promoteBtn = document.createElement('button');
                 promoteBtn.className = 'btn-promote';
-                promoteBtn.innerHTML = '⭐ 대표로 위로 올리기';
+                promoteBtn.innerHTML = '⭐ 대표로 설정';
                 promoteBtn.onclick = async (e) => {
                     e.stopPropagation();
                     if(confirm(`'${shop.name}'을(를) 이 위치의 대표(맨 위)로 설정하시겠습니까?`)) {
@@ -266,7 +257,6 @@
             $('#shopLat').val(d.lat); $('#shopLng').val(d.lng);
             $('#dupMsg').text('');
 
-            // 🔥 [중요] 수정 시에도 체크박스 새로 생성 (DB에 있는 값만 체크됨)
             renderCheckboxes('categoryContainer', 'category', CAT_LIST, d.category);
             renderCheckboxes('purposeContainer', 'purpose', PUR_LIST, d.purpose);
             
@@ -309,16 +299,22 @@
                 lat: parseFloat($('#shopLat').val()), lng: parseFloat($('#shopLng').val()), updatedAt: new Date()
             };
             
-            // 🔥 동적으로 생성된 체크박스에서 값 수집
             document.querySelectorAll('input[name="category"]').forEach(node => { if(node.checked) data.category.push(node.value); });
             document.querySelectorAll('input[name="purpose"]').forEach(node => { if(node.checked) data.purpose.push(node.value); });
 
             if (!data.name) { alert("업체명 입력 필수"); return; }
 
+            // 🔥 [수정됨] 중복 주소라도 사용자 확인 후 등록 가능하게 변경
             if (!id && data.address) {
                 const q = query(collection(db, "shops"), where("address", "==", data.address));
                 const snap = await getDocs(q);
-                if (!snap.empty) { alert(`⛔ 이미 등록된 주소입니다.\n업체명: ${snap.docs[0].data().name}`); return; }
+                if (!snap.empty) {
+                    // 기존: return; (차단)
+                    // 수정: confirm (확인 후 진행)
+                    if(!confirm(`⚠️ 이미 등록된 주소입니다.\n기존 업체: ${snap.docs[0].data().name}\n\n그래도 같은 위치에 추가하시겠습니까? (합쳐서 보여집니다)`)) {
+                        return;
+                    }
+                }
             }
 
             if (!id && data.address && isNaN(data.lat)) {
@@ -370,8 +366,6 @@
 
         naver.maps.Event.addListener(map, 'click', function(e) {
             $('#shopId').val(''); $('input, textarea').val(''); $('select').val(''); 
-            
-            // 🔥 지도 클릭 시에도 새로 생성
             renderCheckboxes('categoryContainer', 'category', CAT_LIST, []);
             renderCheckboxes('purposeContainer', 'purpose', PUR_LIST, []);
             
