@@ -12,14 +12,26 @@
 
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🗺️</text></svg>">
     <meta property="og:title" content="🗺️ 대구핫플여기 보물지도">
-    <meta property="og:description" content="대구 찐맛집과 핫플을 한눈에!       실패 없는 맛집 지도">
+    <meta property="og:description" content="대구 찐맛집과 핫플을 한눈에!&#10;실패 없는 맛집 지도">
     <meta property="og:image" content="https://search.pstatic.net/common/?src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20260106_269%2F1767704133801UGRCw_JPEG%2FGemini_Generated_Image_b2zgovb2zgovb2zg.jpg">
     <meta property="og:url" content="https://www.heredaegu.com">
 
     <script type="text/javascript" src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=krsv42ftzf&submodules=geocoder"></script>
+    <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js" integrity="sha384-DKYJZ8NLiK8MN4/C5ONxK765Gsq+25054qEQ2OWr+D2y59v33N8J+19Z7B5cI64C" crossorigin="anonymous"></script>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    
+    <style>
+        .faq-btns-row { display: flex; gap: 8px; margin-bottom: 15px; }
+        .faq-action-btn { 
+            flex: 1; border: none; padding: 12px 0; border-radius: 8px; 
+            font-weight: bold; font-size: 13px; cursor: pointer; 
+            display: flex; align-items: center; justify-content: center; gap: 5px; 
+            transition: transform 0.1s;
+        }
+        .faq-action-btn:active { transform: scale(0.96); }
+    </style>
 </head>
 <body>
     <div class="search-container">
@@ -37,7 +49,7 @@
             </div>
             <div class="search-input-row">
                 <span class="search-icon">🔍</span>
-                <input type="text" id="keyword" class="search-input" placeholder="예: 동성로 연어 (띄어쓰기로 교차검색)" onkeyup="applyAllFilters()">
+                <input type="text" id="keyword" class="search-input" placeholder="예: 동성로 파스타 (띄어쓰기로 교차검색)" onkeyup="applyAllFilters()">
             </div>
         </div>
     </div>
@@ -58,6 +70,15 @@
         </div>
 
         <div class="faq-footer">
+            <div class="faq-btns-row">
+                <button onclick="shareKakao()" class="faq-action-btn" style="background:#FEE500; color:#3c1e1e;">
+                    💬 친구에게 공유
+                </button>
+                <button id="btnInstallPanel" onclick="triggerInstall()" class="faq-action-btn" style="background:#3498db; color:white; display:none;">
+                    ⬇️ 앱 다운로드
+                </button>
+            </div>
+
             <div class="company-box">
                 <strong>다즐피플 (대표: 윤성호)</strong><br>
                 사업자번호: 535-25-01793<br>
@@ -202,6 +223,59 @@
         function drawRoulette(){ if(!rCanvas)return; const n=currentFoods.length; if(n===0){ rCtx.clearRect(0,0,rCanvas.width,rCanvas.height); return; } const arc=(2*Math.PI)/n,dpr=window.devicePixelRatio||1,rect=rCanvas.getBoundingClientRect(); rCanvas.width=rect.width*dpr; rCanvas.height=rect.height*dpr; rCtx.scale(dpr,dpr); const r=rect.width/2; rCtx.clearRect(0,0,rect.width,rect.height); for(let i=0;i<n;i++){ const a=i*arc-Math.PI/2; rCtx.beginPath(); rCtx.moveTo(r,r); rCtx.arc(r,r,r,a,a+arc); rCtx.fillStyle=colors[i%colors.length]; rCtx.fill(); rCtx.stroke(); rCtx.save(); rCtx.translate(r,r); rCtx.rotate(a+arc/2); rCtx.textAlign="right"; rCtx.fillStyle="#333"; const fs=Math.max(12,Math.min(24,200/n)); rCtx.font=`bold ${fs}px 'Noto Sans KR'`; rCtx.fillText(currentFoods[i],r-20,5); rCtx.restore(); } }
         window.spinRoulette=function(){ if(isSpinning)return; if(currentFoods.length<2){ alert("메뉴 2개 이상 필요!"); return; } isSpinning=true; document.getElementById('spinBtn').innerText="...DoRoRo..."; const r=Math.floor(Math.random()*360); rCurrentRotation+=(360*5+r); rCanvas.style.transition="transform 4s cubic-bezier(0.25,0.1,0.25,1)"; rCanvas.style.transform=`rotate(${rCurrentRotation}deg)`; setTimeout(()=>{ isSpinning=false; document.getElementById('spinBtn').innerText="돌려 돌려! START"; fireConfetti(); },4000); }
         function fireConfetti(){ const c=['#f00','#0f0','#00f','#ff0','#0ff']; for(let i=0;i<50;i++){ const d=document.createElement('div'); d.className='confetti'; d.style.left=Math.random()*100+'vw'; d.style.top='-10px'; d.style.backgroundColor=c[Math.floor(Math.random()*c.length)]; d.style.animationDuration=(Math.random()*2+2)+'s'; document.body.appendChild(d); setTimeout(()=>d.remove(),4000); } }
+
+        // 🔥 [앱 설치 및 공유 로직]
+        let deferredPrompt;
+        const installBtn = document.getElementById('installBtn');
+        const installBtnPanel = document.getElementById('btnInstallPanel');
+
+        // 카카오 초기화
+        try {
+            if(Kakao && !Kakao.isInitialized()) {
+                Kakao.init('4c7a04105835e7f5b9b6346c33cd0d5d'); // 대표님이 주신 키 적용됨
+            }
+        } catch(e) { console.error("Kakao init failed", e); }
+
+        window.shareKakao = function() {
+            if(!Kakao || !Kakao.isInitialized()) {
+                alert("카카오 SDK가 초기화되지 않았습니다. 새로고침 해주세요."); return;
+            }
+            Kakao.Share.sendDefault({
+                objectType: 'feed',
+                content: {
+                    title: '🗺️ 대구핫플여기 보물지도',
+                    description: '실패 없는 대구 찐맛집 지도를 확인해보세요!',
+                    imageUrl: 'https://search.pstatic.net/common/?src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20260106_269%2F1767704133801UGRCw_JPEG%2FGemini_Generated_Image_b2zgovb2zgovb2zg.jpg',
+                    link: { mobileWebUrl: 'https://www.heredaegu.com', webUrl: 'https://www.heredaegu.com' }
+                },
+                buttons: [
+                    { title: '지도 보러가기', link: { mobileWebUrl: 'https://www.heredaegu.com', webUrl: 'https://www.heredaegu.com' } }
+                ]
+            });
+        }
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            // 설치 가능한 환경일 때만 버튼 보이기
+            if(installBtn) installBtn.style.display = 'block'; 
+            if(installBtnPanel) installBtnPanel.style.display = 'block';
+        });
+
+        window.triggerInstall = function() {
+            if(!deferredPrompt) return;
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then((choiceResult) => {
+                if (choiceResult.outcome === 'accepted') {
+                    if(installBtn) installBtn.style.display = 'none';
+                    if(installBtnPanel) installBtnPanel.style.display = 'none';
+                }
+                deferredPrompt = null;
+            });
+        };
+
+        // 기존 하단바 버튼 연결
+        if(installBtn) installBtn.addEventListener('click', triggerInstall);
     </script>
 
     <script type="module">
@@ -416,27 +490,6 @@
                 .then(() => console.log('서비스 워커 등록 완료'))
                 .catch(err => console.log('서비스 워커 실패', err));
         }
-
-        // 🔥 [앱 설치 버튼 로직]
-        let deferredPrompt;
-        const installBtn = document.getElementById('installBtn');
-
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            installBtn.style.display = 'block'; // 설치 가능하면 버튼 보이기
-        });
-
-        installBtn.addEventListener('click', (e) => {
-            if(!deferredPrompt) return;
-            deferredPrompt.prompt();
-            deferredPrompt.userChoice.then((choiceResult) => {
-                if (choiceResult.outcome === 'accepted') {
-                    installBtn.style.display = 'none';
-                }
-                deferredPrompt = null;
-            });
-        });
     </script>
 </body>
 </html>
