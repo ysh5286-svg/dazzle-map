@@ -437,30 +437,41 @@
                 .catch(err => console.log('서비스 워커 실패', err));
         }
 
-        // 🔥 [앱 설치 버튼 로직 - 아이폰/안드로이드 통합]
+        // 🔥 [앱 설치 버튼 로직 - 아이폰/안드로이드/인앱브라우저 통합]
         let deferredPrompt;
         const installBtn = document.getElementById('installBtn');
 
-        // 1. 아이폰(iOS)인지 확인
-        const isIos = /iPhone|iPad|iPod/.test(navigator.userAgent);
+        // 사용자 환경 탐지
+        const ua = navigator.userAgent.toLowerCase();
+        const isIos = /iphone|ipad|ipod/.test(ua);
+        const isInApp = ua.includes('kakao') || ua.includes('instagram') || ua.includes('naver');
 
+        // 1. 아이폰(iOS) 로직
         if (isIos) {
-            // 🍎 아이폰이면: 버튼 무조건 보여주고 -> 누르면 안내 메시지
-            installBtn.style.display = 'block';
+            installBtn.style.display = 'block'; // 무조건 보임
             installBtn.addEventListener('click', () => {
-                alert("📲 아이폰 설치 방법\n\n1. 사파리 하단 '공유' 버튼 클릭\n2. 메뉴를 내려서 '홈 화면에 추가' 선택\n3. 바탕화면에 '대구핫플여기' 앱 생성!");
+                alert("📲 아이폰 설치 방법\n\n1. 사파리(Safari) 브라우저 하단 '공유' 버튼 클릭\n2. 메뉴를 내려서 '홈 화면에 추가' 선택\n3. 바탕화면에 '대구핫플여기' 앱 생성!");
             });
-        } else {
-            // 🤖 안드로이드/PC면: 설치 가능한 상황일 때만 버튼 보여주기
+        } 
+        // 2. 카카오톡/인스타그램 등 인앱 브라우저 로직
+        else if (isInApp) {
+            installBtn.style.display = 'block'; // 무조건 보임
+            installBtn.addEventListener('click', () => {
+                // 인앱에서는 설치가 안 되므로 안내 메시지 출력
+                alert("🚫 현재 브라우저에서는 다운로드가 제한됩니다.\n\n우측 하단(또는 상단)의 [더보기 ···] 버튼을 누르고\n[다른 브라우저로 열기]를 선택해주세요!\n\n(크롬, 삼성인터넷 등에서 설치 가능)");
+            });
+        }
+        // 3. 일반 안드로이드/PC (크롬, 삼성인터넷 등) 로직
+        else {
+            // 설치 가능한 상태가 되면 브라우저가 이 이벤트를 날림
             window.addEventListener('beforeinstallprompt', (e) => {
                 e.preventDefault();
                 deferredPrompt = e;
-                installBtn.style.display = 'block';
+                installBtn.style.display = 'block'; // 이때만 버튼 등장
             });
 
             installBtn.addEventListener('click', (e) => {
-                // 아이폰이 아닐 때만 실행
-                if(!isIos && deferredPrompt) {
+                if (deferredPrompt) {
                     deferredPrompt.prompt();
                     deferredPrompt.userChoice.then((choiceResult) => {
                         if (choiceResult.outcome === 'accepted') {
@@ -468,6 +479,9 @@
                         }
                         deferredPrompt = null;
                     });
+                } else {
+                    // 혹시라도 버튼은 떠있는데 이벤트가 없는 경우
+                    alert("이미 설치되어 있거나, 브라우저 설정 메뉴에서 '앱 설치'를 직접 눌러주세요!");
                 }
             });
         }
