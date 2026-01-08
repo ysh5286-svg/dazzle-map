@@ -63,13 +63,16 @@
         </div>
 
         <div class="faq-footer">
+            <button id="sidebarInstallBtn" class="panel-btn" style="background:#3498db; margin-bottom:15px;">
+                ⬇️ 보물지도 어플 다운로드
+            </button>
+
             <div class="company-box">
                 <strong>다즐피플 (대표: 윤성호)</strong><br>
                 사업자번호: 535-25-01793<br>
                 주소: 대구광역시 동구 송라로16길 42
             </div>
         </div>
-    </div>
 
     <div id="selectModal" class="modal-overlay">
         <div class="modal-box">
@@ -438,26 +441,55 @@
                 .catch(err => console.log('서비스 워커 실패', err));
         }
 
-        // 🔥 [앱 설치 버튼 로직]
+        // 🔥 [앱 설치 버튼 로직 - 항상 표시 버전]
         let deferredPrompt;
-        const installBtn = document.getElementById('installBtn');
+        const installBtn = document.getElementById('installBtn'); 
+        const sidebarInstallBtn = document.getElementById('sidebarInstallBtn');
 
+        // 안드로이드 설치 준비 이벤트 (설치 안 된 상태에서만 발생)
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
-            installBtn.style.display = 'block'; // 설치 가능하면 버튼 보이기
+            console.log("설치 가능한 환경입니다.");
         });
 
-        installBtn.addEventListener('click', (e) => {
-            if(!deferredPrompt) return;
-            deferredPrompt.prompt();
-            deferredPrompt.userChoice.then((choiceResult) => {
-                if (choiceResult.outcome === 'accepted') {
-                    installBtn.style.display = 'none';
+        // 아이폰인지 확인
+        const isIos = /iPhone|iPad|iPod/.test(navigator.userAgent);
+        
+        // 현재 앱으로 보고 있는지 확인 (독립 실행 모드)
+        const isApp = window.matchMedia('(display-mode: standalone)').matches;
+
+        // 통합 설치 함수
+        async function installApp() {
+            if (isApp) {
+                alert("이미 앱으로 실행 중입니다! 😆");
+                return;
+            }
+
+            if (deferredPrompt) {
+                // 1. 안드로이드: 설치 팝업 띄우기
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    deferredPrompt = null;
                 }
-                deferredPrompt = null;
-            });
-        });
+            } else if (isIos) {
+                // 2. 아이폰: 수동 설치 안내
+                alert("🍎 아이폰 설치 방법\n\n하단의 [공유] 버튼을 누르고\n[홈 화면에 추가]를 선택해주세요!");
+            } else {
+                // 3. 이미 설치됐거나, 지원 안 하는 브라우저일 때
+                alert("이미 앱이 설치되어 있거나,\n지금 브라우저에서는 설치 버튼이 지원되지 않습니다.\n\n(크롬이나 사파리 앱을 이용해주세요!)");
+            }
+        }
+
+        // 버튼 클릭 이벤트 연결
+        if(sidebarInstallBtn) sidebarInstallBtn.addEventListener('click', installApp);
+        if(installBtn) installBtn.addEventListener('click', installApp);
     </script>
+    
+    <button id="installBtn" class="btn-app-install">
+    <i class="fas fa-download"></i>
+    <span>앱 설치하기</span>
+</button>
 </body>
 </html>
