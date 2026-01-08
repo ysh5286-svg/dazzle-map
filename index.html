@@ -2,24 +2,210 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- 아이폰 안전 영역(safe-area) 대응을 위해 viewport-fit=cover 추가 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     
     <title>대구핫플여기 보물지도</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#c0392b">
-    <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/google/material-design-icons/master/png/maps/local_dining/materialicons/48dp/2x/baseline_local_dining_black_48dp.png">
-
+    
+    <!-- 파비콘 및 OG 태그 -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🗺️</text></svg>">
     <meta property="og:title" content="🗺️ 대구핫플여기 보물지도">
-    <meta property="og:description" content="대구 찐맛집과 핫플을 한눈에!&#10;실패 없는 맛집 지도">
+    <meta property="og:description" content="대구 찐맛집과 핫플을 한눈에! 실패 없는 맛집 지도">
     <meta property="og:image" content="https://search.pstatic.net/common/?src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20260106_269%2F1767704133801UGRCw_JPEG%2FGemini_Generated_Image_b2zgovb2zgovb2zg.jpg">
-    <meta property="og:url" content="https://www.heredaegu.com">
 
+    <!-- 네이버 지도 API & jQuery & 폰트 -->
     <script type="text/javascript" src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=krsv42ftzf&submodules=geocoder"></script>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+
+    <!-- CSS 스타일 (통합됨) -->
+    <style>
+        /* 기본 설정 */
+        * { box-sizing: border-box; }
+        body, html { 
+            margin: 0; padding: 0; 
+            /* 아이폰 사파리 높이 대응 */
+            height: 100%; 
+            height: -webkit-fill-available;
+            font-family: 'Noto Sans KR', sans-serif; 
+            overflow: hidden; 
+        }
+
+        /* 1. 검색창 */
+        .search-container { position: absolute; top: 15px; left: 50%; transform: translateX(-50%); width: 95%; max-width: 500px; z-index: 100; }
+        .search-box-wrapper { background: white; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+        .search-filters { display: flex; gap: 5px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+        .search-filters::-webkit-scrollbar { display: none; }
+        .search-select { padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; background: #f9f9f9; color: #333; flex: 1; min-width: 80px; }
+        .search-input-row { display: flex; align-items: center; border-top: 1px solid #eee; padding-top: 8px; }
+        .search-input { border: none; outline: none; flex: 1; font-size: 15px; margin-left: 5px; -webkit-appearance: none; appearance: none; }
+        .search-icon { font-size: 18px; color: #5f6368; }
+
+        /* 2. 지도 영역 */
+        #map { width: 100%; height: 100%; z-index: 0; }
+
+        /* 3. 마커 라벨 */
+        .marker-label {
+            background: white; border-radius: 12px; padding: 6px 10px; text-align: center;
+            min-width: 80px; box-shadow: 0 2px 6px rgba(0,0,0,0.2); 
+            cursor: pointer; position: absolute; 
+            transform: translate(-50%, -100%); 
+            margin-top: -8px;
+            white-space: nowrap; z-index: 10;
+        }
+        .marker-label:hover { z-index: 9999; transform: translate(-50%, -100%) scale(1.05); transition: transform 0.1s; }
+
+        .overlay-badge { font-size: 10px; font-weight: bold; display: block; margin-bottom: 2px; }
+        .overlay-name { font-weight: bold; font-size: 13px; color: #202124; display: block; }
+        .count-badge { color: white; font-size: 10px; padding: 1px 5px; border-radius: 8px; margin-left: 3px; vertical-align: top; }
+
+        /* 4. 상세 패널 */
+        .info-panel { 
+            position: fixed; bottom: 80px; left: 50%; 
+            transform: translateX(-50%) translateY(120%); 
+            width: 95%; max-width: 320px; 
+            height: auto; max-height: 70vh; 
+            background: white; z-index: 300; 
+            box-shadow: 0 5px 25px rgba(0,0,0,0.3); border-radius: 20px; 
+            display: flex; flex-direction: column; overflow: hidden; 
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+        }
+        .info-panel.show { transform: translateX(-50%) translateY(0); }
+        .panel-header { position: relative; height: 140px; background-color: #f0f0f0; background-size: cover; background-position: center; flex-shrink: 0; }
+        .panel-close { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.6); color: white; border: none; border-radius: 50%; width: 28px; height: 28px; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; }
+        .panel-body { padding: 15px; flex: 1; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; gap: 10px; -webkit-overflow-scrolling: touch; }
+        .panel-title { font-size: 20px; font-weight: bold; margin: 0; color: #222; word-break: keep-all; }
+        .panel-meta { display: flex; flex-wrap: wrap; gap: 6px; }
+        .panel-tag { background: #f1f3f5; padding: 3px 8px; border-radius: 4px; color: #495057; font-size: 12px; }
+        .rating-box { background: #fff9db; padding: 10px; border-radius: 8px; border: 1px solid #ffe066; display: flex; align-items: center; gap: 15px; }
+        .rating-left { text-align: center; min-width: 60px; }
+        .total-score { font-size: 26px; font-weight: bold; color: #f59f00; margin: 0; line-height: 1; }
+        .total-label { font-size: 11px; color: #888; }
+        .rating-grid { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; min-width: 0; }
+        .detail-score { display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #555; }
+        .progress-bg { width: 50px; height: 5px; background: #e9ecef; border-radius: 3px; overflow: hidden; }
+        .progress-bar { height: 100%; background: #fcc419; }
+        .info-row { font-size: 13px; line-height: 1.4; color: #333; display: flex; }
+        .info-label { font-weight: bold; color: #2c3e50; min-width: 60px; flex-shrink: 0; }
+        .info-text { flex: 1; word-break: break-all; }
+        .panel-btn { display: block; width: 100%; padding: 10px; text-align: center; background: #03c75a; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px; margin-top: 5px; }
+
+        /* 5. 하단바 (푸터) */
+        .bottom-bar {
+            position: fixed; bottom: 0; left: 0; width: 100%; height: 70px;
+            /* 아이폰 하단 홈바 대응 */
+            padding-bottom: env(safe-area-inset-bottom);
+            height: calc(70px + env(safe-area-inset-bottom));
+            background: white; border-top: 1px solid #eee; z-index: 400;
+            display: flex; justify-content: space-between; align-items: center;
+            padding-left: 15px; padding-right: 15px; box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+        }
+        .bottom-left { flex: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+        .footer-copyright { font-size: 10px; color: #aaa; margin-left: 5px; text-decoration: none; font-weight: bold; }
+        .bottom-center { 
+            position: absolute; left: 50%; 
+            top: 35px; /* 높이의 절반 */
+            transform: translate(-50%, -50%);
+            display: flex; justify-content: center; align-items: center;
+        }
+        .btn-location-mode {
+            background: none; border: none; cursor: pointer;
+            display: flex; flex-direction: column; align-items: center; gap: 3px;
+            color: #2c3e50; transition: transform 0.1s; padding: 0;
+        }
+        .loc-icon-circle {
+            width: 28px; height: 28px; border: 2px solid #2c3e50; border-radius: 50%;
+            display: flex; justify-content: center; align-items: center; margin-bottom: 2px;
+        }
+        .loc-text { font-size: 11px; font-weight: bold; color: #2c3e50; }
+        .bottom-right { flex: 1; display: flex; justify-content: flex-end; }
+        .bar-btn {
+            border: none; padding: 8px 14px; border-radius: 20px; font-size: 12px; font-weight: bold; cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1); transition: 0.2s; white-space: nowrap;
+        }
+        .btn-usage { background: #fdf5e6; color: #5e4034; }
+
+        /* 6. 왼쪽 FAQ 패널 */
+        .faq-panel { position: fixed; top: 0; left: 0; width: 300px; height: 100%; background: white; z-index: 500; box-shadow: 2px 0 15px rgba(0,0,0,0.2); transform: translateX(-100%); transition: transform 0.3s ease-in-out; display: flex; flex-direction: column; }
+        .faq-panel.show { transform: translateX(0); }
+        .faq-header { padding: 20px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        .faq-body { padding: 20px; overflow-y: auto; flex: 1; -webkit-overflow-scrolling: touch; }
+        .faq-item { margin-bottom: 20px; }
+        .faq-q { font-weight: bold; color: #d35400; margin-bottom: 5px; font-size: 14px; }
+        .faq-a { font-size: 13px; color: #555; line-height: 1.5; }
+        .faq-footer { padding: 20px; background: #f9f9f9; border-top: 1px solid #eee; flex-shrink: 0; padding-bottom: calc(20px + env(safe-area-inset-bottom)); }
+
+        /* 7. 겹친 마커 선택 목록 */
+        .shop-select-list { display: flex; flex-direction: column; gap: 8px; max-height: 300px; overflow-y: auto; }
+        .shop-select-item { padding: 12px; border: 1px solid #eee; border-radius: 8px; background: #fff; cursor: pointer; transition: 0.2s; text-align: left; }
+        .shop-select-name { font-weight: bold; font-size: 14px; color: #222; display: block; margin-bottom: 3px; }
+        .shop-select-cat { font-size: 11px; color: #666; background: #eee; padding: 2px 6px; border-radius: 4px; }
+
+        /* 8. 모달 & 반응형 */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-overlay.show { display: flex; }
+        .modal-box { position: relative; background: white; padding: 25px; border-radius: 10px; width: 90%; max-width: 500px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); max-height: 90vh; overflow-y: auto; }
+        .modal-close-x { position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 24px; cursor: pointer; color: #888; }
+        
+        /* 게임 모달 스타일 */
+        .game-container { text-align: center; }
+        .game-title { font-size: 20px; font-weight: bold; margin-bottom: 20px; color: #2c3e50; }
+        .game-selection { display: flex; gap: 10px; justify-content: center; }
+        .game-card { background: #fff; border: 1px solid #eee; border-radius: 12px; padding: 20px; width: 48%; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.05); transition: 0.2s; }
+        .game-icon { font-size: 40px; margin-bottom: 10px; display: block; }
+        .game-name { font-weight: bold; font-size: 16px; display: block; margin-bottom: 5px; color: #333; }
+        .game-desc { font-size: 12px; color: #888; word-break: keep-all; }
+
+        .wc-container { display: none; flex-direction: column; align-items: center; }
+        .wc-vs-box { display: flex; justify-content: center; align-items: center; gap: 10px; width: 100%; margin-bottom: 20px; }
+        .wc-card { flex: 1; background: #fff; border: 2px solid #eee; border-radius: 12px; padding: 15px; cursor: pointer; transition: 0.2s; height: 200px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .wc-img { font-size: 60px; margin-bottom: 10px; }
+        .wc-name { font-weight: bold; font-size: 18px; word-break: keep-all; }
+        .wc-round-badge { background: #3498db; color: white; padding: 5px 15px; border-radius: 20px; font-size: 14px; font-weight: bold; margin-bottom: 15px; }
+
+        .roulette-container { display: none; flex-direction: column; align-items: center; width: 100%; }
+        .roulette-mode-btns { display: flex; gap: 5px; margin-bottom: 15px; width: 100%; }
+        .roulette-btn { flex: 1; padding: 8px; border: 1px solid #ddd; background: #f9f9f9; border-radius: 8px; font-size: 12px; cursor: pointer; }
+        .roulette-btn.active { background: #3498db; color: white; border-color: #3498db; font-weight: bold; }
+        .roulette-canvas-box { position: relative; width: 280px; height: 280px; margin: 0 auto 20px; }
+        .roulette-canvas { width: 100%; height: 100%; border-radius: 50%; border: 4px solid #eee; }
+        .roulette-arrow { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); font-size: 30px; color: #e74c3c; z-index: 10; }
+        .spin-btn { width: 100%; padding: 12px; background: linear-gradient(90deg, #3498db, #2980b9); color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        
+        .custom-input-box { display: none; width: 100%; margin-bottom: 15px; background: #f0f9ff; padding: 10px; border-radius: 8px; border: 1px solid #bae6fd; }
+        .custom-input-row { display: flex; gap: 5px; margin-bottom: 8px; }
+        .custom-input { flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; }
+        .custom-add-btn { background: #3b82f6; color: white; border: none; padding: 0 12px; border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer; }
+        .custom-list { display: flex; flex-wrap: wrap; gap: 5px; min-height: 24px; justify-content: center; }
+        .custom-tag { background: #dbeafe; color: #1e40af; padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: bold; display: flex; align-items: center; gap: 5px; }
+
+        .hidden { display: none !important; }
+        .confetti { position: fixed; width: 8px; height: 8px; z-index: 2000; animation: fall linear forwards; }
+        @keyframes fall { to { transform: translateY(100vh) rotate(720deg); } }
+
+        @media (max-width: 768px) {
+            .faq-panel { width: 85%; }
+            .search-container { width: 95%; top: 10px; }
+        }
+
+        /* 로딩 화면 스타일 */
+        #loadingOverlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #fff; z-index: 9999;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: opacity 0.5s;
+        }
+        #loadingOverlay.fade-out { opacity: 0; pointer-events: none; }
+        .spinner {
+            width: 50px; height: 50px; border: 5px solid #f3f3f3;
+            border-top: 5px solid #c0392b; border-radius: 50%;
+            animation: spin 1s linear infinite; margin-bottom: 15px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
 </head>
 <body>
     <div id="loadingOverlay">
@@ -42,11 +228,12 @@
             </div>
             <div class="search-input-row">
                 <span class="search-icon">🔍</span>
-                <input type="text" id="keyword" class="search-input" placeholder="예: 동성로 두바이 (띄어쓰기로 교차검색)" onkeyup="applyAllFilters()">
+                <input type="text" id="keyword" class="search-input" placeholder="예: 동성로 두바이" onkeyup="applyAllFilters()">
             </div>
         </div>
     </div>
 
+    <!-- FAQ 패널 -->
     <div id="faqPanel" class="faq-panel">
         <div class="faq-header"><h3>자주 묻는 질문</h3><button class="faq-close" onclick="toggleFaq()">✕</button></div>
         <div class="faq-body">
@@ -61,7 +248,6 @@
                 <a href="https://litt.ly/dazzlepeople" target="_blank" class="panel-btn" style="background:#e1306c;">📱 SNS 구경가기</a>
             </div>
         </div>
-
         <div class="faq-footer">
             <div class="company-box">
                 <strong>다즐피플 (대표: 윤성호)</strong><br>
@@ -71,6 +257,7 @@
         </div>
     </div>
 
+    <!-- 매장 선택 모달 -->
     <div id="selectModal" class="modal-overlay">
         <div class="modal-box">
             <button class="modal-close-x" onclick="closeSelectModal()">×</button>
@@ -79,10 +266,10 @@
         </div>
     </div>
 
+    <!-- 게임 모달 -->
     <div id="gameModal" class="modal-overlay">
         <div class="modal-box" style="max-width:400px; padding:0;">
             <button class="modal-close-x" style="z-index:10; top:10px; right:10px;" onclick="closeGameModal()">×</button>
-            
             <div class="game-container" style="padding:25px;">
                 <div id="gameMain">
                     <div class="game-title">🍽️ 오늘 뭐 먹지?</div>
@@ -139,6 +326,7 @@
         </div>
     </div>
 
+    <!-- 정보 패널 -->
     <div id="infoPanel" class="info-panel">
         <div class="panel-header" id="panelHeader"><button class="panel-close" onclick="closePanel()">✕</button></div>
         <div class="panel-body">
@@ -160,10 +348,10 @@
     </div>
 
     <div class="bottom-bar">
-        <div class="bottom-left" style="display:flex; align-items:center;">
+        <div class="bottom-left">
             <button class="bar-btn btn-usage" onclick="toggleFaq()">📖 사용법</button>
             <button id="installBtn" class="bar-btn" style="display:none; background:#3498db; color:white; margin-left:5px;">⬇️ 앱 설치</button>
-            <a href="https://www.dazzlepeople.com" target="_blank" class="footer-copyright" style="margin-left:10px;">© Dazzle People</a>
+            <a href="https://www.dazzlepeople.com" target="_blank" class="footer-copyright">© Dazzle People</a>
         </div>
         <div class="bottom-center">
             <button class="btn-location-mode" onclick="moveToCurrentLocation()">
@@ -179,13 +367,14 @@
     <div id="map"></div>
 
     <script>
-        // ... (기존 게임 관련 스크립트 그대로 유지) ...
+        // 전역 UI 함수들
         function toggleFaq() { document.getElementById('faqPanel').classList.toggle('show'); }
         function closePanel() { document.getElementById('infoPanel').classList.remove('show'); }
         function closeSelectModal() { document.getElementById('selectModal').classList.remove('show'); }
         function openGameModal() { resetGame(); document.getElementById('gameModal').classList.add('show'); document.getElementById('faqPanel').classList.remove('show'); }
         function closeGameModal() { document.getElementById('gameModal').classList.remove('show'); }
         
+        // 게임 데이터 및 로직
         const foodData = {
             lunch: [{name:"김치찌개",img:"🥘"},{name:"돈까스",img:"🍛"},{name:"제육볶음",img:"🥩"},{name:"순대국밥",img:"🍚"},{name:"햄버거",img:"🍔"},{name:"짜장면",img:"🥢"},{name:"짬뽕",img:"🍜"},{name:"칼국수",img:"🍲"},{name:"김밥/라면",img:"🍙"},{name:"비빔밥",img:"🥗"},{name:"부대찌개",img:"🥘"},{name:"가정식백반",img:"🍱"},{name:"쌀국수",img:"🍜"},{name:"샌드위치",img:"🥪"},{name:"편의점",img:"🏪"},{name:"샐러드",img:"🥗"}],
             dinner: [{name:"삼겹살",img:"🥓"},{name:"치킨",img:"🍗"},{name:"곱창/대창",img:"🔥"},{name:"회/사시미",img:"🐟"},{name:"족발/보쌈",img:"🍖"},{name:"마라탕",img:"🌶️"},{name:"양꼬치",img:"🍡"},{name:"피자",img:"🍕"},{name:"닭발",img:"🔥"},{name:"찜닭",img:"🥘"},{name:"갈비",img:"🥩"},{name:"감자탕",img:"🥘"},{name:"이자카야",img:"🍶"},{name:"파스타",img:"🍝"},{name:"스테이크",img:"🥩"},{name:"오돌뼈",img:"🍖"}],
@@ -193,6 +382,7 @@
         };
         let currentFoods=[],wcCurrentRound=[],wcNextRound=[],wcIndex=0,customFoods=["짜장면","짬뽕","탕수육"],rCanvas,rCtx,rCurrentRotation=0,isSpinning=false;
         const colors=["#FF9AA2","#FFB7B2","#FFDAC1","#E2F0CB","#B5EAD7","#C7CEEA","#93C5FD","#A78BFA","#FCA5A5","#FDBA74","#FDE047","#86EFAC"];
+        
         function resetGame(){ document.getElementById('gameMain').classList.remove('hidden'); document.getElementById('wcGame').style.display='none'; document.getElementById('wcResult').classList.add('hidden'); document.getElementById('rouletteGame').style.display='none'; }
         function startWorldCupGame(){ document.getElementById('gameMain').classList.add('hidden'); document.getElementById('wcGame').style.display='flex'; const all=[...foodData.lunch,...foodData.dinner,...foodData.weekend]; const uniq=all.filter((v,i,a)=>a.findIndex(t=>(t.name===v.name))===i); uniq.sort(()=>Math.random()-0.5); wcCurrentRound=uniq.slice(0,16); wcNextRound=[]; wcIndex=0; updateWcMatch(); }
         function updateWcMatch(){ if(wcIndex>=wcCurrentRound.length/2){ wcCurrentRound=[...wcNextRound]; wcNextRound=[]; wcIndex=0; wcCurrentRound.sort(()=>Math.random()-0.5); } if(wcCurrentRound.length===1){ showWcWinner(wcCurrentRound[0]); return; } document.getElementById('wcRoundBadge').innerText=wcCurrentRound.length===2?"결승":wcCurrentRound.length+"강"; const l=wcCurrentRound[wcIndex*2],r=wcCurrentRound[wcIndex*2+1]; document.getElementById('wcImgLeft').innerText=l.img; document.getElementById('wcNameLeft').innerText=l.name; document.getElementById('wcImgRight').innerText=r.img; document.getElementById('wcNameRight').innerText=r.name; }
@@ -209,28 +399,83 @@
         function fireConfetti(){ const c=['#f00','#0f0','#00f','#ff0','#0ff']; for(let i=0;i<50;i++){ const d=document.createElement('div'); d.className='confetti'; d.style.left=Math.random()*100+'vw'; d.style.top='-10px'; d.style.backgroundColor=c[Math.floor(Math.random()*c.length)]; d.style.animationDuration=(Math.random()*2+2)+'s'; document.body.appendChild(d); setTimeout(()=>d.remove(),4000); } }
     </script>
 
+    <!-- 🔥 핵심 수정: 모듈 스크립트 (순서 재배치 및 통합) -->
     <script type="module">
-        if(db) {
-    getDocs(collection(db, "shops")).then((snapshot) => {
-        allShops = [];
-        snapshot.forEach((doc) => allShops.push({ id: doc.id, ...doc.data() }));
-        
-        updateVisibleMarkers();
+        // ------------------------------------------------------------------
+        // [1] IMPORT 문이 최상단에 와야 합니다 (사파리 필수)
+        // ------------------------------------------------------------------
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // 🔥 [추가] 데이터 로딩 끝나면 로딩화면 끄기
-        document.getElementById('loadingOverlay').classList.add('fade-out');
+        // ------------------------------------------------------------------
+        // [2] Firebase 설정 및 초기화 (Common.js 내용 통합)
+        // ------------------------------------------------------------------
+        const firebaseConfig = {
+            apiKey: "AIzaSyBjzTIUtmGRVPXRy8Qppta1O2C1FjAvmeE",
+            authDomain: "dazzle-map-dd970.firebaseapp.com",
+            projectId: "dazzle-map-dd970",
+            storageBucket: "dazzle-map-dd970.firebasestorage.app",
+            messagingSenderId: "786425160276",
+            appId: "1:786425160276:web:aa7ba3c32268cf9a3643c1",
+            measurementId: "G-DVWDHQVJJL"
+        };
 
-    }).catch(e => {
-        console.error("Error:", e);
-        // 에러 나도 로딩화면은 꺼주기
-        document.getElementById('loadingOverlay').classList.add('fade-out');
-    });
-}
-        import { db, initMap, createMarker } from "./common.js";
-        // 🔥 getDocs를 사용하여 1회만 호출 (비용 절약)
-        import { collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
 
-        var map = initMap();
+        // ------------------------------------------------------------------
+        // [3] 지도 및 마커 로직 (Common.js 내용 통합)
+        // ------------------------------------------------------------------
+        function initMap() {
+            return new naver.maps.Map('map', {
+                center: new naver.maps.LatLng(35.8693, 128.5955), // 반월당 기준
+                zoom: 16,
+                zoomControl: false,
+                mapTypeControl: false
+            });
+        }
+
+        const categoryColors = {
+            "한식": "#e74c3c", "중식": "#f39c12", "일식": "#3498db", "양식": "#2ecc71",
+            "분식": "#e67e22", "고기/구이": "#d35400", "회/해산물": "#1abc9c", "아시안": "#16a085",
+            "술집": "#9b59b6", "카페/디저트": "#e056fd", "빵집": "#fd79a8",
+            "패스트푸드": "#f1c40f", "포장/배달": "#95a5a6", "default": "#34495e"
+        };
+
+        function createMarker(map, shopList, onClick) {
+            if (!shopList || shopList.length === 0) return null;
+            var mainShop = shopList[0];
+            var categoryName = Array.isArray(mainShop.category) ? mainShop.category[0] : (mainShop.category || '맛집');
+            var pointColor = categoryColors[categoryName] || categoryColors["default"];
+            var badgeHtml = shopList.length > 1 ? `<span class="count-badge" style="background:${pointColor}">+${shopList.length - 1}</span>` : '';
+
+            var contentHtml = `
+                <div class="marker-label" style="border: 2px solid ${pointColor};">
+                    <span class="overlay-badge" style="color: ${pointColor};">${categoryName}</span>
+                    <span class="overlay-name">${mainShop.name} ${badgeHtml}</span>
+                    <div style="position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 8px solid ${pointColor};"></div>
+                </div>`;
+
+            var marker = new naver.maps.Marker({
+                position: new naver.maps.LatLng(mainShop.lat, mainShop.lng),
+                map: map,
+                icon: {
+                    content: contentHtml,
+                    size: new naver.maps.Size(0, 0),
+                    anchor: new naver.maps.Point(0, 0)
+                }
+            });
+
+            if (onClick) {
+                naver.maps.Event.addListener(marker, 'click', function(e) { onClick(shopList); });
+            }
+            return marker;
+        }
+
+        // ------------------------------------------------------------------
+        // [4] 메인 실행 로직 (Index.html 로직 통합)
+        // ------------------------------------------------------------------
+        let map = initMap();
         let allShops = [];
         let markerList = [];
 
@@ -252,33 +497,32 @@
             closePanel(); document.getElementById('faqPanel').classList.remove('show');
         });
 
-        // 🔥 [핵심 1] 처음에 데이터 딱 1번만 가져오기
+        // 🔥 데이터 가져오기 로직 (import 이후에 실행됨)
         if(db) {
             getDocs(collection(db, "shops")).then((snapshot) => {
                 allShops = [];
                 snapshot.forEach((doc) => allShops.push({ id: doc.id, ...doc.data() }));
                 
-                // 가져오자마자 한번 그리기 (보이는 것만)
                 updateVisibleMarkers();
-            }).catch(e => console.error("Error:", e));
+                // 데이터 로딩 완료 후 오버레이 제거
+                document.getElementById('loadingOverlay').classList.add('fade-out');
+            }).catch(e => {
+                console.error("Error:", e);
+                // 에러 발생시에도 오버레이는 제거하여 사용자가 다른 기능이라도 쓰게 함
+                document.getElementById('loadingOverlay').classList.add('fade-out');
+            });
         }
 
-        // 🔥 [핵심 2] 지도가 멈출 때마다(idle) 보이는 마커만 계산해서 다시 그리기
         naver.maps.Event.addListener(map, 'idle', updateVisibleMarkers);
 
-        // 🔥 [핵심 3] 화면에 보이는 가게만 골라내는 함수 (비용 0원)
         function updateVisibleMarkers() {
-            const bounds = map.getBounds(); // 현재 화면 좌표 범위
-            
-            // 필터링 적용된 가게들 중에서 + 화면 안에 있는 것만
-            // (1차로 검색 필터, 2차로 좌표 필터)
+            const bounds = map.getBounds();
             const filtered = filterShops(allShops);
             const visibleShops = filtered.filter(shop => {
                 if(!shop.lat || !shop.lng) return false;
                 const pos = new naver.maps.LatLng(shop.lat, shop.lng);
                 return bounds.hasLatLng(pos);
             });
-
             renderMarkers(visibleShops);
         }
 
@@ -349,13 +593,11 @@
             });
 
             for(const key in groups) {
-                // 대표 설정: updatedAt이 가장 최신인 것이 0번
                 groups[key].sort((a, b) => {
                     const dateA = a.updatedAt ? (a.updatedAt.seconds || 0) : 0;
                     const dateB = b.updatedAt ? (b.updatedAt.seconds || 0) : 0;
                     return dateB - dateA;
                 });
-
                 const marker = createMarker(map, groups[key], function(clickedList) {
                     if (clickedList.length === 1) showPanel(clickedList[0]);
                     else showSelectModal(clickedList);
@@ -405,7 +647,6 @@
             });
         }
 
-        // 필터 변경 시에도 화면에 보이는 것만 다시 그리기 위해 updateVisibleMarkers 호출
         window.applyAllFilters = function() { updateVisibleMarkers(); };
 
         function showPanel(data) {
@@ -431,21 +672,19 @@
             $('#infoPanel').addClass('show');
         }
 
-        // 🔥 [PWA 서비스 워커 등록]
+        // PWA 관련
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('./sw.js')
                 .then(() => console.log('서비스 워커 등록 완료'))
                 .catch(err => console.log('서비스 워커 실패', err));
         }
 
-        // 🔥 [앱 설치 버튼 로직]
         let deferredPrompt;
         const installBtn = document.getElementById('installBtn');
-
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
-            installBtn.style.display = 'block'; // 설치 가능하면 버튼 보이기
+            installBtn.style.display = 'block';
         });
 
         installBtn.addEventListener('click', (e) => {
