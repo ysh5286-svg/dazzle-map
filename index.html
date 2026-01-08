@@ -20,6 +20,7 @@
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
     <div id="loadingOverlay">
@@ -441,22 +442,26 @@
                 .catch(err => console.log('서비스 워커 실패', err));
         }
 
-        // 🔥 [앱 설치 버튼 로직 - 항상 표시 버전]
+        // 🔥 [앱 설치 버튼 로직 수정본]
         let deferredPrompt;
+        
+        // 1. 기존 하단바 버튼 (숨겨진 것)
         const installBtn = document.getElementById('installBtn'); 
+        // 2. 사이드바 버튼
         const sidebarInstallBtn = document.getElementById('sidebarInstallBtn');
+        // 3. 🔥 새로 만든 둥둥 떠다니는 버튼 (ID 변경됨)
+        const floatInstallBtn = document.getElementById('floatInstallBtn');
 
-        // 안드로이드 설치 준비 이벤트 (설치 안 된 상태에서만 발생)
+        // 안드로이드 설치 준비 이벤트
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
             console.log("설치 가능한 환경입니다.");
         });
 
-        // 아이폰인지 확인
+        // 아이폰 여부 확인
         const isIos = /iPhone|iPad|iPod/.test(navigator.userAgent);
-        
-        // 현재 앱으로 보고 있는지 확인 (독립 실행 모드)
+        // 앱으로 실행 중인지 확인
         const isApp = window.matchMedia('(display-mode: standalone)').matches;
 
         // 통합 설치 함수
@@ -467,27 +472,30 @@
             }
 
             if (deferredPrompt) {
-                // 1. 안드로이드: 설치 팝업 띄우기
+                // 안드로이드: 설치 팝업
                 deferredPrompt.prompt();
                 const { outcome } = await deferredPrompt.userChoice;
                 if (outcome === 'accepted') {
                     deferredPrompt = null;
                 }
             } else if (isIos) {
-                // 2. 아이폰: 수동 설치 안내
+                // 아이폰: 안내 메시지
                 alert("🍎 아이폰 설치 방법\n\n하단의 [공유] 버튼을 누르고\n[홈 화면에 추가]를 선택해주세요!");
             } else {
-                // 3. 이미 설치됐거나, 지원 안 하는 브라우저일 때
-                alert("이미 앱이 설치되어 있거나,\n지금 브라우저에서는 설치 버튼이 지원되지 않습니다.\n\n(크롬이나 사파리 앱을 이용해주세요!)");
+                // PC 크롬 등 기타
+                alert("이미 앱이 설치되어 있거나,\n브라우저 설정에서 '앱 설치'를 직접 눌러주세요.\n(크롬/엣지/사파리 권장)");
             }
         }
 
         // 버튼 클릭 이벤트 연결
         if(sidebarInstallBtn) sidebarInstallBtn.addEventListener('click', installApp);
         if(installBtn) installBtn.addEventListener('click', installApp);
+        
+        // 🔥 새로 만든 버튼에도 이벤트 연결
+        if(floatInstallBtn) floatInstallBtn.addEventListener('click', installApp);
     </script>
-    
-    <button id="installBtn" class="btn-app-install">
+
+    <button id="floatInstallBtn" class="btn-app-install">
     <i class="fas fa-download"></i>
     <span>앱 설치하기</span>
 </button>
