@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dazzle-map-v1.1'; // 버전 조금 올림 (새로 적용되라고)
+const CACHE_NAME = 'dazzle-map-v1.3'; // 버전 조금 올림 (새로 적용되라고)
 
 // 🔥 캐시할 파일 목록 (외부 라이브러리도 포함해야 빨라짐)
 const urlsToCache = [
@@ -7,6 +7,8 @@ const urlsToCache = [
   './style.css',
   './common.js',
   './manifest.json',
+  './icon-192.png',  // 🔥 추가됨
+  './icon-512.png',  // 🔥 추가됨
   'https://code.jquery.com/jquery-3.7.1.min.js',
   'https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap'
 ];

@@ -62,6 +62,12 @@
             </div>
         </div>
 
+        <div style="padding: 0 20px 10px 20px;">
+            <button id="installBtn" class="panel-btn" style="display:none; background:#3498db; color:white; font-size:15px; box-shadow:0 4px 6px rgba(52, 152, 219, 0.3);">
+                ⬇️ 대구보물지도 앱 설치하기
+            </button>
+        </div>
+
         <div class="faq-footer">
             <div class="company-box">
                 <strong>다즐피플 (대표: 윤성호)</strong><br>
@@ -160,9 +166,8 @@
     </div>
 
     <div class="bottom-bar">
-        <div class="bottom-left" style="display:flex; align-items:center;">
+        <div class="bottom-left">
             <button class="bar-btn btn-usage" onclick="toggleFaq()">📖 사용법</button>
-            <button id="installBtn" class="bar-btn" style="display:none; background:#3498db; color:white; margin-left:5px;">⬇️ 앱 설치</button>
             <a href="https://www.dazzlepeople.com" target="_blank" class="footer-copyright" style="margin-left:10px;">© Dazzle People</a>
         </div>
         <div class="bottom-center">
@@ -179,7 +184,7 @@
     <div id="map"></div>
 
     <script>
-        // ... (기존 게임 관련 스크립트 그대로 유지) ...
+        // ... (기존 게임 관련 스크립트) ...
         function toggleFaq() { document.getElementById('faqPanel').classList.toggle('show'); }
         function closePanel() { document.getElementById('infoPanel').classList.remove('show'); }
         function closeSelectModal() { document.getElementById('selectModal').classList.remove('show'); }
@@ -210,24 +215,8 @@
     </script>
 
     <script type="module">
-        if(db) {
-    getDocs(collection(db, "shops")).then((snapshot) => {
-        allShops = [];
-        snapshot.forEach((doc) => allShops.push({ id: doc.id, ...doc.data() }));
-        
-        updateVisibleMarkers();
-
-        // 🔥 [추가] 데이터 로딩 끝나면 로딩화면 끄기
-        document.getElementById('loadingOverlay').classList.add('fade-out');
-
-    }).catch(e => {
-        console.error("Error:", e);
-        // 에러 나도 로딩화면은 꺼주기
-        document.getElementById('loadingOverlay').classList.add('fade-out');
-    });
-}
         import { db, initMap, createMarker } from "./common.js";
-        // 🔥 getDocs를 사용하여 1회만 호출 (비용 절약)
+        // 🔥 getDocs를 상단에서 정확하게 임포트
         import { collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         var map = initMap();
@@ -252,26 +241,36 @@
             closePanel(); document.getElementById('faqPanel').classList.remove('show');
         });
 
-        // 🔥 [핵심 1] 처음에 데이터 딱 1번만 가져오기
+        // 🔥 [핵심 1] 처음에 데이터 가져오기
         if(db) {
             getDocs(collection(db, "shops")).then((snapshot) => {
                 allShops = [];
                 snapshot.forEach((doc) => allShops.push({ id: doc.id, ...doc.data() }));
                 
-                // 가져오자마자 한번 그리기 (보이는 것만)
+                // 데이터는 왔지만 지도가 준비 안 됐을 수 있으므로 시도
                 updateVisibleMarkers();
-            }).catch(e => console.error("Error:", e));
+                
+                // 로딩 종료
+                document.getElementById('loadingOverlay').classList.add('fade-out');
+            }).catch(e => {
+                console.error("Error:", e);
+                document.getElementById('loadingOverlay').classList.add('fade-out');
+            });
         }
 
-        // 🔥 [핵심 2] 지도가 멈출 때마다(idle) 보이는 마커만 계산해서 다시 그리기
+        // 🔥 [핵심 2] 지도가 멈출 때(idle)마다 마커 갱신
+        // 모바일에서 초기 로딩이 늦어 핀이 안 뜰 때, 이 이벤트가 결국 실행되어 핀을 그려줌
         naver.maps.Event.addListener(map, 'idle', updateVisibleMarkers);
 
-        // 🔥 [핵심 3] 화면에 보이는 가게만 골라내는 함수 (비용 0원)
+        // 🔥 [핵심 3] 화면에 보이는 가게만 골라내는 함수 (안전장치 추가됨)
         function updateVisibleMarkers() {
-            const bounds = map.getBounds(); // 현재 화면 좌표 범위
+            // 🚨 안전장치: 지도가 아직 초기화 중이라 영역(bounds)이 없으면 중단하고 대기
+            const bounds = map.getBounds();
+            if (!bounds) {
+                return; // 지도가 완전히 뜰 때까지(idle 이벤트 발생 전까지) 마커 생성 보류
+            }
             
             // 필터링 적용된 가게들 중에서 + 화면 안에 있는 것만
-            // (1차로 검색 필터, 2차로 좌표 필터)
             const filtered = filterShops(allShops);
             const visibleShops = filtered.filter(shop => {
                 if(!shop.lat || !shop.lng) return false;
@@ -438,26 +437,40 @@
                 .catch(err => console.log('서비스 워커 실패', err));
         }
 
-        // 🔥 [앱 설치 버튼 로직]
+        // 🔥 [앱 설치 버튼 로직 - 아이폰/안드로이드 통합]
         let deferredPrompt;
         const installBtn = document.getElementById('installBtn');
 
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            installBtn.style.display = 'block'; // 설치 가능하면 버튼 보이기
-        });
+        // 1. 아이폰(iOS)인지 확인
+        const isIos = /iPhone|iPad|iPod/.test(navigator.userAgent);
 
-        installBtn.addEventListener('click', (e) => {
-            if(!deferredPrompt) return;
-            deferredPrompt.prompt();
-            deferredPrompt.userChoice.then((choiceResult) => {
-                if (choiceResult.outcome === 'accepted') {
-                    installBtn.style.display = 'none';
-                }
-                deferredPrompt = null;
+        if (isIos) {
+            // 🍎 아이폰이면: 버튼 무조건 보여주고 -> 누르면 안내 메시지
+            installBtn.style.display = 'block';
+            installBtn.addEventListener('click', () => {
+                alert("📲 아이폰 설치 방법\n\n1. 사파리 하단 '공유' 버튼 클릭\n2. 메뉴를 내려서 '홈 화면에 추가' 선택\n3. 바탕화면에 '대구핫플여기' 앱 생성!");
             });
-        });
+        } else {
+            // 🤖 안드로이드/PC면: 설치 가능한 상황일 때만 버튼 보여주기
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredPrompt = e;
+                installBtn.style.display = 'block';
+            });
+
+            installBtn.addEventListener('click', (e) => {
+                // 아이폰이 아닐 때만 실행
+                if(!isIos && deferredPrompt) {
+                    deferredPrompt.prompt();
+                    deferredPrompt.userChoice.then((choiceResult) => {
+                        if (choiceResult.outcome === 'accepted') {
+                            installBtn.style.display = 'none';
+                        }
+                        deferredPrompt = null;
+                    });
+                }
+            });
+        }
     </script>
 </body>
 </html>
