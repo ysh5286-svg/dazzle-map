@@ -223,6 +223,23 @@
         let allShops = [];
         let markerList = [];
 
+        // 1. [핵심] 창 크기가 변할 때(인스타/카톡 상하단바 움직임) 지도 새로고침
+        window.addEventListener('resize', function() {
+            map.refresh(); // 네이버 지도 크기 재설정
+            updateVisibleMarkers(); // 핀 다시 그리기
+        });
+
+        // 2. [핵심] 0.5초, 1초 뒤에 강제로 한번 더 그리기 (처음에 씹히는 것 방지)
+        setTimeout(function() {
+            map.refresh();
+            updateVisibleMarkers();
+        }, 500);
+
+        setTimeout(function() {
+            map.refresh();
+            updateVisibleMarkers();
+        }, 1500); // 혹시 몰라 1.5초 뒤에 한번 더 확인 사살
+
         const LANDMARKS = {
             "팔공산": { lat: 35.9899, lng: 128.6961 }, "갓바위": { lat: 35.9758, lng: 128.7694 },
             "반월당": { lat: 35.8644, lng: 128.5933 }, "동성로": { lat: 35.8710, lng: 128.5960 },
@@ -282,20 +299,39 @@
         }
 
         window.moveToCurrentLocation = function() {
-            if (!navigator.geolocation) { alert("위치 정보를 사용할 수 없습니다."); return; }
-            navigator.geolocation.getCurrentPosition((position) => {
-                const lat = position.coords.latitude;
-                const lng = position.coords.longitude;
-                const loc = new naver.maps.LatLng(lat, lng);
-                map.setCenter(loc);
-                map.setZoom(16);
-                if (window.myLocationMarker) window.myLocationMarker.setMap(null);
-                window.myLocationMarker = new naver.maps.Marker({
-                    position: loc, map: map,
-                    icon: { content: '<div style="width:16px;height:16px;background:#3498db;border:2px solid white;border-radius:50%;box-shadow:0 0 5px rgba(0,0,0,0.5);"></div>', anchor: new naver.maps.Point(8, 8) }
-                });
-            }, () => { alert("위치 정보를 가져올 수 없습니다. (GPS를 켜주세요)"); });
-        }
+    // 1. [추가됨] 버튼 누르면 지도 레이아웃 강제 새로고침 (깨짐 방지)
+    map.refresh(); 
+
+    if (!navigator.geolocation) { alert("위치 정보를 사용할 수 없습니다."); return; }
+    
+    // 로딩 중인 티를 좀 내고 싶다면 아이콘을 돌리거나 텍스트 변경 (선택사항)
+    const btnText = document.querySelector('.loc-text');
+    if(btnText) btnText.innerText = "탐색중..";
+
+    navigator.geolocation.getCurrentPosition((position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        const loc = new naver.maps.LatLng(lat, lng);
+        
+        map.setCenter(loc);
+        map.setZoom(16);
+        
+        // 2. [추가됨] 위치 이동 후 핀들도 다시 확실하게 그림
+        setTimeout(() => {
+            updateVisibleMarkers();
+            if(btnText) btnText.innerText = "내 주변"; // 텍스트 원상복구
+        }, 300);
+
+        if (window.myLocationMarker) window.myLocationMarker.setMap(null);
+        window.myLocationMarker = new naver.maps.Marker({
+            position: loc, map: map,
+            icon: { content: '<div style="width:16px;height:16px;background:#3498db;border:2px solid white;border-radius:50%;box-shadow:0 0 5px rgba(0,0,0,0.5);"></div>', anchor: new naver.maps.Point(8, 8) }
+        });
+    }, () => { 
+        alert("위치 정보를 가져올 수 없습니다. (GPS를 켜주세요)"); 
+        if(btnText) btnText.innerText = "내 주변";
+    });
+}
 
         $('#keyword').on('keydown', function(e) {
             if (e.key === 'Enter') {
