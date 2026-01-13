@@ -279,6 +279,55 @@
             }
         }
 
+        window.deleteTheme = async function() {
+            const select = document.getElementById('adminThemeSelect');
+            const targetTheme = select.value;
+
+            // 1. 선택된 테마가 있는지 확인
+            if (!targetTheme) return alert("❌ 삭제할 테마를 먼저 선택해주세요.");
+
+            // 2. 삭제 확인 (실수 방지)
+            if (!confirm(`⚠️ 정말 '${targetTheme}' 테마를 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없으며,\n해당 테마가 적용된 모든 맛집에서 태그가 제거됩니다.`)) return;
+
+            try {
+                showToast("🗑️ 테마 삭제 및 청소 중...");
+
+                // 3. 메타 데이터(목록)에서 삭제
+                const themeRef = doc(db, "meta", "themes");
+                await updateDoc(themeRef, {
+                    list: arrayRemove(targetTheme)
+                });
+
+                // 4. 해당 테마를 달고 있는 맛집들에서 태그 제거 (데이터 청소)
+                const q = query(collection(db, "shops"), where("themes", "array-contains", targetTheme));
+                const querySnapshot = await getDocs(q);
+
+                if (!querySnapshot.empty) {
+                    const promises = querySnapshot.docs.map(docSnapshot => {
+                        const shopRef = doc(db, "shops", docSnapshot.id);
+                        return updateDoc(shopRef, { 
+                            themes: arrayRemove(targetTheme) 
+                        });
+                    });
+                    await Promise.all(promises);
+                }
+
+                alert(`✅ 삭제 완료!\n총 ${querySnapshot.size}개의 맛집에서 '${targetTheme}' 태그가 제거되었습니다.`);
+
+                // 5. 화면 즉시 반영 (새로고침 없이)
+                themeList = themeList.filter(t => t !== targetTheme); // 내부 리스트에서 제거
+                select.remove(select.selectedIndex); // 드롭다운에서 제거
+                
+                // 선택 초기화 및 모드 끄기
+                select.value = "";
+                toggleThemeMode();
+
+            } catch (e) {
+                console.error(e);
+                alert("❌ 오류 발생: " + e.message);
+            }
+        }
+
         function handleMarkerClick(clickedList) {
             if (currentThemeMode) {
                 if(clickedList.length > 1) {
