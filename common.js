@@ -83,7 +83,7 @@ export function createMarker(map, shopList, onClick) {
         }
     });
 
-    if (onClick) {
+if (onClick) {
         naver.maps.Event.addListener(marker, 'click', function(e) {
             onClick(shopList); 
         });

@@ -29,6 +29,11 @@
 
     <div class="search-container">
         <div class="search-box-wrapper">
+            <div class="theme-select-wrapper">
+                <select id="mainThemeSelect" class="theme-select" onchange="applyAllFilters()">
+                    <option value="ALL">💎 전체 맛집 보기</option>
+                    </select>
+            </div>
             <div class="search-filters">
                 <select id="filterRegion" class="search-select" onchange="applyAllFilters()">
                     <option value="">📍 지역 전체</option><option value="수성구">수성구</option><option value="중구">중구</option><option value="동구">동구</option><option value="서구">서구</option><option value="남구">남구</option><option value="북구">북구</option><option value="달서구">달서구</option><option value="달성군">달성군</option><option value="군위군">군위군</option><option value="칠곡군">칠곡군</option><option value="경산">경산</option><option value="청도">청도</option><option value="대구 밖">대구 밖</option>
@@ -216,30 +221,17 @@
 
     <script type="module">
         import { db, initMap, createMarker } from "./common.js";
-        // 🔥 getDocs를 상단에서 정확하게 임포트
-        import { collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         var map = initMap();
         let allShops = [];
         let markerList = [];
 
-        // 1. [핵심] 창 크기가 변할 때(인스타/카톡 상하단바 움직임) 지도 새로고침
-        window.addEventListener('resize', function() {
-            map.refresh(); // 네이버 지도 크기 재설정
-            updateVisibleMarkers(); // 핀 다시 그리기
-        });
+        window.addEventListener('resize', function() { map.refresh(); updateVisibleMarkers(); });
+        setTimeout(function() { map.refresh(); updateVisibleMarkers(); }, 500);
+        setTimeout(function() { map.refresh(); updateVisibleMarkers(); }, 1500);
 
-        // 2. [핵심] 0.5초, 1초 뒤에 강제로 한번 더 그리기 (처음에 씹히는 것 방지)
-        setTimeout(function() {
-            map.refresh();
-            updateVisibleMarkers();
-        }, 500);
-
-        setTimeout(function() {
-            map.refresh();
-            updateVisibleMarkers();
-        }, 1500); // 혹시 몰라 1.5초 뒤에 한번 더 확인 사살
-
+        // ... (랜드마크 변수 LANDMARKS 기존 유지 - 코드 길이상 생략하지만 꼭 있어야 함) ...
         const LANDMARKS = {
             "팔공산": { lat: 35.9899, lng: 128.6961 }, "갓바위": { lat: 35.9758, lng: 128.7694 },
             "반월당": { lat: 35.8644, lng: 128.5933 }, "동성로": { lat: 35.8710, lng: 128.5960 },
@@ -258,16 +250,65 @@
             closePanel(); document.getElementById('faqPanel').classList.remove('show');
         });
 
-        // 🔥 [핵심 1] 처음에 데이터 가져오기
+        // ==========================================
+        // 🔥 테마 목록 로딩 (정렬 및 기본값 설정)
+        // ==========================================
+        async function initTheme() {
+            const select = document.getElementById('mainThemeSelect');
+            try {
+                const docRef = doc(db, "meta", "themes");
+                const docSnap = await getDoc(docRef);
+                
+                // 기존 옵션 비우기 ('전체보기'는 나중에 다시 넣음)
+                select.innerHTML = '';
+
+                if (docSnap.exists()) {
+                    let list = docSnap.data().list || [];
+                    
+                    // 🔥 이름순 정렬 (관리자가 1_.., 2_.. 정한 순서대로)
+                    list.sort();
+
+                    list.forEach((t, index) => {
+                        const opt = document.createElement('option');
+                        opt.value = t;
+                        opt.innerText = `🚩 ${t}`;
+                        select.appendChild(opt);
+                    });
+                    
+                    // 정렬된 리스트의 첫 번째 항목을 기본값으로 선택
+                    if (list.length > 0) {
+                        select.value = list[0]; 
+                    }
+                }
+                
+                // '전체 맛집 보기' 옵션은 맨 뒤에 추가
+                const allOpt = document.createElement('option');
+                allOpt.value = "ALL";
+                allOpt.innerText = "📂 전체 맛집 보기";
+                select.appendChild(allOpt); 
+                
+                // 만약 테마가 하나도 없으면 '전체'를 기본값으로
+                if (select.options.length === 1) select.value = "ALL";
+
+                // 데이터 로드 후 필터 즉시 적용
+                if(allShops.length > 0) updateVisibleMarkers();
+
+            } catch(e) {
+                console.log("테마 로딩 실패:", e);
+                // 실패 시 기본 옵션 추가
+                const allOpt = document.createElement('option');
+                allOpt.value = "ALL"; allOpt.innerText = "📂 전체 맛집 보기";
+                select.appendChild(allOpt);
+            }
+        }
+        initTheme(); // 실행
+
         if(db) {
             getDocs(collection(db, "shops")).then((snapshot) => {
                 allShops = [];
                 snapshot.forEach((doc) => allShops.push({ id: doc.id, ...doc.data() }));
                 
-                // 데이터는 왔지만 지도가 준비 안 됐을 수 있으므로 시도
                 updateVisibleMarkers();
-                
-                // 로딩 종료
                 document.getElementById('loadingOverlay').classList.add('fade-out');
             }).catch(e => {
                 console.error("Error:", e);
@@ -275,63 +316,38 @@
             });
         }
 
-        // 🔥 [핵심 2] 지도가 멈출 때(idle)마다 마커 갱신
-        // 모바일에서 초기 로딩이 늦어 핀이 안 뜰 때, 이 이벤트가 결국 실행되어 핀을 그려줌
         naver.maps.Event.addListener(map, 'idle', updateVisibleMarkers);
 
-        // 🔥 [핵심 3] 화면에 보이는 가게만 골라내는 함수 (안전장치 추가됨)
         function updateVisibleMarkers() {
-            // 🚨 안전장치: 지도가 아직 초기화 중이라 영역(bounds)이 없으면 중단하고 대기
             const bounds = map.getBounds();
-            if (!bounds) {
-                return; // 지도가 완전히 뜰 때까지(idle 이벤트 발생 전까지) 마커 생성 보류
-            }
-            
-            // 필터링 적용된 가게들 중에서 + 화면 안에 있는 것만
+            if (!bounds) return;
             const filtered = filterShops(allShops);
             const visibleShops = filtered.filter(shop => {
                 if(!shop.lat || !shop.lng) return false;
                 const pos = new naver.maps.LatLng(shop.lat, shop.lng);
                 return bounds.hasLatLng(pos);
             });
-
             renderMarkers(visibleShops);
         }
 
         window.moveToCurrentLocation = function() {
-    // 1. [추가됨] 버튼 누르면 지도 레이아웃 강제 새로고침 (깨짐 방지)
-    map.refresh(); 
-
-    if (!navigator.geolocation) { alert("위치 정보를 사용할 수 없습니다."); return; }
-    
-    // 로딩 중인 티를 좀 내고 싶다면 아이콘을 돌리거나 텍스트 변경 (선택사항)
-    const btnText = document.querySelector('.loc-text');
-    if(btnText) btnText.innerText = "탐색중..";
-
-    navigator.geolocation.getCurrentPosition((position) => {
-        const lat = position.coords.latitude;
-        const lng = position.coords.longitude;
-        const loc = new naver.maps.LatLng(lat, lng);
-        
-        map.setCenter(loc);
-        map.setZoom(16);
-        
-        // 2. [추가됨] 위치 이동 후 핀들도 다시 확실하게 그림
-        setTimeout(() => {
-            updateVisibleMarkers();
-            if(btnText) btnText.innerText = "내 주변"; // 텍스트 원상복구
-        }, 300);
-
-        if (window.myLocationMarker) window.myLocationMarker.setMap(null);
-        window.myLocationMarker = new naver.maps.Marker({
-            position: loc, map: map,
-            icon: { content: '<div style="width:16px;height:16px;background:#3498db;border:2px solid white;border-radius:50%;box-shadow:0 0 5px rgba(0,0,0,0.5);"></div>', anchor: new naver.maps.Point(8, 8) }
-        });
-    }, () => { 
-        alert("위치 정보를 가져올 수 없습니다. (GPS를 켜주세요)"); 
-        if(btnText) btnText.innerText = "내 주변";
-    });
-}
+            map.refresh(); 
+            if (!navigator.geolocation) { alert("위치 정보를 사용할 수 없습니다."); return; }
+            const btnText = document.querySelector('.loc-text');
+            if(btnText) btnText.innerText = "탐색중..";
+            navigator.geolocation.getCurrentPosition((position) => {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                const loc = new naver.maps.LatLng(lat, lng);
+                map.setCenter(loc); map.setZoom(16);
+                setTimeout(() => { updateVisibleMarkers(); if(btnText) btnText.innerText = "내 주변"; }, 300);
+                if (window.myLocationMarker) window.myLocationMarker.setMap(null);
+                window.myLocationMarker = new naver.maps.Marker({
+                    position: loc, map: map,
+                    icon: { content: '<div style="width:16px;height:16px;background:#3498db;border:2px solid white;border-radius:50%;box-shadow:0 0 5px rgba(0,0,0,0.5);"></div>', anchor: new naver.maps.Point(8, 8) }
+                });
+            }, () => { alert("위치 정보를 가져올 수 없습니다."); if(btnText) btnText.innerText = "내 주변"; });
+        }
 
         $('#keyword').on('keydown', function(e) {
             if (e.key === 'Enter') {
@@ -374,7 +390,6 @@
         function renderMarkers(shops) {
             markerList.forEach(m => m.setMap(null));
             markerList = [];
-            
             const groups = {};
             shops.forEach(shop => {
                 if(!shop.lat || !shop.lng) return;
@@ -382,15 +397,12 @@
                 if(!groups[key]) groups[key] = [];
                 groups[key].push(shop);
             });
-
             for(const key in groups) {
-                // 대표 설정: updatedAt이 가장 최신인 것이 0번
                 groups[key].sort((a, b) => {
                     const dateA = a.updatedAt ? (a.updatedAt.seconds || 0) : 0;
                     const dateB = b.updatedAt ? (b.updatedAt.seconds || 0) : 0;
                     return dateB - dateA;
                 });
-
                 const marker = createMarker(map, groups[key], function(clickedList) {
                     if (clickedList.length === 1) showPanel(clickedList[0]);
                     else showSelectModal(clickedList);
@@ -413,7 +425,9 @@
             document.getElementById('selectModal').classList.add('show');
         }
 
+        // 🔥 테마 필터 (기존 로직 유지)
         function filterShops(shops) {
+            var theme = $('#mainThemeSelect').val();
             var region = $('#filterRegion').val();
             var category = $('#filterCategory').val();
             var purpose = $('#filterPurpose').val();
@@ -421,26 +435,27 @@
             var keywords = keywordInput.split(/\s+/).filter(t => t.length > 0);
 
             return shops.filter(shop => {
+                var matchTheme = true;
+                if (theme && theme !== 'ALL') {
+                    if (!shop.themes || !shop.themes.includes(theme)) {
+                        matchTheme = false;
+                    }
+                }
                 var matchRegion = (region === "") || (shop.region === region);
                 var shopCategories = Array.isArray(shop.category) ? shop.category : [shop.category];
                 var matchCategory = (category === "") || shopCategories.includes(category);
                 var shopPurposes = Array.isArray(shop.purpose) ? shop.purpose : [shop.purpose];
                 var matchPurpose = (purpose === "") || shopPurposes.includes(purpose);
                 
-                var searchableText = (
-                    shop.name + " " + (shop.menu || "") + " " + (shop.area || "") + " " + (shop.address || "") + " " + shopCategories.join(" ")
-                ).toLowerCase();
-
+                var searchableText = (shop.name + " " + (shop.menu || "") + " " + (shop.area || "") + " " + (shop.address || "") + " " + shopCategories.join(" ")).toLowerCase();
                 var matchKeyword = true;
                 if (keywords.length > 0) {
                     matchKeyword = keywords.every(term => searchableText.includes(term));
                 }
-
-                return matchRegion && matchCategory && matchPurpose && matchKeyword;
+                return matchTheme && matchRegion && matchCategory && matchPurpose && matchKeyword;
             });
         }
 
-        // 필터 변경 시에도 화면에 보이는 것만 다시 그리기 위해 updateVisibleMarkers 호출
         window.applyAllFilters = function() { updateVisibleMarkers(); };
 
         function showPanel(data) {
@@ -449,7 +464,8 @@
             $('#panelTitle').text(data.name);
             var categories = Array.isArray(data.category) ? data.category : [data.category];
             var purposes = Array.isArray(data.purpose) ? data.purpose : [data.purpose];
-            var tags = [...categories, data.region, ...purposes, data.area].filter(Boolean);
+            var themes = data.themes || [];
+            var tags = [...categories, data.region, ...purposes, ...themes, data.area].filter(Boolean);
             $('#panelMeta').html(tags.map(t => `<span class="panel-tag">#${t}</span>`).join(''));
             $('#panelTotal').text(data.totalScore || '0.0');
             setTimeout(() => {
@@ -466,61 +482,12 @@
             $('#infoPanel').addClass('show');
         }
 
-        // 🔥 [PWA 서비스 워커 등록]
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('./sw.js')
-                .then(() => console.log('서비스 워커 등록 완료'))
-                .catch(err => console.log('서비스 워커 실패', err));
-        }
-
-        // 🔥 [앱 설치 버튼 로직 - 아이폰/안드로이드/인앱브라우저 통합]
-        let deferredPrompt;
-        const installBtn = document.getElementById('installBtn');
-
-        // 사용자 환경 탐지
-        const ua = navigator.userAgent.toLowerCase();
-        const isIos = /iphone|ipad|ipod/.test(ua);
-        const isInApp = ua.includes('kakao') || ua.includes('instagram') || ua.includes('naver');
-
-        // 1. 아이폰(iOS) 로직
-        if (isIos) {
-            installBtn.style.display = 'block'; // 무조건 보임
-            installBtn.addEventListener('click', () => {
-                alert("📲 아이폰 설치 방법\n\n1. 사파리(Safari) 브라우저 하단 '공유' 버튼 클릭\n2. 메뉴를 내려서 '홈 화면에 추가' 선택\n3. 바탕화면에 '대구핫플여기' 앱 생성!");
-            });
-        } 
-        // 2. 카카오톡/인스타그램 등 인앱 브라우저 로직
-        else if (isInApp) {
-            installBtn.style.display = 'block'; // 무조건 보임
-            installBtn.addEventListener('click', () => {
-                // 인앱에서는 설치가 안 되므로 안내 메시지 출력
-                alert("🚫 현재 브라우저에서는 다운로드가 제한됩니다.\n\n우측 하단(또는 상단)의 [더보기 ···] 버튼을 누르고\n[다른 브라우저로 열기]를 선택해주세요!\n\n(크롬, 삼성인터넷 등에서 설치 가능)");
-            });
-        }
-        // 3. 일반 안드로이드/PC (크롬, 삼성인터넷 등) 로직
-        else {
-            // 설치 가능한 상태가 되면 브라우저가 이 이벤트를 날림
-            window.addEventListener('beforeinstallprompt', (e) => {
-                e.preventDefault();
-                deferredPrompt = e;
-                installBtn.style.display = 'block'; // 이때만 버튼 등장
-            });
-
-            installBtn.addEventListener('click', (e) => {
-                if (deferredPrompt) {
-                    deferredPrompt.prompt();
-                    deferredPrompt.userChoice.then((choiceResult) => {
-                        if (choiceResult.outcome === 'accepted') {
-                            installBtn.style.display = 'none';
-                        }
-                        deferredPrompt = null;
-                    });
-                } else {
-                    // 혹시라도 버튼은 떠있는데 이벤트가 없는 경우
-                    alert("이미 설치되어 있거나, 브라우저 설정 메뉴에서 '앱 설치'를 직접 눌러주세요!");
-                }
-            });
-        }
+        // PWA 설치 로직 (기존 유지)
+        if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(err => console.log('서비스 워커 실패', err));
+        let deferredPrompt; const installBtn = document.getElementById('installBtn'); const ua = navigator.userAgent.toLowerCase(); const isIos = /iphone|ipad|ipod/.test(ua); const isInApp = ua.includes('kakao') || ua.includes('instagram') || ua.includes('naver');
+        if (isIos) { installBtn.style.display = 'block'; installBtn.addEventListener('click', () => alert("📲 아이폰 설치 방법\n\n1. 사파리(Safari) 브라우저 하단 '공유' 버튼 클릭\n2. 메뉴를 내려서 '홈 화면에 추가' 선택\n3. 바탕화면에 '대구핫플여기' 앱 생성!")); } 
+        else if (isInApp) { installBtn.style.display = 'block'; installBtn.addEventListener('click', () => alert("🚫 현재 브라우저에서는 다운로드가 제한됩니다.\n\n우측 하단(또는 상단)의 [더보기 ···] 버튼을 누르고\n[다른 브라우저로 열기]를 선택해주세요!")); }
+        else { window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; installBtn.style.display = 'block'; }); installBtn.addEventListener('click', (e) => { if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt.userChoice.then((choiceResult) => { if (choiceResult.outcome === 'accepted') installBtn.style.display = 'none'; deferredPrompt = null; }); } else alert("이미 설치됨"); }); }
     </script>
 </body>
 </html>
