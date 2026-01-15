@@ -217,7 +217,83 @@
         function drawRoulette(){ if(!rCanvas)return; const n=currentFoods.length; if(n===0){ rCtx.clearRect(0,0,rCanvas.width,rCanvas.height); return; } const arc=(2*Math.PI)/n,dpr=window.devicePixelRatio||1,rect=rCanvas.getBoundingClientRect(); rCanvas.width=rect.width*dpr; rCanvas.height=rect.height*dpr; rCtx.scale(dpr,dpr); const r=rect.width/2; rCtx.clearRect(0,0,rect.width,rect.height); for(let i=0;i<n;i++){ const a=i*arc-Math.PI/2; rCtx.beginPath(); rCtx.moveTo(r,r); rCtx.arc(r,r,r,a,a+arc); rCtx.fillStyle=colors[i%colors.length]; rCtx.fill(); rCtx.stroke(); rCtx.save(); rCtx.translate(r,r); rCtx.rotate(a+arc/2); rCtx.textAlign="right"; rCtx.fillStyle="#333"; const fs=Math.max(12,Math.min(24,200/n)); rCtx.font=`bold ${fs}px 'Noto Sans KR'`; rCtx.fillText(currentFoods[i],r-20,5); rCtx.restore(); } }
         window.spinRoulette=function(){ if(isSpinning)return; if(currentFoods.length<2){ alert("메뉴 2개 이상 필요!"); return; } isSpinning=true; document.getElementById('spinBtn').innerText="...DoRoRo..."; const r=Math.floor(Math.random()*360); rCurrentRotation+=(360*5+r); rCanvas.style.transition="transform 4s cubic-bezier(0.25,0.1,0.25,1)"; rCanvas.style.transform=`rotate(${rCurrentRotation}deg)`; setTimeout(()=>{ isSpinning=false; document.getElementById('spinBtn').innerText="돌려 돌려! START"; fireConfetti(); },4000); }
         function fireConfetti(){ const c=['#f00','#0f0','#00f','#ff0','#0ff']; for(let i=0;i<50;i++){ const d=document.createElement('div'); d.className='confetti'; d.style.left=Math.random()*100+'vw'; d.style.top='-10px'; d.style.backgroundColor=c[Math.floor(Math.random()*c.length)]; d.style.animationDuration=(Math.random()*2+2)+'s'; document.body.appendChild(d); setTimeout(()=>d.remove(),4000); } }
-    </script>
+    
+
+// ==========================================
+        // 📌 [누락된 함수 추가] 마커 클릭 시 정보창 띄우기
+        // ==========================================
+        
+        // 1. 상세 정보 패널 열기
+        window.showPanel = function(shop) {
+            // 텍스트 데이터 채우기
+            document.getElementById('panelTitle').innerText = shop.name;
+            document.getElementById('panelTotal').innerText = shop.totalScore || "0.0";
+            document.getElementById('panelMenu').innerText = shop.menu || "-";
+            document.getElementById('panelAddr').innerText = shop.address || "-";
+            document.getElementById('panelDesc').innerText = shop.desc || "사장님의 소개글이 없습니다.";
+            
+            // 메타 태그 (업종 + 목적)
+            const metaBox = document.getElementById('panelMeta');
+            let metaHtml = '';
+            if(shop.category) (Array.isArray(shop.category) ? shop.category : [shop.category]).forEach(c => metaHtml += `<span class="panel-tag">#${c}</span>`);
+            if(shop.purpose) (Array.isArray(shop.purpose) ? shop.purpose : [shop.purpose]).forEach(p => metaHtml += `<span class="panel-tag">#${p}</span>`);
+            metaBox.innerHTML = metaHtml;
+
+            // 평점 그래프 (5점 만점 -> 100% 환산)
+            document.getElementById('barTaste').style.width = ((shop.scoreTaste || 0) * 20) + '%';
+            document.getElementById('barValue').style.width = ((shop.scoreValue || 0) * 20) + '%';
+            document.getElementById('barMood').style.width = ((shop.scoreMood || 0) * 20) + '%';
+            document.getElementById('barKind').style.width = ((shop.scoreKind || 0) * 20) + '%';
+
+            // 이미지 처리 (이미지가 있으면 배경으로 깔고, 없으면 회색 처리)
+            const header = document.getElementById('panelHeader');
+            if (shop.imageUrl) {
+                header.style.backgroundImage = `url('${shop.imageUrl}')`;
+            } else {
+                header.style.backgroundImage = 'none';
+                header.style.backgroundColor = '#ddd';
+            }
+
+            // 네이버 플레이스 링크 연결
+            const btnLink = document.getElementById('panelLink');
+            if (shop.link) {
+                btnLink.href = shop.link;
+                btnLink.style.display = 'block';
+                btnLink.innerText = '네이버 플레이스 보기';
+            } else {
+                btnLink.href = '#';
+                btnLink.style.display = 'none';
+            }
+
+            // 패널 보여주기 (기존 패널/모달 닫고)
+            document.getElementById('faqPanel').classList.remove('show');
+            document.getElementById('selectModal').classList.remove('show');
+            document.getElementById('infoPanel').classList.add('show');
+        }
+
+        // 2. 겹친 마커 선택 모달 열기
+        window.showSelectModal = function(shopList) {
+            const listContainer = document.getElementById('selectList');
+            listContainer.innerHTML = ''; // 초기화
+
+            shopList.forEach(shop => {
+                const div = document.createElement('div');
+                div.className = 'shop-select-item';
+                div.innerHTML = `
+                    <span class="shop-select-name">${shop.name}</span>
+                    <span class="shop-select-cat">${Array.isArray(shop.category) ? shop.category[0] : shop.category}</span>
+                `;
+                // 항목 클릭 시 상세 패널 열기
+                div.onclick = function() {
+                    showPanel(shop);
+                    closeSelectModal(); // 선택창 닫기
+                };
+                listContainer.appendChild(div);
+            });
+
+            document.getElementById('selectModal').classList.add('show');
+        }
+        </script>
 
     <script type="module">
     import { db, initMap, createMarker } from "./common.js";
