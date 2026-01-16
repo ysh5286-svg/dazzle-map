@@ -151,21 +151,28 @@
     </div>
 
     <div id="infoPanel" class="info-panel">
-        <div class="panel-header" id="panelHeader"><button class="panel-close" onclick="closePanel()">✕</button></div>
+        <div class="panel-header" id="panelHeader">
+            <button class="panel-close" onclick="closePanel()">✕</button>
+            </div>
         <div class="panel-body">
-            <div><h2 class="panel-title" id="panelTitle">가게 이름</h2><div class="panel-meta" id="panelMeta"></div></div>
+            <div>
+                <h2 class="panel-title" id="panelTitle">가게 이름</h2>
+                <div class="panel-meta" id="panelMeta"></div>
+            </div>
+
             <div class="rating-box">
-                <div class="rating-left"><div class="total-score" id="panelTotal">0.0</div><div class="total-label">총점</div></div>
-                <div class="rating-grid">
-                    <div class="detail-score"><span>맛</span> <div class="progress-bg"><div id="barTaste" class="progress-bar"></div></div></div>
-                    <div class="detail-score"><span>가성비</span> <div class="progress-bg"><div id="barValue" class="progress-bar"></div></div></div>
-                    <div class="detail-score"><span>분위기</span> <div class="progress-bg"><div id="barMood" class="progress-bar"></div></div></div>
-                    <div class="detail-score"><span>친절도</span> <div class="progress-bg"><div id="barKind" class="progress-bar"></div></div></div>
+                <div class="rating-top">
+                    <span class="total-star">⭐</span>
+                    <div class="total-score" id="panelTotal">0.0</div>
+                </div>
+                <div class="review-text" id="panelReview">
+                    🗨️ "사장님의 소개글이 없습니다."
                 </div>
             </div>
+
             <div class="info-row"><span class="info-label">메뉴</span> <span class="info-text" id="panelMenu"></span></div>
             <div class="info-row"><span class="info-label">주소</span> <span class="info-text" id="panelAddr"></span></div>
-            <div class="info-row"><span class="info-label">설명</span> <span class="info-text" id="panelDesc"></span></div>
+            
             <a href="#" id="panelLink" target="_blank" class="panel-btn">네이버 플레이스 보기</a>
         </div>
     </div>
@@ -223,30 +230,37 @@
         // 📌 [누락된 함수 추가] 마커 클릭 시 정보창 띄우기
         // ==========================================
         
-        // 1. 상세 정보 패널 열기
+        // 1. 상세 정보 패널 열기 (업데이트됨)
         window.showPanel = function(shop) {
-            // 텍스트 데이터 채우기
+            // 기본 텍스트
             document.getElementById('panelTitle').innerText = shop.name;
-            document.getElementById('panelTotal').innerText = shop.totalScore || "0.0";
+            document.getElementById('panelTitle').innerText = shop.name;
+    
+    // 🔥 [수정] 평점 옆에 '/5.0'을 작은 글씨로 추가
+    // innerText 대신 innerHTML을 써야 <span> 태그가 먹힙니다.
+    const score = shop.totalScore || "0.0";
+    document.getElementById('panelTotal').innerHTML = `${score}<span class="total-max"> / 5.0</span>`;
+
+    document.getElementById('panelMenu').innerText = shop.menu || "-";
             document.getElementById('panelMenu').innerText = shop.menu || "-";
             document.getElementById('panelAddr').innerText = shop.address || "-";
-            document.getElementById('panelDesc').innerText = shop.desc || "사장님의 소개글이 없습니다.";
             
-            // 메타 태그 (업종 + 목적)
+            // 🔥 [수정] 한줄평 (desc 필드 사용)
+            // 데이터가 없으면 기본 멘트 출력
+            const reviewHtml = shop.desc ? `🗨️ "${shop.desc}"` : `🗨️ "아직 등록된 한줄평이 없어요."`;
+            document.getElementById('panelReview').innerHTML = reviewHtml;
+            
+            // 메타 태그
             const metaBox = document.getElementById('panelMeta');
             let metaHtml = '';
             if(shop.category) (Array.isArray(shop.category) ? shop.category : [shop.category]).forEach(c => metaHtml += `<span class="panel-tag">#${c}</span>`);
             if(shop.purpose) (Array.isArray(shop.purpose) ? shop.purpose : [shop.purpose]).forEach(p => metaHtml += `<span class="panel-tag">#${p}</span>`);
             metaBox.innerHTML = metaHtml;
 
-            // 평점 그래프 (5점 만점 -> 100% 환산)
-            document.getElementById('barTaste').style.width = ((shop.scoreTaste || 0) * 20) + '%';
-            document.getElementById('barValue').style.width = ((shop.scoreValue || 0) * 20) + '%';
-            document.getElementById('barMood').style.width = ((shop.scoreMood || 0) * 20) + '%';
-            document.getElementById('barKind').style.width = ((shop.scoreKind || 0) * 20) + '%';
-
-            // 이미지 처리 (이미지가 있으면 배경으로 깔고, 없으면 회색 처리)
+            // 🔥 [추가] 이미지 & 주차 뱃지 처리
             const header = document.getElementById('panelHeader');
+            
+            // 배경 이미지
             if (shop.imageUrl) {
                 header.style.backgroundImage = `url('${shop.imageUrl}')`;
             } else {
@@ -254,7 +268,16 @@
                 header.style.backgroundColor = '#ddd';
             }
 
-            // 네이버 플레이스 링크 연결
+            // 주차 뱃지 생성 (HTML 주입)
+            // 기존 닫기 버튼은 유지해야 하므로 innerHTML로 같이 넣어줍니다.
+            let parkingBadge = '';
+            if (shop.parking) {
+                // 주차 상태에 따라 텍스트/아이콘이 데이터에 이미 포함되어 있다고 가정 (예: "🅿️ 주차장 완비")
+                parkingBadge = `<div class="parking-badge">${shop.parking}</div>`;
+            }
+            header.innerHTML = `<button class="panel-close" onclick="closePanel()">✕</button>${parkingBadge}`;
+
+            // 네이버 링크
             const btnLink = document.getElementById('panelLink');
             if (shop.link) {
                 btnLink.href = shop.link;
@@ -265,33 +288,10 @@
                 btnLink.style.display = 'none';
             }
 
-            // 패널 보여주기 (기존 패널/모달 닫고)
+            // 패널 열기
             document.getElementById('faqPanel').classList.remove('show');
             document.getElementById('selectModal').classList.remove('show');
             document.getElementById('infoPanel').classList.add('show');
-        }
-
-        // 2. 겹친 마커 선택 모달 열기
-        window.showSelectModal = function(shopList) {
-            const listContainer = document.getElementById('selectList');
-            listContainer.innerHTML = ''; // 초기화
-
-            shopList.forEach(shop => {
-                const div = document.createElement('div');
-                div.className = 'shop-select-item';
-                div.innerHTML = `
-                    <span class="shop-select-name">${shop.name}</span>
-                    <span class="shop-select-cat">${Array.isArray(shop.category) ? shop.category[0] : shop.category}</span>
-                `;
-                // 항목 클릭 시 상세 패널 열기
-                div.onclick = function() {
-                    showPanel(shop);
-                    closeSelectModal(); // 선택창 닫기
-                };
-                listContainer.appendChild(div);
-            });
-
-            document.getElementById('selectModal').classList.add('show');
         }
         </script>
 

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dazzle-map-v2.2'; // 1. 버전 이름을 한 번 더 바꿔주세요 (확실하게 하기 위해)
+const CACHE_NAME = 'dazzle-map-v2.2'; // 버전 업데이트 시 같이수정 >> index >> navigator.serviceWorker.register('./sw.js?v=2.2') 
 
 const urlsToCache = [
   './',
