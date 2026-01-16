@@ -25,7 +25,7 @@ export function initMap() {
     });
 }
 
-// 🔥 [색상 팔레트] (중복 선언 오류 해결됨!)
+// 🔥 [색상 팔레트]
 const categoryColors = {
     "한식": "#e74c3c",       // 빨강
     "중식": "#f39c12",       // 주황
@@ -40,10 +40,10 @@ const categoryColors = {
     "빵집": "#fd79a8",       // 연핑크
     "패스트푸드": "#f1c40f", // 노랑
     "포장/배달": "#95a5a6",  // 회색
-    "default": "#34495e"     // 기본값 (진한 남색)
+    "default": "#34495e"     // 기본값
 };
 
-// 3. 마커 생성 함수 (🔥 불꽃 중앙 상단 배치 적용됨)
+// 3. 마커 생성 함수
 export function createMarker(map, shopList, onClick) {
     if (!shopList || shopList.length === 0) return null;
 
@@ -51,16 +51,10 @@ export function createMarker(map, shopList, onClick) {
     var categoryName = Array.isArray(mainShop.category) ? mainShop.category[0] : (mainShop.category || '맛집');
     var pointColor = categoryColors[categoryName] || categoryColors["default"];
 
-    // 겹친 가게 뱃지
     var badgeHtml = shopList.length > 1 ? `<span class="count-badge" style="background:${pointColor}">+${shopList.length - 1}</span>` : '';
 
-    // 🔥 [디자인 변경] 핫플인지 확인
     var isHot = mainShop.isHot === true;
-    
-    // 핫플이면 CSS 클래스 추가
     var hotClass = isHot ? 'hot-marker' : '';
-
-    // 🔥 [핵심] 불꽃 아이콘 (CSS로 위치 잡음)
     var fireIconHtml = isHot ? `<div class="hot-fire-crown">🔥</div>` : '';
 
     var contentHtml = `
@@ -92,8 +86,17 @@ export function createMarker(map, shopList, onClick) {
             size: new naver.maps.Size(0, 0),
             anchor: new naver.maps.Point(0, 0)
         },
-        // 핫플이면 다른 마커보다 무조건 위에 보이게 (Z-index 높임)
+        // 기본 우선순위: 핫플은 높게(9999), 일반은 낮게(100)
         zIndex: isHot ? 9999 : 100 
+    });
+
+    // 🔥 [핵심] 마우스 올리면 맨 앞으로 가져오기 (Z-index 변경)
+    naver.maps.Event.addListener(marker, 'mouseover', function() {
+        marker.setZIndex(20000); 
+    });
+
+    naver.maps.Event.addListener(marker, 'mouseout', function() {
+        marker.setZIndex(isHot ? 9999 : 100); 
     });
 
     if (onClick) {
