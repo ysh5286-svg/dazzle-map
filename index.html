@@ -618,7 +618,7 @@
     if ('serviceWorker' in navigator) {
         // 🔥 [수정] new Date().getTime()을 지우고, 직접 버전 숫자를 적어주세요.
         // 나중에 업데이트할 때만 이 숫자를 v=2.2 -> v=2.3 처럼 바꿔주시면 됩니다.
-        navigator.serviceWorker.register('./sw.js?v=2.3') 
+        navigator.serviceWorker.register('./sw.js?v=2.4') 
             .then(reg => {
                 console.log('서비스 워커 등록 완료:', reg);
                 
