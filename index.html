@@ -120,14 +120,29 @@
         </div>
     </div>
 
-    <div id="profileModal" class="modal-overlay">
+<div id="profileModal" class="modal-overlay">
         <div class="modal-box">
             <button class="modal-close-x" onclick="document.getElementById('profileModal').classList.remove('show')">×</button>
-            <div class="profile-header"><img id="pImg" class="profile-img" src=""><div id="pName" class="profile-name"></div><div id="pLevel" class="profile-level"></div></div>
+            
+            <div class="profile-header">
+                <img id="pImg" class="profile-img" src="">
+                <div id="pName" class="profile-name"></div>
+                <div id="pLevel" class="profile-level"></div>
+            </div>
+
+            <div style="background:#f8f9fa; border:1px solid #eee; border-radius:8px; padding:10px; margin-bottom:15px; text-align:center;">
+                <div style="font-size:11px; color:#888; margin-bottom:5px;">사장님 인증용 고유코드 (UID)</div>
+                <div style="display:flex; align-items:center; justify-content:center; gap:5px;">
+                    <span id="pUidStr" style="font-family:monospace; font-weight:bold; color:#333; background:white; padding:4px 8px; border:1px solid #ddd; border-radius:4px; font-size:12px;">loading...</span>
+                    <button onclick="copyMyUID()" style="background:#2c3e50; color:white; border:none; border-radius:4px; padding:5px 10px; font-size:11px; cursor:pointer; font-weight:bold;">복사</button>
+                </div>
+            </div>
             <div style="font-size:12px; color:#555; display:flex; justify-content:space-between;"><span>EXP</span><span id="pExpText">0 / 100</span></div>
             <div class="exp-bar-bg"><div id="pExpBar" class="exp-bar-fill"></div></div>
+            
             <h4 style="margin:15px 0 10px 0; border-bottom:1px solid #eee; padding-bottom:5px;">🚩 방문 인증 기록</h4>
             <div id="pHistory" class="history-list"></div>
+            
             <button onclick="googleLogout()" style="width:100%; padding:10px; background:#f1f3f5; border:none; border-radius:8px; margin-top:15px; font-weight:bold; cursor:pointer;">로그아웃</button>
         </div>
     </div>
@@ -442,6 +457,7 @@
         function deg2rad(deg) { return deg*(Math.PI/180); }
 
         // [수정됨] 프로필 모달 열기 (레벨 시스템 등급표 반영)
+        // [수정됨] 프로필 모달 열기 (UID 표시 기능 추가)
         window.openProfileModal = async function() {
             const user = auth.currentUser;
             if(!user) return;
@@ -453,63 +469,49 @@
                 const data = snap.data();
                 const exp = data.exp || 0;
                 
-                // 레벨 및 칭호 계산 로직
-                let lv = 1;
-                let rankName = "배고픈 영혼";
-                let nextLevelExp = 50; // 다음 레벨까지 필요한 총 경험치
-                let prevLevelExp = 0;  // 현재 레벨의 시작점
+                // --- 레벨 계산 로직 ---
+                let lv = 1, rankName = "배고픈 영혼", nextLevelExp = 50, prevLevelExp = 0;
+                if (exp >= 300) { lv = 4; rankName = "맛의 지배자"; prevLevelExp = 300; nextLevelExp = 300; } 
+                else if (exp >= 100) { lv = 3; rankName = "대구의 아들"; prevLevelExp = 100; nextLevelExp = 300; } 
+                else if (exp >= 50) { lv = 2; rankName = "서툰 미식가"; prevLevelExp = 50; nextLevelExp = 100; }
                 
-                // 규칙: 1회 방문 = 10 EXP
-                if (exp >= 300) { // 방문 30회 이상 (만렙)
-                    lv = 4; 
-                    rankName = "맛의 지배자";
-                    prevLevelExp = 300;
-                    nextLevelExp = 300; // MAX
-                } else if (exp >= 100) { // 방문 10회 이상
-                    lv = 3; 
-                    rankName = "대구의 아들";
-                    prevLevelExp = 100;
-                    nextLevelExp = 300;
-                } else if (exp >= 50) { // 방문 5회 이상
-                    lv = 2; 
-                    rankName = "서툰 미식가";
-                    prevLevelExp = 50;
-                    nextLevelExp = 100;
-                } else { // 기본
-                    lv = 1; 
-                    rankName = "배고픈 영혼";
-                    prevLevelExp = 0;
-                    nextLevelExp = 50;
-                }
-
                 // UI 업데이트
                 document.getElementById('pImg').src = user.photoURL;
                 document.getElementById('pName').innerText = user.displayName;
                 document.getElementById('pLevel').innerText = `LV.${lv} ${rankName}`;
                 
-                // 경험치 바 & 텍스트 계산
+                // 🔥 [추가됨] UID 텍스트 넣기
+                document.getElementById('pUidStr').innerText = user.uid;
+
+                // 경험치 바 업데이트
                 if (lv === 4) {
                     document.getElementById('pExpText').innerText = "MAX (전설 달성)";
                     document.getElementById('pExpBar').style.width = '100%';
                 } else {
-                    const currentProgress = exp - prevLevelExp; // 현재 레벨에서 얻은 경험치
-                    const levelRange = nextLevelExp - prevLevelExp; // 다음 레벨까지 필요한 양
+                    const currentProgress = exp - prevLevelExp;
+                    const levelRange = nextLevelExp - prevLevelExp;
                     const percent = (currentProgress / levelRange) * 100;
-                    
-                    document.getElementById('pExpText').innerText = `${currentProgress} / ${levelRange} EXP (다음 레벨까지)`;
+                    document.getElementById('pExpText').innerText = `${currentProgress} / ${levelRange} EXP`;
                     document.getElementById('pExpBar').style.width = `${percent}%`;
                 }
 
-                // 방문 기록 로딩
-                const historyList = document.getElementById('pHistory');
-                historyList.innerHTML = '<div style="text-align:center; padding:10px; color:#888;">기록을 불러오는 중...</div>';
+                // 방문 기록 (간략 표시)
+                document.getElementById('pHistory').innerHTML = '<div style="text-align:center; padding:10px; color:#aaa;">- 최근 방문 인증 내역 -</div>';
                 
-                // (기존 방문기록 불러오기 로직 유지 - 필요한 경우 여기에 추가 구현)
-                // 지금은 심플하게 모달만 띄움 (기록은 별도 컬렉션 관리가 필요할 수 있음)
-                historyList.innerHTML = '<div style="text-align:center; padding:10px; color:#aaa;">- 최근 방문 인증 내역 -</div>';
-
                 document.getElementById('profileModal').classList.add('show');
             }
+        }
+
+        // 🔥 [추가됨] UID 복사 함수
+        window.copyMyUID = function() {
+            const uidText = document.getElementById('pUidStr').innerText;
+            if(!uidText || uidText === 'loading...') return;
+
+            navigator.clipboard.writeText(uidText).then(() => {
+                alert("✅ UID가 복사되었습니다!\n\n보물지도 관리자에게 전달해주세요.");
+            }).catch(err => {
+                prompt("Ctrl+C를 눌러 복사하세요:", uidText);
+            });
         }
 
         window.showSelectModal = function(list) {
