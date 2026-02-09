@@ -152,7 +152,7 @@
         const CACHE_KEY = "dazzle_shops_data_v14_fixed"; 
 
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('./sw.js?v=3.0').then(reg => {
+            navigator.serviceWorker.register('./sw.js?v=3.1').then(reg => {
                 reg.onupdatefound = () => {
                     const installingWorker = reg.installing;
                     installingWorker.onstatechange = () => {
