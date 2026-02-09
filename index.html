@@ -607,6 +607,7 @@
             document.getElementById('ownerModal').classList.remove('show');
         }
 
+        // [수정됨] 점주 수정 저장 함수 (캐시 삭제 기능 추가)
         window.saveOwnerShop = async function() {
             const id = $('#ownerShopId').val();
             const user = auth.currentUser;
@@ -621,14 +622,22 @@
                 updatedAt: new Date()
             };
 
-            // 유효성 검사 (혹시 모를 해킹 방지)
+            // 유효성 검사
             const targetShop = allShops.find(s => s.id === id);
+            // targetShop이 없는 경우 방어 코드 추가
+            if(!targetShop) return alert("가게 정보를 찾을 수 없습니다.");
             if(targetShop.ownerId !== user.uid) return alert("본인의 가게만 수정할 수 있습니다.");
 
             try {
                 const shopRef = doc(db, "shops", id);
                 await updateDoc(shopRef, newData);
-                alert("✅ 수정되었습니다! \n새로고침하면 반영됩니다.");
+                
+                // 🔥 [핵심 수정] 저장 후, 폰에 저장된 옛날 데이터(캐시)를 지웁니다!
+                // 그래야 새로고침 했을 때 변경된 최신 데이터를 서버에서 가져옵니다.
+                localStorage.removeItem(CACHE_KEY);
+                localStorage.removeItem(CACHE_KEY + "_time");
+
+                alert("✅ 수정되었습니다! \n정보가 즉시 반영됩니다.");
                 location.reload();
             } catch(e) {
                 console.error(e);
