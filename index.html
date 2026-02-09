@@ -608,6 +608,7 @@
         }
 
         // [수정됨] 점주 수정 저장 함수 (캐시 삭제 기능 추가)
+       // [최종 수정] 점주 수정 저장 함수 (안내 메시지 강화 버전)
         window.saveOwnerShop = async function() {
             const id = $('#ownerShopId').val();
             const user = auth.currentUser;
@@ -624,21 +625,24 @@
 
             // 유효성 검사
             const targetShop = allShops.find(s => s.id === id);
-            // targetShop이 없는 경우 방어 코드 추가
             if(!targetShop) return alert("가게 정보를 찾을 수 없습니다.");
             if(targetShop.ownerId !== user.uid) return alert("본인의 가게만 수정할 수 있습니다.");
 
             try {
+                // 1. 서버에 저장
                 const shopRef = doc(db, "shops", id);
                 await updateDoc(shopRef, newData);
                 
-                // 🔥 [핵심 수정] 저장 후, 폰에 저장된 옛날 데이터(캐시)를 지웁니다!
-                // 그래야 새로고침 했을 때 변경된 최신 데이터를 서버에서 가져옵니다.
+                // 2. (선택사항) 캐시 삭제 시도 - 일단 지워는 줍니다 (운 좋으면 바로 반영됨)
                 localStorage.removeItem(CACHE_KEY);
                 localStorage.removeItem(CACHE_KEY + "_time");
 
-                alert("✅ 수정되었습니다! \n정보가 즉시 반영됩니다.");
+                // 3. 안내 메시지 띄우기 (사장님 요청사항 반영)
+                alert("✅ 수정 요청이 완료되었습니다!\n\n서버 반영 및 데이터 갱신을 위해\n최대 10~30분 정도 소요될 수 있습니다.\n\n(잠시 후 다시 확인해주세요)");
+                
+                // 4. 페이지 새로고침
                 location.reload();
+
             } catch(e) {
                 console.error(e);
                 alert("저장 중 오류가 발생했습니다: " + e.message);
