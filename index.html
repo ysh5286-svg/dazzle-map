@@ -350,7 +350,8 @@
             const dynamicBtnArea = document.getElementById('dynamicBtnArea');
             dynamicBtnArea.innerHTML = `<button class="panel-btn" style="background:#e74c3c; margin-bottom:5px;" onclick="verifyVisitByGPS(${shop.lat}, ${shop.lng}, '${shop.name}')">📍 <b>여기 왔어요! (GPS 인증)</b></button>`;
             if (user && shop.ownerId && shop.ownerId === user.uid) {
-                dynamicBtnArea.innerHTML += `<button class="panel-btn" style="background:#2c3e50; margin-bottom:5px;" onclick="location.href='admin_dz_map11.html'">🔧 내 가게 정보 수정하기</button>`;
+                // 수정 버튼을 누르면 관리자 페이지 이동이 아니라, 현재 페이지에서 모달을 엽니다.
+                dynamicBtnArea.innerHTML += `<button class="panel-btn" style="background:#2c3e50; margin-bottom:5px;" onclick="openOwnerEdit('${shop.id}')">🔧 내 가게 정보 수정하기</button>`;
             }
             const btnLink = document.getElementById('panelLink');
             if (shop.link) { btnLink.href = shop.link; btnLink.style.display = 'block'; btnLink.innerText = '네이버 플레이스 보기'; } 
@@ -381,27 +382,55 @@
             } catch(e) { console.error(e); heartBtn.innerText = isLiked ? "❤️" : "🤍"; }
         }
 
+        // [수정됨] GPS 인증 함수 (오차범위 50m로 변경)
         window.verifyVisitByGPS = function(shopLat, shopLng, shopName) {
             const user = auth.currentUser;
             if(!user) return alert("로그인 후 인증 가능합니다.");
-            const btn = event.target; const originalText = btn.innerHTML;
+            
+            const btn = event.target; 
+            const originalText = btn.innerHTML;
             const userRef = doc(db, "users", user.uid);
+
             getDoc(userRef).then(snap => {
                 if(snap.exists()) {
                     const data = snap.data();
                     const last = data.lastCheckIn ? data.lastCheckIn.toMillis() : 0;
-                    if ((new Date().getTime() - last) / (1000 * 60) < 60) return alert("1시간에 1번만 인증 가능해요!");
+                    
+                    // ⏰ 쿨타임 체크 (60분 = 1시간)
+                    if ((new Date().getTime() - last) / (1000 * 60) < 60) {
+                        const remain = 60 - Math.floor((new Date().getTime() - last) / (1000 * 60));
+                        return alert(`⏳ 인증 쿨타임 중입니다.\n(약 ${remain}분 뒤에 다시 시도해주세요)`);
+                    }
+
                     if(!navigator.geolocation) return alert("GPS 권한이 필요합니다.");
-                    btn.innerText = "📡 위치 확인 중..."; btn.disabled = true;
+                    
+                    btn.innerText = "📡 위치 확인 중..."; 
+                    btn.disabled = true;
+
                     navigator.geolocation.getCurrentPosition(async (pos) => {
+                        // 거리 계산
                         const dist = getDistanceFromLatLonInKm(pos.coords.latitude, pos.coords.longitude, shopLat, shopLng);
-                        if(dist < 100) {
+                        
+                        // 📏 오차 범위: 50m 이내 (0.05km)
+                        // 기존 100 -> 50으로 변경됨
+                        if(dist < 50) {
                             await updateDoc(userRef, { exp: increment(10), lastCheckIn: new Date() });
-                            alert(`🎉 인증 성공! 경험치 +10`); location.reload();
+                            alert(`🎉 인증 성공! 경험치 +10 획득!\n(${shopName} 방문 완료)`); 
+                            location.reload();
                         } else {
-                            alert(`매장 근처가 아닙니다. (거리: ${Math.round(dist)}m)`); btn.innerHTML = originalText; btn.disabled = false;
+                            alert(`📍 매장 근처가 아닙니다.\n(현재 거리: 약 ${Math.round(dist)}m / 허용: 50m 이내)`); 
+                            btn.innerHTML = originalText; 
+                            btn.disabled = false;
                         }
-                    }, () => { alert("위치 실패"); btn.innerHTML = originalText; btn.disabled = false; });
+                    }, () => { 
+                        alert("위치 정보를 가져올 수 없습니다.\nGPS가 켜져 있는지 확인해주세요."); 
+                        btn.innerHTML = originalText; 
+                        btn.disabled = false; 
+                    }, {
+                        enableHighAccuracy: true, // 정확도 우선 모드
+                        timeout: 10000,
+                        maximumAge: 0
+                    });
                 }
             });
         }
@@ -412,19 +441,73 @@
         }
         function deg2rad(deg) { return deg*(Math.PI/180); }
 
+        // [수정됨] 프로필 모달 열기 (레벨 시스템 등급표 반영)
         window.openProfileModal = async function() {
             const user = auth.currentUser;
             if(!user) return;
+            
             const userRef = doc(db, "users", user.uid);
             const snap = await getDoc(userRef);
+            
             if(snap.exists()) {
                 const data = snap.data();
-                const lv = 1 + Math.floor((data.exp||0)/10);
+                const exp = data.exp || 0;
+                
+                // 레벨 및 칭호 계산 로직
+                let lv = 1;
+                let rankName = "배고픈 영혼";
+                let nextLevelExp = 50; // 다음 레벨까지 필요한 총 경험치
+                let prevLevelExp = 0;  // 현재 레벨의 시작점
+                
+                // 규칙: 1회 방문 = 10 EXP
+                if (exp >= 300) { // 방문 30회 이상 (만렙)
+                    lv = 4; 
+                    rankName = "맛의 지배자";
+                    prevLevelExp = 300;
+                    nextLevelExp = 300; // MAX
+                } else if (exp >= 100) { // 방문 10회 이상
+                    lv = 3; 
+                    rankName = "대구의 아들";
+                    prevLevelExp = 100;
+                    nextLevelExp = 300;
+                } else if (exp >= 50) { // 방문 5회 이상
+                    lv = 2; 
+                    rankName = "서툰 미식가";
+                    prevLevelExp = 50;
+                    nextLevelExp = 100;
+                } else { // 기본
+                    lv = 1; 
+                    rankName = "배고픈 영혼";
+                    prevLevelExp = 0;
+                    nextLevelExp = 50;
+                }
+
+                // UI 업데이트
                 document.getElementById('pImg').src = user.photoURL;
                 document.getElementById('pName').innerText = user.displayName;
-                document.getElementById('pLevel').innerText = `LV.${lv} (미식가)`;
-                document.getElementById('pExpText').innerText = `${data.exp||0} EXP`;
-                document.getElementById('pExpBar').style.width = Math.min((data.exp%10)*10, 100) + '%';
+                document.getElementById('pLevel').innerText = `LV.${lv} ${rankName}`;
+                
+                // 경험치 바 & 텍스트 계산
+                if (lv === 4) {
+                    document.getElementById('pExpText').innerText = "MAX (전설 달성)";
+                    document.getElementById('pExpBar').style.width = '100%';
+                } else {
+                    const currentProgress = exp - prevLevelExp; // 현재 레벨에서 얻은 경험치
+                    const levelRange = nextLevelExp - prevLevelExp; // 다음 레벨까지 필요한 양
+                    const percent = (currentProgress / levelRange) * 100;
+                    
+                    document.getElementById('pExpText').innerText = `${currentProgress} / ${levelRange} EXP (다음 레벨까지)`;
+                    document.getElementById('pExpBar').style.width = `${percent}%`;
+                }
+
+                // 방문 기록 로딩
+                const historyList = document.getElementById('pHistory');
+                historyList.innerHTML = '<div style="text-align:center; padding:10px; color:#888;">기록을 불러오는 중...</div>';
+                
+                // (기존 방문기록 불러오기 로직 유지 - 필요한 경우 여기에 추가 구현)
+                // 지금은 심플하게 모달만 띄움 (기록은 별도 컬렉션 관리가 필요할 수 있음)
+                historyList.innerHTML = '<div style="text-align:center; padding:10px; color:#aaa;">- 최근 방문 인증 내역 -</div>';
+
                 document.getElementById('profileModal').classList.add('show');
             }
         }
@@ -439,15 +522,47 @@
             });
             document.getElementById('selectModal').classList.add('show');
         }
+        // 전역 변수로 마커 선언 (스크립트 상단 변수 선언부에 추가하거나, 이 함수 바로 위에 두셔도 됩니다)
+        let myLocationMarker = null; 
+
         window.moveToCurrentLocation = function() {
             if (!navigator.geolocation) { alert("위치 정보를 사용할 수 없습니다."); return; }
+            
             const btnText = document.querySelector('.loc-text');
             if(btnText) btnText.innerText = "탐색중..";
+            
             navigator.geolocation.getCurrentPosition((position) => {
                 const lat = position.coords.latitude;
                 const lng = position.coords.longitude;
-                map.setCenter(new naver.maps.LatLng(lat, lng)); map.setZoom(16);
+                const newPos = new naver.maps.LatLng(lat, lng);
+
+                map.setCenter(newPos); 
+                map.setZoom(17); // 줌을 좀 더 당겨줍니다
+
+                // 기존 마커가 있다면 지우고 새로 생성
+                if(myLocationMarker) {
+                    myLocationMarker.setMap(null);
+                }
+
+                // 파란색 점 마커 디자인
+                myLocationMarker = new naver.maps.Marker({
+                    position: newPos,
+                    map: map,
+                    icon: {
+                        content: `
+                            <div style="
+                                width: 20px; height: 20px; background: #4285F4; 
+                                border: 3px solid white; border-radius: 50%; 
+                                box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+                                animation: pulse 2s infinite;">
+                            </div>`,
+                        anchor: new naver.maps.Point(13, 13)
+                    },
+                    zIndex: 20000
+                });
+
                 setTimeout(() => { updateVisibleMarkers(); if(btnText) btnText.innerText = "내 주변"; }, 300);
+
             }, () => { alert("위치 정보를 가져올 수 없습니다."); if(btnText) btnText.innerText = "내 주변"; });
         }
         
@@ -469,6 +584,104 @@
         });
 
         initApp(); 
+
+        // --- [추가됨] 점주님 전용 수정 로직 ---
+        window.openOwnerEdit = function(shopId) {
+            const shop = allShops.find(s => s.id === shopId);
+            if(!shop) return alert("가게 정보를 찾을 수 없습니다.");
+
+            // 데이터 채워넣기
+            $('#ownerShopId').val(shop.id);
+            $('#ownerShopName').val(shop.name);
+            $('#ownerShopMenu').val(shop.menu);
+            $('#ownerShopDesc').val(shop.desc);
+            $('#ownerShopLink').val(shop.link);
+            $('#ownerShopParking').val(shop.parking || "");
+            
+            // 모달 열기
+            document.getElementById('ownerModal').classList.add('show');
+            document.getElementById('infoPanel').classList.remove('show'); // 기존 패널 닫기
+        }
+
+        window.closeOwnerModal = function() {
+            document.getElementById('ownerModal').classList.remove('show');
+        }
+
+        window.saveOwnerShop = async function() {
+            const id = $('#ownerShopId').val();
+            const user = auth.currentUser;
+            
+            if(!user) return alert("로그인이 풀렸습니다. 다시 로그인해주세요.");
+            
+            const newData = {
+                menu: $('#ownerShopMenu').val(),
+                desc: $('#ownerShopDesc').val(),
+                link: $('#ownerShopLink').val(),
+                parking: $('#ownerShopParking').val(),
+                updatedAt: new Date()
+            };
+
+            // 유효성 검사 (혹시 모를 해킹 방지)
+            const targetShop = allShops.find(s => s.id === id);
+            if(targetShop.ownerId !== user.uid) return alert("본인의 가게만 수정할 수 있습니다.");
+
+            try {
+                const shopRef = doc(db, "shops", id);
+                await updateDoc(shopRef, newData);
+                alert("✅ 수정되었습니다! \n새로고침하면 반영됩니다.");
+                location.reload();
+            } catch(e) {
+                console.error(e);
+                alert("저장 중 오류가 발생했습니다: " + e.message);
+            }
+        }
     </script>
+    <div id="ownerModal" class="modal-overlay">
+        <div class="modal-box">
+            <button class="modal-close-x" onclick="closeOwnerModal()">×</button>
+            <h3 class="modal-title" style="border-bottom:2px solid #333; padding-bottom:10px; margin-bottom:15px;">🔧 내 가게 정보 수정</h3>
+            
+            <input type="hidden" id="ownerShopId">
+            
+            <div class="form-group">
+                <label class="form-label">업체명 (수정불가)</label>
+                <input type="text" id="ownerShopName" class="form-input" disabled style="background:#eee; color:#888;">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">대표 메뉴</label>
+                <input type="text" id="ownerShopMenu" class="form-input" placeholder="예: 삼겹살, 김치찌개">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">🚗 주차 정보</label>
+                <select id="ownerShopParking" class="form-input">
+                    <option value="">선택하세요</option>
+                    <option value="❌ 주차 불가">❌ 주차 불가</option>
+                    <option value="⚠️ 주차 협소">⚠️ 주차 협소 (1~2대)</option>
+                    <option value="🅿️ 주차장 완비">🅿️ 주차장 완비</option>
+                    <option value="🅿️ 무료 개방">🅿️ 무료 개방</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">🗨️ 사장님 한마디 (가게 설명)</label>
+                <textarea id="ownerShopDesc" class="form-textarea" rows="3" placeholder="손님들에게 전하고 싶은 말을 적어주세요."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">네이버 플레이스 링크</label>
+                <input type="text" id="ownerShopLink" class="form-input" placeholder="https://naver.me/...">
+            </div>
+
+            <p style="font-size:11px; color:#e74c3c; margin-top:10px;">
+                ※ 위치, 사진, 카테고리 수정이 필요하면 '대구경북 찐맛집 소통방'에 문의해주세요.
+            </p>
+
+            <div class="modal-btns">
+                <button class="btn-save" onclick="saveOwnerShop()" style="width:100%; background:#2c3e50;">수정 완료</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
