@@ -454,7 +454,7 @@
                             alert(`🎉 인증 성공! 경험치 +10 획득!\n(${shopName} 방문 완료)`); 
                             location.reload();
                         } else {
-                            alert(`📍 매장 근처가 아닙니다.\n(현재 거리: 약 ${Math.round(dist)}m / 허용: 50m 이내)`); 
+                            alert(`📍 매장 근처가 아닙니다.\n(현재 거리: 약 ${Math.round(dist)}m)`); 
                             btn.innerHTML = originalText; 
                             btn.disabled = false;
                         }
