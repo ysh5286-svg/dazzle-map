@@ -597,7 +597,9 @@
     // 🔥 이달의 핫플 배너
     window._featuredShops = [];
     function renderFeaturedBanner(shops) {
-        const hotShops = shops.filter(s => s.isHot === true).slice(0, 10);
+        const hotShops = shops.filter(s => s.isHot === true)
+            .sort((a, b) => (a.hotOrder ?? 999) - (b.hotOrder ?? 999))
+            .slice(0, 10);
         if (hotShops.length === 0) return;
         window._featuredShops = hotShops;
         const scroll = document.getElementById('hotplScroll');

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>이미지 일괄 업데이트</title></head>
+<body>
+<h2>이미지 URL 일괄 업데이트</h2>
+<div id="log" style="font-family:monospace; white-space:pre-wrap; font-size:13px;"></div>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const app = initializeApp({
+    apiKey: "AIzaSyBjzTIUtmGRVPXRy8Qppta1O2C1FjAvmeE",
+    authDomain: "dazzle-map-dd970.firebaseapp.com",
+    projectId: "dazzle-map-dd970",
+    storageBucket: "dazzle-map-dd970.firebasestorage.app",
+    messagingSenderId: "786425160276",
+    appId: "1:786425160276:web:aa7ba3c32268cf9a3643c1"
+});
+const db = getFirestore(app);
+const log = document.getElementById('log');
+
+const updates = [
+{id:"2C28XWzYkxah2z3N9VC7",url:"https://search.pstatic.net/common/?autoRotate=true&quality=100&type=f640_380&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20201117_126%2F1605598837324jxqLv_JPEG%2F6oekoZdp561gkvkYWDAAIK4T.jpg"},
+{id:"2FLzbXABAoZNTKFEggLS",url:"https://search.pstatic.net/common/?autoRotate=true&quality=100&type=f640_380&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20240811_226%2F1723349833917rkxjx_JPEG%2FDSC_1149.jpg"},
+{id:"2r21kpuQJ9FaX2XzjOww",url:"https://search.pstatic.net/common/?autoRotate=true&quality=100&type=f640_380&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20230908_182%2F16941579554941BxE0_JPEG%2FScreenshot_20230908_162502_KakaoTalk.jpg"},
+{id:"3Cifb6REX7r4ItcaRAcA",url:"https://search.pstatic.net/common/?autoRotate=true&quality=100&type=f640_380&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20220729_258%2F1659103608148CCRlo_JPEG%2FC90CDD65-990D-476F-BB87-C8468D5B4AD8.jpeg"},
+{id:"6Mq8cGQkv3Spe86Icbqv",url:"https://search.pstatic.net/common/?autoRotate=true&quality=100&type=f640_380&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20240731_70%2F1722408402941rRfaD_JPEG%2FIMG_0220.jpeg"},
+{id:"BVofernpGLi0HU3ygLW8",url:"https://search.pstatic.net/common/?autoRotate=true&quality=100&type=f640_380&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20260112_3%2F1768223522753oQclN_JPEG%2F%25C1%25A6%25B8%25F1_%25BE%25F8%25C0%25BD.jpg"},
+{id:"EUUui0rUvb6W4v35qimC",url:"https://search.pstatic.net/common/?autoRotate=true&quality=100&type=f640_380&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20250329_43%2F1743221549885zfzVU_JPEG%2F%25C7%25F6%25B9%25AB%25C1%25DF%25B9%25AE%25BF%25A1%25BC%25AD_%25B9%25D9%25B6%25F3%25BA%25BB_%25C0%25CC%25B0%25A1%25B3%25D7%25B4%25F5%25B4%25F6%25B9%25E4.jpg"},
+{id:"Flr80KiKzqLXkSBcgerQ",url:"https://search.pstatic.net/common/?autoRotate=true&quality=100&type=f640_380&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20251128_250%2F1764314306461tKOMk_JPEG%2F%25C7%25C7%25C5%25B0%25B8%25C5%25C0%25E5%25BF%25DC%25BA%25CE.JPG"},
+{id:"L5RIfvROndaGvT55r4me",url:"https://search.pstatic.net/common/?autoRotate=true&quality=100&type=f640_380&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20190807_2%2F1565163637866Ox8qv_JPEG%2FQFr25yoIoDFpRtiPtzbwi8Uc.jpg"},
+{id:"PrLwp9iCZubpwganHKSF",url:"https://search.pstatic.net/common/?autoRotate=true&quality=100&type=f640_380&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20221221_90%2F1671553473405SCQEP_PNG%2F1530691428310.png"},
+{id:"Vh5NjHFgoar96LdfXwdr",url:"https://search.pstatic.net/common/?autoRotate=true&quality=100&type=f640_380&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20241129_156%2F1732849102797QKDX8_PNG%2F%25B5%25C5%25C1%25F6%25B8%25B8%25BF%25DC%25B0%25FC.png"},
+{id:"VkUPDNPVSONRnkgiUvy8",url:"https://search.pstatic.net/common/?autoRotate=true&quality=100&type=f640_380&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20231027_260%2F1698406718395ocVyf_JPEG%2F1698406687862.jpg"},
+{id:"WiePQvp3JRW2mrc53RQj",url:"https://search.pstatic.net/common/?autoRotate=true&quality=100&type=f640_380&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20191129_269%2F15750153550182bnlV_JPEG%2FRS6Ch9sP3pxpVhCBcgjPavAY.jpg"},
+{id:"WwywBW9GmtEqp31P5zjP",url:"https://search.pstatic.net/common/?autoRotate=true&quality=100&type=f640_380&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20230524_140%2F168486511266041ys5_JPEG%2FCB830E12-72F1-4834-8847-30FCC83FAC5D.jpeg"},
+{id:"Yv2b0QWTepM2IiJ9R51N",url:"https://search.pstatic.net/common/?autoRotate=true&quality=100&type=f640_380&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20231027_131%2F1698388558617oznNq_JPEG%2Fp%25C0%25BD%25BD%25C4.jpg"},
+{id:"Zz68E63GsIG9jZcnuRKw",url:"https://search.pstatic.net/common/?autoRotate=true&quality=100&type=f640_380&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20190705_245%2F1562327980428UGFlm_JPEG%2FK2qY48QY6LN6kPUCRRk5qcT5.JPG.jpg"},
+{id:"cGeDt5BLyMP9saOD2mEz",url:"https://search.pstatic.net/common/?autoRotate=true&quality=100&type=f640_380&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20260121_299%2F1768982184842W1XRf_JPEG%2F%25B4%25D9%25BF%25EE%25B7%25CE%25B5%25E5_%25286%2529.jfif.jpg"},
+{id:"eJBtYGhAZaCIen9BVv3B",url:"https://search.pstatic.net/common/?autoRotate=true&quality=100&type=f640_380&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20200526_177%2F1590495076882FEffM_JPEG%2FV2RuHiFwIEPffSBnImc5D2A7.jpeg.jpg"},
+{id:"eqiMtPCbiPq6awUG47iL",url:"https://search.pstatic.net/common/?autoRotate=true&quality=100&type=f640_380&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20240928_97%2F1727497703760L2MiK_JPEG%2FA1_07911.jpg"},
+{id:"fF3UPWSpHlS83bGjBvHC",url:"https://search.pstatic.net/common/?autoRotate=true&quality=100&type=f640_380&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20220119_261%2F1642600540621jbLO6_JPEG%2FIMG-0052.JPG"},
+{id:"j2nwsjjSqPPWQSmTxaeJ",url:"https://search.pstatic.net/common/?autoRotate=true&quality=100&type=f640_380&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20250725_247%2F1753440282238Rwlp5_JPEG%2F%25B4%25D9%25BF%25EE%25B7%25CE%25B5%25E5_%252814%2529.jpeg"},
+{id:"keefpGCzcgcbWrcfc38y",url:"https://search.pstatic.net/common/?autoRotate=true&quality=100&type=f640_380&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20190313_204%2F1552462004981JaNoR_JPEG%2F7rMyL-VQjaotOjOs6hB3GBdD.jpg"},
+{id:"njMrmNM569c79H6G4TQ4",url:"https://search.pstatic.net/common/?autoRotate=true&quality=100&type=f640_380&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20240409_49%2F17126502157385CI8L_JPEG%2F1000013134.jpg"},
+{id:"ocgssAsIIZErlSGiECva",url:"https://search.pstatic.net/common/?autoRotate=true&quality=100&type=f640_380&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20240101_132%2F1704106013065FOI47_JPEG%2F20240101_130341.jpg"},
+{id:"sYVWV070WObP9qBmQimO",url:"https://search.pstatic.net/common/?autoRotate=true&quality=100&type=f640_380&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20260209_67%2F1770611895720deLi0_JPEG%2F1770611874294.jpg"},
+{id:"u91b3mb2ijwrRxMpaZvn",url:"https://search.pstatic.net/common/?autoRotate=true&quality=100&type=f640_380&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20200629_245%2F1593409214952Cc81i_JPEG%2FKU8zZfk31fg_1dEap-oC1txH.jpg"},
+{id:"uyxCNzTPRh6XThIAkgaC",url:"https://search.pstatic.net/common/?autoRotate=true&quality=100&type=f640_380&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20220807_176%2F1659799435964iERDB_JPEG%2FScreenshot_20220806-122741_Instagram.jpg"},
+{id:"zaoTUmx8T7KRRYhMew83",url:"https://search.pstatic.net/common/?autoRotate=true&quality=100&type=f640_380&src=https%3A%2F%2Fldb-phinf.pstatic.net%2F20240403_61%2F1712112374310iNanV_JPEG%2F%25BA%25BB%25B0%25FC2.jpg"},
+];
+
+let ok = 0, fail = 0;
+for (const item of updates) {
+    try {
+        await updateDoc(doc(db, "shops", item.id), { imageUrl: item.url });
+        ok++;
+        log.textContent += `✅ [${ok}] ${item.id}\n`;
+    } catch(e) {
+        fail++;
+        log.textContent += `❌ ${item.id}: ${e.message}\n`;
+    }
+}
+log.textContent += `\n=== 완료: ${ok}개 성공, ${fail}개 실패 ===`;
+</script>
+</body></html>

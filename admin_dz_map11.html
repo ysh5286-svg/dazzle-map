@@ -56,6 +56,10 @@
                 </select>
 
                 <input type="text" id="adminSearch" class="admin-search-input" placeholder="🔍 이름 검색" onkeyup="applyAdminFilters()">
+                <label style="display:flex; align-items:center; gap:4px; background:#e74c3c; border:2px solid white; border-radius:6px; padding:4px 8px; cursor:pointer; white-space:nowrap; font-size:12px; font-weight:bold;">
+                    <input type="checkbox" id="filterNoImage" onchange="applyAdminFilters()" style="width:14px; height:14px; cursor:pointer; accent-color:white;">
+                    📷 사진없음만
+                </label>
             </div>
             
             <div style="display:flex; gap:5px;">
@@ -146,8 +150,20 @@
             </div>
 
             <div class="form-group"><label class="form-label">주소</label><input type="text" id="shopAddress" class="form-input" autocomplete="off"></div>
-            <div class="form-group"><label class="form-label">이미지 URL</label><input type="text" id="shopImage" class="form-input" autocomplete="off"></div>
-            <div class="form-group"><label class="form-label">네이버 플레이스 링크</label><input type="text" id="shopLink" class="form-input" autocomplete="off"></div>
+            <div class="form-group">
+                <label class="form-label">이미지 URL</label>
+                <div style="display:flex; gap:6px; align-items:center;">
+                    <input type="text" id="shopImage" class="form-input" autocomplete="off" oninput="previewShopImage(this.value)" style="flex:1;">
+                    <img id="shopImagePreview" src="" style="width:48px; height:48px; border-radius:6px; object-fit:cover; border:1px solid #ddd; display:none;" onerror="this.style.display='none'">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">네이버 플레이스 링크</label>
+                <div style="display:flex; gap:6px;">
+                    <input type="text" id="shopLink" class="form-input" autocomplete="off" style="flex:1;">
+                    <button type="button" onclick="openNaverPlace()" style="background:#03c75a; color:white; border:none; padding:6px 10px; border-radius:6px; cursor:pointer; font-size:12px; font-weight:bold; white-space:nowrap;">N 열기</button>
+                </div>
+            </div>
 
             <div class="form-group">
                 <label class="form-label">업종</label>
@@ -167,22 +183,57 @@
     </div>
 
     <div id="bulkModal" class="modal-overlay">
-        <div class="modal-box" style="max-width:600px;">
+        <div class="modal-box" style="max-width:620px;">
             <button class="modal-close-x" onclick="closeBulkModal()">×</button>
-            <h3 class="modal-title">⚡ 데이터 일괄 등록</h3>
-            <textarea id="bulkDataInput" class="bulk-textarea" placeholder='[JSON 데이터]'></textarea>
+            <h3 class="modal-title">⚡ 업체 일괄 등록</h3>
+            <p style="font-size:12px; color:#888; margin-bottom:8px;">한 줄에 하나씩 <b>상호명 / 주소</b> 형식으로 입력하세요.</p>
+            <div style="margin-bottom:10px;">
+                <label style="font-size:12px; font-weight:bold; color:#333; display:block; margin-bottom:5px;">🍜 업종 (일괄 적용)</label>
+                <div id="bulkCategoryContainer" style="display:flex; flex-wrap:wrap; gap:2px;"></div>
+                <div style="display:flex; gap:4px; margin-top:5px;">
+                    <input type="text" id="bulkNewCat" class="admin-search-input" placeholder="새 업종 입력" style="flex:1; font-size:12px;">
+                    <button type="button" onclick="addBulkCustomCat()" style="background:#2ecc71; color:white; border:none; padding:4px 10px; border-radius:5px; font-size:12px; font-weight:bold; cursor:pointer; white-space:nowrap;">+ 추가</button>
+                </div>
+            </div>
+            <div style="margin-bottom:10px;">
+                <label style="font-size:12px; font-weight:bold; color:#333; display:block; margin-bottom:5px;">✨ 분위기 (일괄 적용)</label>
+                <div id="bulkPurposeContainer" style="display:flex; flex-wrap:wrap; gap:2px;"></div>
+            </div>
+            <textarea id="bulkDataInput" class="bulk-textarea" placeholder="예시:
+맛있는집 / 대구광역시 중구 동성로 123
+커피하우스 / 대구광역시 수성구 범어로 45
+노포식당 / 대구광역시 남구 대명로 67"></textarea>
             <div id="bulkStatus" class="bulk-status"></div>
-            <div class="modal-btns"><button class="btn-save" style="background:#f1c40f; color:#333;" onclick="processBulkData()">🚀 실행하기</button></div>
+            <div class="modal-btns">
+                <button class="btn-save" style="background:#f1c40f; color:#333;" onclick="processBulkData()">🚀 일괄 등록</button>
+            </div>
         </div>
     </div>
 
     <div id="hotplModal" class="modal-overlay">
-        <div class="modal-box" style="max-width:420px; max-height:80vh; display:flex; flex-direction:column;">
+        <div class="modal-box" style="max-width:480px; max-height:85vh; display:flex; flex-direction:column;">
             <button class="modal-close-x" onclick="document.getElementById('hotplModal').classList.remove('show')">×</button>
             <h3 class="modal-title">🔥 이달의 핫플 관리</h3>
-            <p style="font-size:12px; color:#888; margin-bottom:10px;">토글 ON = 메인화면 이달의 핫플 배너에 표시됩니다.</p>
-            <input type="text" id="hotplSearch" placeholder="🔍 매장 검색" oninput="filterHotplList()" style="border:1px solid #ddd; border-radius:6px; padding:7px 10px; font-size:13px; margin-bottom:10px; outline:none;">
-            <div id="hotplList" style="overflow-y:auto; flex:1; border:1px solid #eee; border-radius:8px;"></div>
+
+            <!-- 탭 전환 -->
+            <div style="display:flex; gap:6px; margin-bottom:10px;">
+                <button onclick="switchHotplTab('select')" id="hotplTabSelect" class="hotpl-tab active" style="flex:1; padding:7px; border:1px solid #e74c3c; background:#e74c3c; color:#fff; border-radius:6px; cursor:pointer; font-size:13px; font-weight:600;">📋 핫플 선택</button>
+                <button onclick="switchHotplTab('order')" id="hotplTabOrder" class="hotpl-tab" style="flex:1; padding:7px; border:1px solid #ddd; background:#fff; color:#333; border-radius:6px; cursor:pointer; font-size:13px; font-weight:600;">🔢 순서 변경</button>
+            </div>
+
+            <!-- 탭1: 핫플 선택 (기존) -->
+            <div id="hotplSelectPane" style="display:flex; flex-direction:column; flex:1; overflow:hidden;">
+                <p style="font-size:12px; color:#888; margin-bottom:10px;">토글 ON = 메인화면 이달의 핫플 배너에 표시됩니다.</p>
+                <input type="text" id="hotplSearch" placeholder="🔍 매장 검색" oninput="filterHotplList()" style="border:1px solid #ddd; border-radius:6px; padding:7px 10px; font-size:13px; margin-bottom:10px; outline:none;">
+                <div id="hotplList" style="overflow-y:auto; flex:1; border:1px solid #eee; border-radius:8px;"></div>
+            </div>
+
+            <!-- 탭2: 순서 변경 -->
+            <div id="hotplOrderPane" style="display:none; flex-direction:column; flex:1; overflow:hidden;">
+                <p style="font-size:12px; color:#888; margin-bottom:10px;">화살표로 배너 표시 순서를 변경하세요. (위 = 먼저 표시)</p>
+                <div id="hotplOrderList" style="overflow-y:auto; flex:1; border:1px solid #eee; border-radius:8px;"></div>
+                <button onclick="saveHotplOrder()" style="margin-top:10px; padding:10px; background:#e74c3c; color:#fff; border:none; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer;">💾 순서 저장</button>
+            </div>
         </div>
     </div>
 
@@ -202,6 +253,29 @@
         const PUR_LIST = ['노포', '데이트', '단체회식', '혼밥/혼술', '무한리필', '이색맛집', '뷰맛집', '상견례', '야간영업'];
 
         window.closeModal = function() { $('#shopModal').removeClass('show'); }
+        window.openBulkModal = function() {
+            $('#bulkDataInput').val(''); $('#bulkStatus').html('');
+            // 업종 체크박스 렌더
+            const catCon = document.getElementById('bulkCategoryContainer');
+            catCon.innerHTML = CAT_LIST.map(c => `<label class="check-item"><input type="checkbox" name="bulkCat" value="${c}"> ${c}</label>`).join('');
+            // 분위기 체크박스 렌더
+            const purCon = document.getElementById('bulkPurposeContainer');
+            purCon.innerHTML = PUR_LIST.map(p => `<label class="check-item"><input type="checkbox" name="bulkPur" value="${p}"> ${p}</label>`).join('');
+            $('#bulkModal').addClass('show');
+        }
+        window.addBulkCustomCat = function() {
+            const input = document.getElementById('bulkNewCat');
+            const val = input.value.trim();
+            if (!val) return;
+            const con = document.getElementById('bulkCategoryContainer');
+            // 중복 체크
+            if ([...con.querySelectorAll('input[name="bulkCat"]')].some(el => el.value === val)) { input.value = ''; return; }
+            const label = document.createElement('label');
+            label.className = 'check-item';
+            label.innerHTML = `<input type="checkbox" name="bulkCat" value="${val}" checked> ${val}`;
+            con.appendChild(label);
+            input.value = '';
+        }
         window.closeBulkModal = function() { $('#bulkModal').removeClass('show'); }
         window.closeSelectModal = function() { $('#selectModal').removeClass('show'); }
 
@@ -301,6 +375,7 @@
             var category = $('#adminCategory').val();
             var purpose = $('#adminPurpose').val();
             var keyword = $('#adminSearch').val().toLowerCase().replace(/\s+/g, '');
+            var noImageOnly = $('#filterNoImage').is(':checked');
 
             var filtered = allShopsData.filter(shop => {
                 var matchRegion = (region === "") || (shop.region === region);
@@ -310,7 +385,8 @@
                 var matchPurpose = (purpose === "") || shopPurps.includes(purpose);
                 var searchableText = (shop.name + " " + (shop.menu || "") + " " + (shop.area || "") + " " + shopCats.join(" ")).toLowerCase().replace(/\s+/g, '');
                 var matchKeyword = (keyword === "") || searchableText.includes(keyword);
-                return matchRegion && matchCategory && matchPurpose && matchKeyword;
+                var matchNoImage = !noImageOnly || !shop.imageUrl || !shop.imageUrl.trim();
+                return matchRegion && matchCategory && matchPurpose && matchKeyword && matchNoImage;
             });
             renderMarkers(filtered);
         }
@@ -341,7 +417,7 @@
             $('#shopTotalScore').val(d.totalScore); 
             $('#shopDesc').val(d.desc); 
             $('#shopAddress').val(d.address);
-            $('#shopImage').val(d.imageUrl); 
+            $('#shopImage').val(d.imageUrl); previewShopImage(d.imageUrl);
             $('#shopLink').val(d.link);
             $('#shopLat').val(d.lat); $('#shopLng').val(d.lng);
             $('#dupMsg').text('');
@@ -402,14 +478,135 @@
             var id = $('#shopId').val(); if(!id) return;
             if(confirm("삭제?")) { try{ await deleteDoc(doc(db,"shops",id)); alert("삭제됨"); closeModal(); }catch(e){alert("실패");} }
         }
-        window.processBulkData = async function() { alert("일괄 등록 기능은 필요시 기존 코드에서 복사해주세요."); }
+        window.processBulkData = async function() {
+            const raw = $('#bulkDataInput').val().trim();
+            if (!raw) { alert("데이터를 입력해주세요!"); return; }
+            const statusEl = document.getElementById('bulkStatus');
+            statusEl.innerHTML = '';
+
+            // 주소에서 지역 자동 추출
+            const REGION_MAP = {
+                '중구': '중구', '수성구': '수성구', '동구': '동구', '서구': '서구',
+                '남구': '남구', '북구': '북구', '달서구': '달서구', '달성군': '달성군',
+                '경산': '경산', '경산시': '경산', '군위군': '군위군', '칠곡군': '칠곡군'
+            };
+            function detectRegion(addr) {
+                for (const [key, val] of Object.entries(REGION_MAP)) {
+                    if (addr.includes(key)) return val;
+                }
+                return '대구 밖';
+            }
+
+            // 파싱: "상호명 / 주소" 또는 "상호명/주소"
+            const lines = raw.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('//'));
+            const items = [];
+            for (const line of lines) {
+                const parts = line.split('/').map(s => s.trim());
+                if (parts.length < 2 || !parts[0] || !parts[1]) {
+                    statusEl.innerHTML += `⚠️ 형식오류 (건너뜀): ${line}<br>`;
+                    continue;
+                }
+                items.push({ name: parts[0], address: parts.slice(1).join('/').trim() });
+            }
+
+            if (items.length === 0) { alert("등록할 데이터가 없습니다."); return; }
+
+            // 중복 체크용 기존 업체명 목록
+            const existingNames = allShopsData.filter(s => s.name).map(s => s.name.replace(/\s+/g, ''));
+
+            // 선택된 업종/분위기 가져오기
+            const bulkCats = [...document.querySelectorAll('input[name="bulkCat"]:checked')].map(el => el.value);
+            const bulkPurs = [...document.querySelectorAll('input[name="bulkPur"]:checked')].map(el => el.value);
+
+            if (!confirm(`${items.length}개 업체를 등록합니다. 진행할까요?`)) return;
+
+            let ok = 0, fail = 0;
+            for (let i = 0; i < items.length; i++) {
+                const item = items[i];
+                statusEl.innerHTML += `⏳ [${i+1}/${items.length}] ${item.name} 처리 중...<br>`;
+                statusEl.scrollTop = statusEl.scrollHeight;
+
+                // 중복 체크
+                if (existingNames.includes(item.name.replace(/\s+/g, ''))) {
+                    statusEl.innerHTML += `⚠️ <b>${item.name}</b> - 이미 등록된 업체 (건너뜀)<br>`;
+                    continue;
+                }
+
+                // 주소 → 좌표 변환
+                const coords = await geocodeAddress(item.address);
+                if (!coords) {
+                    statusEl.innerHTML += `❌ <b>${item.name}</b> - 주소 좌표변환 실패<br>`;
+                    fail++;
+                    continue;
+                }
+
+                const region = detectRegion(item.address);
+                const data = {
+                    name: item.name,
+                    address: item.address,
+                    lat: coords.lat,
+                    lng: coords.lng,
+                    region: region,
+                    category: bulkCats, purpose: bulkPurs,
+                    area: '', menu: '', desc: '',
+                    imageUrl: '', link: '',
+                    parking: '', totalScore: 0,
+                    isHot: false, themes: [],
+                    createdAt: new Date(),
+                    updatedAt: new Date()
+                };
+
+                try {
+                    await addDoc(collection(db, "shops"), data);
+                    ok++;
+                    statusEl.innerHTML += `✅ <b>${item.name}</b> (${region}) 등록 완료<br>`;
+                } catch(e) {
+                    fail++;
+                    statusEl.innerHTML += `❌ <b>${item.name}</b> - 저장 실패: ${e.message}<br>`;
+                }
+                statusEl.scrollTop = statusEl.scrollHeight;
+            }
+            statusEl.innerHTML += `<br><b>🏁 완료: ${ok}개 성공, ${fail}개 실패</b>`;
+        }
+
+        // 📷 이미지 미리보기
+        window.previewShopImage = function(url) {
+            const img = document.getElementById('shopImagePreview');
+            if (url && url.trim()) { img.src = url.trim(); img.style.display = 'block'; }
+            else { img.style.display = 'none'; }
+        };
+        window.openNaverPlace = function() {
+            const link = $('#shopLink').val().trim();
+            if (link) window.open(link, '_blank');
+            else alert('네이버 플레이스 링크를 먼저 입력하세요.');
+        };
 
         // 🔥 이달의 핫플 관리
         window.openHotplModal = function() {
             document.getElementById('hotplModal').classList.add('show');
             document.getElementById('hotplSearch').value = '';
+            switchHotplTab('select');
             renderHotplList(allShopsData);
         };
+
+        // 탭 전환
+        window.switchHotplTab = function(tab) {
+            const selBtn = document.getElementById('hotplTabSelect');
+            const ordBtn = document.getElementById('hotplTabOrder');
+            const selPane = document.getElementById('hotplSelectPane');
+            const ordPane = document.getElementById('hotplOrderPane');
+            if (tab === 'select') {
+                selBtn.style.background = '#e74c3c'; selBtn.style.color = '#fff'; selBtn.style.borderColor = '#e74c3c';
+                ordBtn.style.background = '#fff'; ordBtn.style.color = '#333'; ordBtn.style.borderColor = '#ddd';
+                selPane.style.display = 'flex'; ordPane.style.display = 'none';
+            } else {
+                ordBtn.style.background = '#e74c3c'; ordBtn.style.color = '#fff'; ordBtn.style.borderColor = '#e74c3c';
+                selBtn.style.background = '#fff'; selBtn.style.color = '#333'; selBtn.style.borderColor = '#ddd';
+                selPane.style.display = 'none'; ordPane.style.display = 'flex';
+                renderHotplOrderList();
+            }
+        };
+
         function renderHotplList(shops) {
             const sorted = [...shops].filter(s => s.name).sort((a, b) => (b.isHot ? 1 : 0) - (a.isHot ? 1 : 0) || a.name.localeCompare(b.name, 'ko'));
             document.getElementById('hotplList').innerHTML = sorted.map(s => `
@@ -422,6 +619,57 @@
                 </div>
             `).join('');
         }
+
+        // 순서 변경 리스트 렌더링
+        function renderHotplOrderList() {
+            const hotShops = allShopsData.filter(s => s.name && s.isHot === true)
+                .sort((a, b) => (a.hotOrder ?? 999) - (b.hotOrder ?? 999));
+            const list = document.getElementById('hotplOrderList');
+            if (hotShops.length === 0) {
+                list.innerHTML = '<p style="padding:20px; text-align:center; color:#aaa;">핫플로 선택된 업체가 없습니다.<br>📋 핫플 선택 탭에서 먼저 추가하세요.</p>';
+                return;
+            }
+            list.innerHTML = hotShops.map((s, i) => `
+                <div class="hotpl-order-row" data-id="${s.id}" style="display:flex; align-items:center; padding:10px 12px; border-bottom:1px solid #f0f0f0; gap:8px;">
+                    <span style="font-size:16px; font-weight:700; color:#e74c3c; min-width:24px; text-align:center;">${i + 1}</span>
+                    <span style="flex:1; font-size:14px; font-weight:500;">${s.name} <small style="color:#aaa; font-size:11px;">${s.area || ''}</small></span>
+                    <button onclick="moveHotpl('${s.id}','up')" ${i === 0 ? 'disabled' : ''} style="border:none; background:#f8f8f8; border-radius:4px; cursor:pointer; padding:4px 8px; font-size:16px; ${i === 0 ? 'opacity:0.3; cursor:default;' : ''}">▲</button>
+                    <button onclick="moveHotpl('${s.id}','down')" ${i === hotShops.length - 1 ? 'disabled' : ''} style="border:none; background:#f8f8f8; border-radius:4px; cursor:pointer; padding:4px 8px; font-size:16px; ${i === hotShops.length - 1 ? 'opacity:0.3; cursor:default;' : ''}">▼</button>
+                </div>
+            `).join('');
+        }
+
+        // 순서 이동
+        window.moveHotpl = function(id, dir) {
+            const hotShops = allShopsData.filter(s => s.name && s.isHot === true)
+                .sort((a, b) => (a.hotOrder ?? 999) - (b.hotOrder ?? 999));
+            const idx = hotShops.findIndex(s => s.id === id);
+            if (idx < 0) return;
+            const swapIdx = dir === 'up' ? idx - 1 : idx + 1;
+            if (swapIdx < 0 || swapIdx >= hotShops.length) return;
+            // 로컬 hotOrder 스왑
+            const orderA = hotShops[idx].hotOrder ?? idx;
+            const orderB = hotShops[swapIdx].hotOrder ?? swapIdx;
+            hotShops[idx].hotOrder = orderB;
+            hotShops[swapIdx].hotOrder = orderA;
+            renderHotplOrderList();
+        };
+
+        // 순서 저장 (Firebase에 각 핫플 업체의 hotOrder 업데이트)
+        window.saveHotplOrder = async function() {
+            const hotShops = allShopsData.filter(s => s.name && s.isHot === true)
+                .sort((a, b) => (a.hotOrder ?? 999) - (b.hotOrder ?? 999));
+            let ok = 0, fail = 0;
+            for (let i = 0; i < hotShops.length; i++) {
+                hotShops[i].hotOrder = i;
+                try {
+                    await updateDoc(doc(db, "shops", hotShops[i].id), { hotOrder: i });
+                    ok++;
+                } catch(e) { fail++; }
+            }
+            showToast(`✅ 순서 저장 완료! (${ok}개 성공${fail ? ', ' + fail + '개 실패' : ''})`);
+        };
+
         window.filterHotplList = function() {
             const q = document.getElementById('hotplSearch').value.toLowerCase();
             const filtered = allShopsData.filter(s => s.name && (s.name.toLowerCase().includes(q) || (s.area || '').toLowerCase().includes(q)));
@@ -429,9 +677,16 @@
         };
         window.toggleHotStatus = async function(id, isHot) {
             try {
-                await updateDoc(doc(db, "shops", id), { isHot });
+                const updateData = { isHot };
+                if (isHot) {
+                    // 새로 핫플 추가 시 맨 뒤 순서 부여
+                    const maxOrder = allShopsData.filter(s => s.isHot === true && s.hotOrder != null)
+                        .reduce((max, s) => Math.max(max, s.hotOrder), -1);
+                    updateData.hotOrder = maxOrder + 1;
+                }
+                await updateDoc(doc(db, "shops", id), updateData);
                 const shop = allShopsData.find(s => s.id === id);
-                if (shop) shop.isHot = isHot;
+                if (shop) { shop.isHot = isHot; if (isHot) shop.hotOrder = updateData.hotOrder; }
                 showToast(isHot ? '🔥 핫플 추가됨' : '➖ 핫플 제거됨');
             } catch(e) { alert("저장 실패: " + e.message); }
         };
