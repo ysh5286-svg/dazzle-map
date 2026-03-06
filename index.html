@@ -68,11 +68,11 @@
 
     <!-- 이달의 핫플 배너 -->
     <div id="hotplBanner" class="hotpl-banner">
-        <div class="hotpl-banner-header">
+        <div class="hotpl-banner-header" onclick="toggleHotplBanner()">
             <span class="hotpl-banner-title">🔥 이달의 핫플</span>
-            <button class="hotpl-close" onclick="document.getElementById('hotplBanner').style.display='none'">✕</button>
+            <span id="hotplArrow" class="hotpl-arrow">▶</span>
         </div>
-        <div class="hotpl-scroll" id="hotplScroll"></div>
+        <div class="hotpl-scroll" id="hotplScroll" style="display:none;"></div>
     </div>
 
     <div id="userStatusCard" style="position: absolute; top: 150px; right: 10px; z-index: 90; display:flex; justify-content: flex-end; width: auto;">
@@ -281,6 +281,17 @@
     <script>
         function toggleFaq() { document.getElementById('faqPanel').classList.toggle('show'); }
         function closeProfileModal() { document.getElementById('profileModal').classList.remove('show'); }
+
+        window._hotplExpanded = false;
+        window.toggleHotplBanner = function() {
+            window._hotplExpanded = !window._hotplExpanded;
+            const scroll = document.getElementById('hotplScroll');
+            const arrow = document.getElementById('hotplArrow');
+            const banner = document.getElementById('hotplBanner');
+            scroll.style.display = window._hotplExpanded ? 'flex' : 'none';
+            arrow.textContent = window._hotplExpanded ? '▼' : '▶';
+            banner.style.zIndex = window._hotplExpanded ? '200' : '95';
+        };
         function copyUID() {
             const uid = document.getElementById('profileUid').value;
             navigator.clipboard.writeText(uid).then(() => alert('복사됐어요! 사장님께 전달해주세요 😊'));
@@ -600,6 +611,20 @@
             </div>
         `).join('');
         document.getElementById('hotplBanner').style.display = 'block';
+
+        // 터치 드래그 스크롤
+        let isDragging = false, startX = 0, scrollLeft = 0;
+        scroll.addEventListener('touchstart', e => {
+            isDragging = true;
+            startX = e.touches[0].clientX;
+            scrollLeft = scroll.scrollLeft;
+        }, { passive: true });
+        scroll.addEventListener('touchmove', e => {
+            if (!isDragging) return;
+            const dx = startX - e.touches[0].clientX;
+            scroll.scrollLeft = scrollLeft + dx;
+        }, { passive: true });
+        scroll.addEventListener('touchend', () => { isDragging = false; });
     }
 
     initTheme(); loadShopsData();

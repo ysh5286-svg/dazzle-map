@@ -519,41 +519,48 @@ body, html { margin: 0; padding: 0; height: 100%; font-family: 'Noto Sans KR', s
     background: white;
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    padding: 10px 12px;
-    z-index: 90;
+    padding: 8px 12px;
+    z-index: 95;
 }
 .hotpl-banner-header {
     display: flex; justify-content: space-between; align-items: center;
-    margin-bottom: 8px;
+    cursor: pointer; padding: 2px 0; user-select: none;
 }
 .hotpl-banner-title { font-size: 13px; font-weight: bold; color: #e74c3c; }
-.hotpl-close {
-    background: none; border: none; font-size: 14px;
-    color: #999; cursor: pointer; padding: 0 4px;
+.hotpl-arrow {
+    font-size: 11px; color: #e74c3c; font-weight: bold;
+    transition: transform 0.2s;
 }
 .hotpl-scroll {
-    display: flex; gap: 10px;
-    overflow-x: auto; scrollbar-width: none; padding-bottom: 4px;
+    display: none;
+    gap: 10px;
+    overflow-x: auto; scrollbar-width: none;
+    padding: 10px 0 4px;
+    touch-action: pan-x;
+    -webkit-overflow-scrolling: touch;
 }
 .hotpl-scroll::-webkit-scrollbar { display: none; }
 .hotpl-card {
     flex-shrink: 0; width: 80px; cursor: pointer;
     text-align: center;
     transition: transform 0.15s;
+    pointer-events: auto;
 }
-.hotpl-card:hover { transform: scale(1.05); }
+.hotpl-card:active { transform: scale(0.95); }
 .hotpl-card-img {
     width: 80px; height: 70px; border-radius: 10px;
     background-size: cover; background-position: center;
     background-color: #f39c12;
     display: flex; align-items: center; justify-content: center;
     font-size: 28px; margin-bottom: 5px;
+    pointer-events: none;
 }
 .hotpl-card-name {
     font-size: 12px; font-weight: bold; color: #333;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    pointer-events: none;
 }
-.hotpl-card-cat { font-size: 11px; color: #888; }
+.hotpl-card-cat { font-size: 11px; color: #888; pointer-events: none; }
 
 /* 프로필 모달 */
 .profile-modal-header {
