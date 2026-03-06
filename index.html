@@ -649,15 +649,15 @@
     }
 
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js?v=2.9')
-            .then(reg => {
-                reg.onupdatefound = () => {
-                    const installingWorker = reg.installing;
-                    installingWorker.onstatechange = () => {
-                        if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) { window.location.reload(); }
-                    };
-                };
-            }).catch(err => console.log('서비스 워커 실패', err));
+        navigator.serviceWorker.register('./sw.js?v=3.0')
+            .catch(err => console.log('서비스 워커 실패', err));
+
+        // 새 SW가 활성화되면 자동 새로고침
+        navigator.serviceWorker.addEventListener('message', event => {
+            if (event.data && event.data.type === 'SW_UPDATED') {
+                window.location.reload();
+            }
+        });
     }
 
     let deferredPrompt; const installBtn = document.getElementById('installBtn'); const ua = navigator.userAgent.toLowerCase(); const isIos = /iphone|ipad|ipod/.test(ua); const isInApp = ua.includes('kakao') || ua.includes('instagram') || ua.includes('naver');

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dazzle-map-v2.9'; // 버전 업데이트 시 같이수정 >> index >> navigator.serviceWorker.register('./sw.js?v=2.9')
+const CACHE_NAME = 'dazzle-map-v3.0'; // 버전 업데이트 시 같이수정 >> index >> navigator.serviceWorker.register('./sw.js?v=3.0')
 
 const urlsToCache = [
   './',
@@ -58,6 +58,11 @@ self.addEventListener('activate', (event) => {
     }).then(() => {
         // 🔥 [중요] 새 서비스 워커가 즉시 페이지를 제어하도록 설정 (clients.claim)
         return self.clients.claim();
+    }).then(() => {
+        // 🔄 모든 열린 탭에 새로고침 신호 보내기
+        return self.clients.matchAll({ type: 'window' });
+    }).then(clients => {
+        clients.forEach(client => client.postMessage({ type: 'SW_UPDATED' }));
     })
   );
 });
