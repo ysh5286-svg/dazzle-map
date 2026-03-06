@@ -3,91 +3,137 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
     <title>대구핫플여기 보물지도</title>
-    <script type="text/javascript">
-        // 🚀 인앱 브라우저(카카오/인스타) 탈출 코드
-        (function() {
-            var userAgent = navigator.userAgent.toLowerCase();
-            var targetUrl = location.href;
-            
-            // 1. 카카오톡, 인스타그램, 네이버, 페이스북 등 인앱 브라우저 확인
-            if (userAgent.match(/kakaotalk|instagram|naver|facebook|line/i)) {
-                
-                // 2. 안드로이드라면 -> 크롬으로 강제 이동 (Intent 스키마 사용)
-                if (userAgent.match(/android/i)) {
-                    location.href = 'intent://' + targetUrl.replace(/https?:\/\//i, '') + '#Intent;scheme=https;package=com.android.chrome;end';
-                } 
-                // 3. 아이폰/아이패드라면 -> 안내 메시지 띄우기
-                else {
-                    // 아이폰은 강제로 사파리를 실행할 수 없어서, 사용자에게 직접 하라고 알려줘야 합니다.
-                    alert("🔒 구글 로그인을 위해 'Safari'로 열어주세요.\n\n[방법]\n1. 화면 상단/하단 '더보기(...)' 클릭\n2. '브라우저로 열기' 또는 'Safari로 열기' 선택");
-                }
-            }
-        })();
-    </script>
+    
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#c0392b">
+    <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/google/material-design-icons/master/png/maps/local_dining/materialicons/48dp/2x/baseline_local_dining_black_48dp.png">
+
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🗺️</text></svg>">
+    <meta property="og:title" content="🗺️ 대구핫플여기 보물지도">
+    <meta property="og:description" content="대구 찐맛집과 핫플을 한눈에!&#10;실패 없는 맛집 지도">
+    <meta property="og:image" content="https://dazzlepeople.cafe24.com/bizdemo158475/component/board/board_1/u_image/4/546462826_Gemini_Generated_Image_ummtjlummtjlummt.jpg">
+    <meta property="og:url" content="https://www.heredaegu.com">
+
     <script type="text/javascript" src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=krsv42ftzf&submodules=geocoder"></script>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <style>
+    /* 모바일(화면 좁을 때)에서만 적용되는 강제 스타일 */
     @media (max-width: 768px) {
-        #userStatusCard { top: 240px !important; left: 50% !important; transform: translateX(-50%) !important; width: 90% !important; justify-content: center !important; }
+        #userStatusCard {
+            top: 240px !important; /* 검색창보다 훨씬 아래로 내림 */
+            left: 50% !important;
+            right: auto !important;
+            transform: translateX(-50%) !important; /* 화면 정중앙 배치 */
+            width: 90% !important; /* 넓게 잡기 */
+            justify-content: center !important; /* 버튼 가운데 정렬 */
+        }
     }
-    /* 프로필 모달 스타일 */
-    .profile-header { text-align: center; margin-bottom: 20px; }
-    .profile-img { width: 80px; height: 80px; border-radius: 50%; border: 3px solid #3498db; margin-bottom: 10px; }
-    .profile-name { font-size: 18px; font-weight: bold; color: #333; }
-    .profile-level { color: #3498db; font-weight: bold; font-size: 14px; }
-    .exp-bar-bg { width: 100%; height: 10px; background: #eee; border-radius: 5px; overflow: hidden; margin: 10px 0; }
-    .exp-bar-fill { height: 100%; background: #3498db; width: 0%; transition: width 0.5s; }
-    .history-list { max-height: 200px; overflow-y: auto; background: #f9f9f9; padding: 10px; border-radius: 8px; font-size: 13px; }
-    .history-item { padding: 8px 0; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; }
-    </style>
+</style>
 </head>
 <body>
-    <div id="loadingOverlay"><div class="spinner"></div><p>💎 보물지도를 펼치는 중...</p></div>
+    <div id="loadingOverlay">
+        <div class="spinner"></div>
+        <p>💎 보물지도를 펼치는 중...</p>
+    </div>
 
     <div class="search-container">
         <div class="search-box-wrapper">
             <div class="theme-select-wrapper">
                 <select id="mainThemeSelect" class="theme-select" onchange="applyAllFilters()">
-                    </select>
+                    <option value="ALL">💎 전체 맛집 보기</option>
+                </select>
             </div>
             <div class="search-filters">
-                <select id="filterRegion" class="search-select" onchange="applyAllFilters()"><option value="">📍 지역 전체</option><option value="수성구">수성구</option><option value="중구">중구</option><option value="동구">동구</option><option value="서구">서구</option><option value="남구">남구</option><option value="북구">북구</option><option value="달서구">달서구</option><option value="달성군">달성군</option><option value="군위군">군위군</option><option value="칠곡군">칠곡군</option><option value="경산">경산</option><option value="청도">청도</option><option value="대구 밖">대구 밖</option></select>
-                <select id="filterCategory" class="search-select" onchange="applyAllFilters()"><option value="">🍜 업종 전체</option><option value="한식">한식</option><option value="중식">중식</option><option value="일식">일식</option><option value="양식">양식</option><option value="분식">분식</option><option value="고기/구이">고기/구이</option><option value="회/해산물">회/해산물</option><option value="아시안">아시안</option><option value="술집">술집</option><option value="카페/디저트">카페/디저트</option><option value="빵집">빵집</option><option value="패스트푸드">패스트푸드</option><option value="포장/배달">포장/배달</option></select>
-                <select id="filterPurpose" class="search-select" onchange="applyAllFilters()"><option value="">✨ 분위기 전체</option><option value="노포">노포</option><option value="데이트">데이트</option><option value="단체회식">단체회식</option><option value="혼밥/혼술">혼밥/혼술</option><option value="무한리필">무한리필</option><option value="이색맛집">이색맛집</option><option value="뷰맛집">뷰맛집</option><option value="상견례">상견례</option><option value="야간영업">야간영업</option></select>
+                <select id="filterRegion" class="search-select" onchange="applyAllFilters()">
+                    <option value="">📍 지역 전체</option><option value="수성구">수성구</option><option value="중구">중구</option><option value="동구">동구</option><option value="서구">서구</option><option value="남구">남구</option><option value="북구">북구</option><option value="달서구">달서구</option><option value="달성군">달성군</option><option value="군위군">군위군</option><option value="칠곡군">칠곡군</option><option value="경산">경산</option><option value="청도">청도</option><option value="대구 밖">대구 밖</option>
+                </select>
+                <select id="filterCategory" class="search-select" onchange="applyAllFilters()">
+                    <option value="">🍜 업종 전체</option><option value="한식">한식</option><option value="중식">중식</option><option value="일식">일식</option><option value="양식">양식</option><option value="분식">분식</option><option value="고기/구이">고기/구이</option><option value="회/해산물">회/해산물</option><option value="아시안">아시안</option><option value="술집">술집</option><option value="카페/디저트">카페/디저트</option><option value="빵집">빵집</option><option value="패스트푸드">패스트푸드</option><option value="포장/배달">포장/배달</option>
+                </select>
+                <select id="filterPurpose" class="search-select" onchange="applyAllFilters()">
+                    <option value="">✨ 분위기 전체</option><option value="노포">노포</option><option value="데이트">데이트</option><option value="단체회식">단체회식</option><option value="혼밥/혼술">혼밥/혼술</option><option value="무한리필">무한리필</option><option value="이색맛집">이색맛집</option><option value="뷰맛집">뷰맛집</option><option value="상견례">상견례</option><option value="야간영업">야간영업</option>
+                </select>
             </div>
-            <div class="search-input-row" style="display:flex; align-items:center;">
+            <div class="search-input-row">
                 <span class="search-icon">🔍</span>
-                <input type="text" id="keyword" class="search-input" placeholder="예: 동성로 두바이" onchange="applyAllFilters()" style="flex:1;">
-                <button id="btnShowLikes" onclick="toggleLikeFilter()" style="background:white; border:1px solid #e74c3c; color:#e74c3c; border-radius:20px; padding:6px 12px; font-size:12px; font-weight:bold; cursor:pointer; margin-left:8px; white-space:nowrap; flex-shrink:0; box-shadow:0 1px 3px rgba(0,0,0,0.1);">🤍 찜만 보기</button>
+                <input type="text" id="keyword" class="search-input" placeholder="예: 동성로 두바이" onchange="applyAllFilters()">
+                <button id="btnRandom" class="random-btn" onclick="pickRandomShop()">🎲 오늘 뭐 먹지?</button>
             </div>
         </div>
     </div>
 
+    <!-- 이달의 핫플 배너 -->
+    <div id="hotplBanner" class="hotpl-banner">
+        <div class="hotpl-banner-header">
+            <span class="hotpl-banner-title">🔥 이달의 핫플</span>
+            <button class="hotpl-close" onclick="document.getElementById('hotplBanner').style.display='none'">✕</button>
+        </div>
+        <div class="hotpl-scroll" id="hotplScroll"></div>
+    </div>
+
     <div id="userStatusCard" style="position: absolute; top: 150px; right: 10px; z-index: 90; display:flex; justify-content: flex-end; width: auto;">
         <button id="btnLogin" onclick="googleLogin()" style="background:white; border:1px solid #ddd; padding:8px 12px; border-radius:20px; font-weight:bold; box-shadow:0 2px 5px rgba(0,0,0,0.1); cursor:pointer; display:flex; align-items:center; gap:5px; color:#444;">
-            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18"> 구글 로그인
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18"> 
+            구글 로그인
         </button>
-        <div id="myProfile" onclick="openProfileModal()" style="display:none; background:white; border:1px solid #3498db; padding:6px 12px; border-radius:20px; box-shadow:0 2px 5px rgba(0,0,0,0.1); align-items:center; gap:8px; cursor: pointer;">
+
+        <div id="myProfile" onclick="openProfileModal()" style="display:none; background:white; border:1px solid #3498db; padding:6px 12px; border-radius:20px; box-shadow:0 2px 5px rgba(0,0,0,0.1); align-items:center; gap:8px; cursor:pointer;">
             <span id="userLevelBadge" style="background:#3498db; color:white; font-size:11px; padding:2px 6px; border-radius:10px; font-weight:bold;">LV.1</span>
             <span id="userName" style="font-size:13px; font-weight:bold; color:#333;">홍길동</span>
+        </div>
+    </div>
+
+    <!-- 프로필 모달 -->
+    <div id="profileModal" class="modal-overlay" onclick="if(event.target===this) closeProfileModal()">
+        <div class="modal-box" style="max-width:340px; padding:0; overflow:hidden; position:relative;">
+            <button class="modal-close-x" onclick="closeProfileModal()">×</button>
+            <div class="profile-modal-header">
+                <img id="profilePhoto" src="" class="profile-photo" onerror="this.style.display='none'">
+                <div id="profileName" class="profile-name"></div>
+                <div id="profileLevel" class="profile-level-badge"></div>
+            </div>
+            <hr style="margin:0; border:none; border-top:1px solid #eee;">
+            <div style="padding: 16px;">
+                <div class="profile-uid-box">
+                    <span class="profile-uid-label">🔑 사장님 인증용 고유코드 (UID)</span>
+                    <div style="display:flex; gap:8px; align-items:center; margin-top:6px;">
+                        <input id="profileUid" type="text" readonly class="profile-uid-input">
+                        <button onclick="copyUID()" class="profile-uid-copy">복사</button>
+                    </div>
+                </div>
+                <div class="profile-exp-box">
+                    <div style="display:flex; justify-content:space-between; font-size:12px; color:#888; margin-bottom:5px;">
+                        <span>EXP</span><span id="profileExpText">0 / 50 EXP</span>
+                    </div>
+                    <div class="profile-exp-bar-bg">
+                        <div id="profileExpBar" class="profile-exp-bar" style="width:0%"></div>
+                    </div>
+                </div>
+                <div style="margin-top:16px;">
+                    <div style="font-size:13px; font-weight:bold; color:#e74c3c; margin-bottom:8px;">🚩 방문 인증 기록</div>
+                    <div id="profileVisitLog" style="font-size:12px; color:#888; text-align:center; padding:10px 0;">- 최근 방문 인증 내역이 표시됩니다 -</div>
+                </div>
+                <button onclick="googleLogout()" class="profile-logout-btn">로그아웃</button>
+            </div>
         </div>
     </div>
 
     <div id="faqPanel" class="faq-panel">
         <div class="faq-header"><h3>자주 묻는 질문</h3><button class="faq-close" onclick="toggleFaq()">✕</button></div>
         <div class="faq-body">
-            <div class="faq-item"><div class="faq-q">Q. '대구보물지도'는 무엇인가요?</div><div class="faq-a">대구경북 찐맛집 정보를 한눈에 볼 수 있는 서비스입니다.</div></div>
-            <div class="faq-item"><div class="faq-q">Q. 어떤 기준으로 선정되나요?</div><div class="faq-a">'대구경북 찐맛집 평가단'이 직접 검증하고 엄선한 로컬 찐맛집 & 핫플만 모았습니다.</div></div>
-            <div class="faq-item"><div class="faq-q">Q. 우리 가게도 등록하고 싶어요!</div><div class="faq-a">오픈채팅 [대구경북 찐맛집 소통방]에서 요청해주세요.</div></div>
+            <div class="faq-item"><div class="faq-q">Q. '대구보물지도'는 무엇인가요?</div><div class="faq-a">대구 찐맛집 정보를 한눈에 볼 수 있는 서비스입니다.</div></div>
+            <div class="faq-item"><div class="faq-q">Q. 어떤 기준으로 선정되나요?</div><div class="faq-a">'대구 찐맛집 평가단'이 직접 검증하고 엄선한 로컬 찐맛집 & 핫플만 모았습니다.</div></div>
+            <div class="faq-item"><div class="faq-q">Q. 우리 가게도 등록하고 싶어요!</div><div class="faq-a">오픈채팅 [대구 찐맛집 소통방]에서 요청해주세요.</div></div>
             <div class="faq-item">
                 <div class="faq-q">🏆 레벨은 어떻게 올리나요?</div>
                 <div class="faq-a">
-                    가게에 도착해서 <b>[📍 여기 왔어요! (GPS 인증)]</b> 버튼만 누르면 끝!<br>(방문 1회 = 경험치 10점 획득 🎁)
+                    가게에 도착해서 <b>[📍 여기 왔어요! (GPS 인증)]</b> 버튼만 누르면 끝!<br>
+                    (방문 1회 = 경험치 10점 획득 🎁)
+                    
                     <div class="level-box" style="margin-top:10px; background:#f8f9fa; padding:10px; border-radius:8px; border:1px solid #eee;">
                         <div class="lv-row"><span class="lv-badge lv1">LV.1</span> 가입 즉시 (배고픈 영혼)</div>
                         <div class="lv-row"><span class="lv-badge lv2">LV.2</span> 방문 5회 (서툰 미식가)</div> <div class="lv-row"><span class="lv-badge lv3">LV.3</span> 방문 10회 (대구의 아들)</div>
@@ -103,261 +149,184 @@
                 <button onclick="openGameModal()" class="panel-btn" style="background:#2c3e50;">🎮 오늘 뭐 먹지?</button>
                 <a href="https://litt.ly/dazzlepeople" target="_blank" class="panel-btn" style="background:#e1306c;">📱 SNS 구경가기</a>
             </div>
-            
-            <div style="padding: 20px 0;">
-                <button id="installBtn" class="panel-btn" style="display:none; background:#3498db; color:white; font-size:15px; box-shadow:0 4px 6px rgba(52, 152, 219, 0.3);">⬇️ 대구보물지도 앱 설치하기</button>
+        </div>
+
+        <div style="padding: 0 20px 10px 20px;">
+            <button id="installBtn" class="panel-btn" style="display:none; background:#3498db; color:white; font-size:15px; box-shadow:0 4px 6px rgba(52, 152, 219, 0.3);">
+                ⬇️ 대구보물지도 앱 설치하기
+            </button>
+        </div>
+
+        <div class="faq-footer">
+            <div class="company-box">
+                <strong>다즐피플 (대표: 윤성호)</strong><br>
+                사업자번호: 535-25-01793<br>
+                주소: 대구광역시 동구 송라로16길 42
             </div>
         </div>
-        <div class="faq-footer"><div class="company-box"><strong>다즐피플 (대표: 윤성호)</strong><br>사업자번호: 535-25-01793<br>주소: 대구광역시 동구 송라로16길 42</div></div>
+    </div>
+
+    <div id="selectModal" class="modal-overlay">
+        <div class="modal-box">
+            <button class="modal-close-x" onclick="closeSelectModal()">×</button>
+            <h3 class="modal-title" style="font-size:16px; margin-bottom:15px;">👇 매장을 선택해주세요</h3>
+            <div id="selectList" class="shop-select-list"></div>
+        </div>
     </div>
 
     <div id="gameModal" class="modal-overlay">
         <div class="modal-box" style="max-width:400px; padding:0;">
             <button class="modal-close-x" style="z-index:10; top:10px; right:10px;" onclick="closeGameModal()">×</button>
+            
             <div class="game-container" style="padding:25px;">
                 <div id="gameMain">
                     <div class="game-title">🍽️ 오늘 뭐 먹지?</div>
                     <div class="game-selection">
-                        <div class="game-card" onclick="startWorldCupGame()"><span class="game-icon">🏆</span><span class="game-name">음식 월드컵</span><span class="game-desc">토너먼트로<br>신중하게!</span></div>
-                        <div class="game-card" onclick="startRouletteGame()"><span class="game-icon">🎡</span><span class="game-name">랜덤 돌림판</span><span class="game-desc">운명에<br>맡겨요!</span></div>
+                        <div class="game-card" onclick="startWorldCupGame()">
+                            <span class="game-icon">🏆</span>
+                            <span class="game-name">음식 월드컵</span>
+                            <span class="game-desc">토너먼트로<br>신중하게!</span>
+                        </div>
+                        <div class="game-card" onclick="startRouletteGame()">
+                            <span class="game-icon">🎡</span>
+                            <span class="game-name">랜덤 돌림판</span>
+                            <span class="game-desc">운명에<br>맡겨요!</span>
+                        </div>
                     </div>
                 </div>
-                <div id="wcGame" class="wc-container"><div class="wc-round-badge" id="wcRoundBadge">16강</div><div class="wc-vs-box"><div class="wc-card" onclick="wcChoose(0)"><div id="wcImgLeft" class="wc-img"></div><div id="wcNameLeft" class="wc-name"></div></div><div style="font-weight:bold; color:#e74c3c; font-style:italic;">VS</div><div class="wc-card" onclick="wcChoose(1)"><div id="wcImgRight" class="wc-img"></div><div id="wcNameRight" class="wc-name"></div></div></div><button onclick="resetGame()" style="font-size:12px; color:#999; border:none; background:none; text-decoration:underline; cursor:pointer;">처음으로</button></div>
-                <div id="wcResult" class="hidden" style="text-align:center;"><div style="font-size:12px; font-weight:bold; color:#888; margin-bottom:10px;">👑 최후의 승자 👑</div><div id="wcWinnerImg" style="font-size:80px; margin-bottom:10px;"></div><div id="wcWinnerName" style="font-size:24px; font-weight:bold; color:#3498db; margin-bottom:20px;"></div><button onclick="resetGame()" class="spin-btn" style="background:#333;">처음으로 돌아가기</button></div>
-                <div id="rouletteGame" class="roulette-container"><div class="roulette-mode-btns"><button onclick="setRouletteMode('lunch')" id="btn-lunch" class="roulette-btn active">점심</button><button onclick="setRouletteMode('dinner')" id="btn-dinner" class="roulette-btn">저녁</button><button onclick="setRouletteMode('weekend')" id="btn-weekend" class="roulette-btn">주말</button><button onclick="setRouletteMode('custom')" id="btn-custom" class="roulette-btn" style="color:#3498db; border-color:#3498db;">내맘대로</button></div><div id="customInputArea" class="custom-input-box"><div class="custom-input-row"><input type="text" id="customItemInput" class="custom-input" placeholder="메뉴 입력" onkeypress="if(event.key==='Enter') addCustomItem()"><button onclick="addCustomItem()" class="custom-add-btn">추가</button></div><div id="customItemList" class="custom-list"></div></div><div class="roulette-canvas-box"><canvas id="rouletteCanvas" width="560" height="560" class="roulette-canvas"></canvas><div class="roulette-arrow">▼</div></div><button id="spinBtn" class="spin-btn" onclick="spinRoulette()">돌려 돌려! START</button><button onclick="resetGame()" style="margin-top:10px; font-size:12px; color:#999; border:none; background:none; text-decoration:underline; cursor:pointer;">처음으로</button></div>
+
+                <div id="wcGame" class="wc-container">
+                    <div class="wc-round-badge" id="wcRoundBadge">16강</div>
+                    <div class="wc-vs-box">
+                        <div class="wc-card" onclick="wcChoose(0)"><div id="wcImgLeft" class="wc-img"></div><div id="wcNameLeft" class="wc-name"></div></div>
+                        <div style="font-weight:bold; color:#e74c3c; font-style:italic;">VS</div>
+                        <div class="wc-card" onclick="wcChoose(1)"><div id="wcImgRight" class="wc-img"></div><div id="wcNameRight" class="wc-name"></div></div>
+                    </div>
+                    <button onclick="resetGame()" style="font-size:12px; color:#999; border:none; background:none; text-decoration:underline; cursor:pointer;">처음으로</button>
+                </div>
+
+                <div id="wcResult" class="hidden" style="text-align:center;">
+                    <div style="font-size:12px; font-weight:bold; color:#888; margin-bottom:10px;">👑 최후의 승자 👑</div>
+                    <div id="wcWinnerImg" style="font-size:80px; margin-bottom:10px;"></div>
+                    <div id="wcWinnerName" style="font-size:24px; font-weight:bold; color:#3498db; margin-bottom:20px;"></div>
+                    <button onclick="resetGame()" class="spin-btn" style="background:#333;">처음으로 돌아가기</button>
+                </div>
+
+                <div id="rouletteGame" class="roulette-container">
+                    <div class="roulette-mode-btns">
+                        <button onclick="setRouletteMode('lunch')" id="btn-lunch" class="roulette-btn active">점심</button>
+                        <button onclick="setRouletteMode('dinner')" id="btn-dinner" class="roulette-btn">저녁</button>
+                        <button onclick="setRouletteMode('weekend')" id="btn-weekend" class="roulette-btn">주말</button>
+                        <button onclick="setRouletteMode('custom')" id="btn-custom" class="roulette-btn" style="color:#3498db; border-color:#3498db;">내맘대로</button>
+                    </div>
+                    <div id="customInputArea" class="custom-input-box">
+                        <div class="custom-input-row">
+                            <input type="text" id="customItemInput" class="custom-input" placeholder="메뉴 입력" onkeypress="if(event.key==='Enter') addCustomItem()">
+                            <button onclick="addCustomItem()" class="custom-add-btn">추가</button>
+                        </div>
+                        <div id="customItemList" class="custom-list"></div>
+                    </div>
+                    <div class="roulette-canvas-box"><canvas id="rouletteCanvas" width="560" height="560" class="roulette-canvas"></canvas><div class="roulette-arrow">▼</div></div>
+                    <button id="spinBtn" class="spin-btn" onclick="spinRoulette()">돌려 돌려! START</button>
+                    <button onclick="resetGame()" style="margin-top:10px; font-size:12px; color:#999; border:none; background:none; text-decoration:underline; cursor:pointer;">처음으로</button>
+                </div>
             </div>
         </div>
     </div>
 
     <div id="infoPanel" class="info-panel">
-        <div class="panel-header" id="panelHeader"><button class="panel-close" onclick="closePanel()">✕</button></div>
+        <div class="panel-header" id="panelHeader">
+            <button class="panel-close" onclick="closePanel()">✕</button>
+        </div>
         <div class="panel-body">
-            <div><h2 class="panel-title" id="panelTitle"></h2><div class="panel-meta" id="panelMeta"></div></div>
-            <div class="rating-box"><div class="rating-top"><span class="total-star">⭐</span><div class="total-score" id="panelTotal">0.0</div></div><div class="review-text" id="panelReview"></div></div>
+            <div>
+                <h2 class="panel-title" id="panelTitle">가게 이름</h2>
+                <div class="panel-meta" id="panelMeta"></div>
+            </div>
+
+            <div class="rating-box">
+                <div class="rating-top">
+                    <span class="total-star">⭐</span>
+                    <div class="total-score" id="panelTotal">0.0</div>
+                </div>
+                <div class="review-text" id="panelReview">
+                    🗨️ "사장님의 소개글이 없습니다."
+                </div>
+            </div>
+
             <div class="info-row"><span class="info-label">메뉴</span> <span class="info-text" id="panelMenu"></span></div>
             <div class="info-row"><span class="info-label">주소</span> <span class="info-text" id="panelAddr"></span></div>
-            <div id="dynamicBtnArea"></div>
+            
             <a href="#" id="panelLink" target="_blank" class="panel-btn">네이버 플레이스 보기</a>
         </div>
     </div>
 
-<div id="profileModal" class="modal-overlay">
-        <div class="modal-box">
-            <button class="modal-close-x" onclick="document.getElementById('profileModal').classList.remove('show')">×</button>
-            
-            <div class="profile-header">
-                <img id="pImg" class="profile-img" src="">
-                <div id="pName" class="profile-name"></div>
-                <div id="pLevel" class="profile-level"></div>
-            </div>
-
-            <div style="background:#f8f9fa; border:1px solid #eee; border-radius:8px; padding:10px; margin-bottom:15px; text-align:center;">
-                <div style="font-size:11px; color:#888; margin-bottom:5px;">사장님 인증용 고유코드 (UID)</div>
-                <div style="display:flex; align-items:center; justify-content:center; gap:5px;">
-                    <span id="pUidStr" style="font-family:monospace; font-weight:bold; color:#333; background:white; padding:4px 8px; border:1px solid #ddd; border-radius:4px; font-size:12px;">loading...</span>
-                    <button onclick="copyMyUID()" style="background:#2c3e50; color:white; border:none; border-radius:4px; padding:5px 10px; font-size:11px; cursor:pointer; font-weight:bold;">복사</button>
-                </div>
-            </div>
-            <div style="font-size:12px; color:#555; display:flex; justify-content:space-between;"><span>EXP</span><span id="pExpText">0 / 100</span></div>
-            <div class="exp-bar-bg"><div id="pExpBar" class="exp-bar-fill"></div></div>
-            
-            <h4 style="margin:15px 0 10px 0; border-bottom:1px solid #eee; padding-bottom:5px;">🚩 방문 인증 기록</h4>
-            <div id="pHistory" class="history-list"></div>
-            
-            <button onclick="googleLogout()" style="width:100%; padding:10px; background:#f1f3f5; border:none; border-radius:8px; margin-top:15px; font-weight:bold; cursor:pointer;">로그아웃</button>
-        </div>
-    </div>
-
-    <div id="selectModal" class="modal-overlay"><div class="modal-box"><button class="modal-close-x" onclick="closeSelectModal()">×</button><h3 class="modal-title" style="font-size:16px; margin-bottom:15px;">👇 매장을 선택해주세요</h3><div id="selectList" class="shop-select-list"></div></div></div>
-    
     <div class="bottom-bar">
-        <div class="bottom-left"><button class="bar-btn btn-usage" onclick="toggleFaq()">📖 사용법</button><a href="https://www.dazzlepeople.com" target="_blank" class="footer-copyright" style="margin-left:10px;">© Dazzle People</a></div>
-        <div class="bottom-center"><button class="btn-location-mode" onclick="moveToCurrentLocation()"><div class="loc-icon-circle"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2c3e50" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg></div><span class="loc-text">내 주변</span></button></div>
-        <div class="bottom-right"></div>
+        <div class="bottom-left">
+            <button class="bar-btn btn-usage" onclick="toggleFaq()">📖 사용법</button>
+            <a href="https://www.dazzlepeople.com" target="_blank" class="footer-copyright" style="margin-left:10px;">© Dazzle People</a>
+        </div>
+        <div class="bottom-center">
+            <button class="btn-location-mode" onclick="moveToCurrentLocation()">
+                <div class="loc-icon-circle"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2c3e50" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg></div>
+                <span class="loc-text">내 주변</span>
+            </button>
+        </div>
+        <div class="bottom-right">
+        </div>
     </div>
 
     <div id="map"></div>
 
-    <script type="module">
-        import { db, initMap, createMarker, auth, googleProvider, signInWithPopup, signOut, onAuthStateChanged } from "./common.js?v=20240210_v2";
-        import { collection, getDocs, doc, getDoc, setDoc, updateDoc, increment, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-        var map = initMap();
-        let allShops = [];
-        let markerList = [];
-        const CACHE_KEY = "dazzle_shops_data_v16_final";
-
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('./sw.js?v=4.1').then(reg => {
-                reg.onupdatefound = () => {
-                    const installingWorker = reg.installing;
-                    installingWorker.onstatechange = () => {
-                        if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) { window.location.reload(); }
-                    };
-                };
-            }).catch(err => console.log('서비스 워커 실패', err));
+    <script>
+        function toggleFaq() { document.getElementById('faqPanel').classList.toggle('show'); }
+        function closeProfileModal() { document.getElementById('profileModal').classList.remove('show'); }
+        function copyUID() {
+            const uid = document.getElementById('profileUid').value;
+            navigator.clipboard.writeText(uid).then(() => alert('복사됐어요! 사장님께 전달해주세요 😊'));
         }
 
-        let deferredPrompt; 
-        const installBtn = document.getElementById('installBtn'); 
-        const ua = navigator.userAgent.toLowerCase(); 
-        const isIos = /iphone|ipad|ipod/.test(ua); 
-        const isInApp = ua.includes('kakao') || ua.includes('instagram') || ua.includes('naver');
-        if (isIos) { installBtn.style.display = 'block'; installBtn.addEventListener('click', () => alert("📲 아이폰 설치 방법\n\n1. 사파리 하단 '공유' 클릭\n2. '홈 화면에 추가' 선택")); } 
-        else if (isInApp) { installBtn.style.display = 'block'; installBtn.addEventListener('click', () => alert("🚫 '더보기' -> '다른 브라우저로 열기'를 이용해주세요.")); } 
-        else { window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; installBtn.style.display = 'block'; }); installBtn.addEventListener('click', (e) => { if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt.userChoice.then((r) => { if (r.outcome === 'accepted') installBtn.style.display = 'none'; deferredPrompt = null; }); } }); }
-
-        // 🔥 [중요] 모든 UI 제어 함수를 window 객체에 할당 (HTML onclick에서 인식되도록)
-        window.toggleFaq = () => { document.getElementById('faqPanel').classList.toggle('show'); };
-        window.closePanel = () => { document.getElementById('infoPanel').classList.remove('show'); };
-        window.closeSelectModal = () => { document.getElementById('selectModal').classList.remove('show'); };
-        window.openGameModal = () => { window.resetGame(); document.getElementById('gameModal').classList.add('show'); document.getElementById('faqPanel').classList.remove('show'); };
-        window.closeGameModal = () => { document.getElementById('gameModal').classList.remove('show'); };
-
-        // --- 게임 로직 (내부 변수 사용 -> window 함수로 연결) ---
-        const foodData={lunch:[{name:"김치찌개",img:"🥘"},{name:"돈까스",img:"🍛"},{name:"제육볶음",img:"🥩"},{name:"순대국밥",img:"🍚"},{name:"햄버거",img:"🍔"},{name:"짜장면",img:"🥢"},{name:"짬뽕",img:"🍜"},{name:"칼국수",img:"🍲"},{name:"김밥/라면",img:"🍙"},{name:"비빔밥",img:"🥗"},{name:"부대찌개",img:"🥘"},{name:"가정식백반",img:"🍱"},{name:"쌀국수",img:"🍜"},{name:"샌드위치",img:"🥪"},{name:"편의점",img:"🏪"},{name:"샐러드",img:"🥗"}],dinner:[{name:"삼겹살",img:"🥓"},{name:"치킨",img:"🍗"},{name:"곱창/대창",img:"🔥"},{name:"회/사시미",img:"🐟"},{name:"족발/보쌈",img:"🍖"},{name:"마라탕",img:"🌶️"},{name:"양꼬치",img:"🍡"},{name:"피자",img:"🍕"},{name:"닭발",img:"🔥"},{name:"찜닭",img:"🥘"},{name:"갈비",img:"🥩"},{name:"감자탕",img:"🥘"},{name:"이자카야",img:"🍶"},{name:"파스타",img:"🍝"},{name:"스테이크",img:"🥩"},{name:"오돌뼈",img:"🍖"}],weekend:[{name:"브런치",img:"🥞"},{name:"샤브샤브",img:"🍲"},{name:"배달치킨",img:"🍗"},{name:"피자파티",img:"🍕"},{name:"짜파게티",img:"🍜"},{name:"뷔페",img:"🍽️"},{name:"소고기",img:"🥩"},{name:"해물찜",img:"🐙"},{name:"집밥",img:"🍚"},{name:"편의점털기",img:"🍫"},{name:"타코/이색",img:"🌮"},{name:"냉장고파먹기",img:"🧊"},{name:"마라탕",img:"🌶️"},{name:"족발/보쌈",img:"🍖"},{name:"중국집",img:"🥢"},{name:"카페/디저트",img:"🍰"}]};
+        window.shareShop = function() {
+            const shop = window._currentShop;
+            if (!shop) return;
+            const text = `🗺️ ${shop.name}\n📍 ${shop.address || '대구 맛집'}\n\n대구핫플여기에서 발견한 찐맛집!`;
+            if (navigator.share) {
+                navigator.share({ title: `${shop.name} - 대구핫플여기`, text: text, url: 'https://www.heredaegu.com' }).catch(() => {});
+            } else {
+                navigator.clipboard.writeText(`${text}\nhttps://www.heredaegu.com`)
+                    .then(() => alert('복사됐어요! 카카오톡에 붙여넣기 해주세요 😊'))
+                    .catch(() => prompt('링크를 복사하세요:', 'https://www.heredaegu.com'));
+            }
+        };
+        function closePanel() { document.getElementById('infoPanel').classList.remove('show'); }
+        function closeSelectModal() { document.getElementById('selectModal').classList.remove('show'); }
+        function openGameModal() { resetGame(); document.getElementById('gameModal').classList.add('show'); document.getElementById('faqPanel').classList.remove('show'); }
+        function closeGameModal() { document.getElementById('gameModal').classList.remove('show'); }
+        
+        // 게임 데이터 및 로직
+        const foodData = {
+            lunch: [{name:"김치찌개",img:"🥘"},{name:"돈까스",img:"🍛"},{name:"제육볶음",img:"🥩"},{name:"순대국밥",img:"🍚"},{name:"햄버거",img:"🍔"},{name:"짜장면",img:"🥢"},{name:"짬뽕",img:"🍜"},{name:"칼국수",img:"🍲"},{name:"김밥/라면",img:"🍙"},{name:"비빔밥",img:"🥗"},{name:"부대찌개",img:"🥘"},{name:"가정식백반",img:"🍱"},{name:"쌀국수",img:"🍜"},{name:"샌드위치",img:"🥪"},{name:"편의점",img:"🏪"},{name:"샐러드",img:"🥗"}],
+            dinner: [{name:"삼겹살",img:"🥓"},{name:"치킨",img:"🍗"},{name:"곱창/대창",img:"🔥"},{name:"회/사시미",img:"🐟"},{name:"족발/보쌈",img:"🍖"},{name:"마라탕",img:"🌶️"},{name:"양꼬치",img:"🍡"},{name:"피자",img:"🍕"},{name:"닭발",img:"🔥"},{name:"찜닭",img:"🥘"},{name:"갈비",img:"🥩"},{name:"감자탕",img:"🥘"},{name:"이자카야",img:"🍶"},{name:"파스타",img:"🍝"},{name:"스테이크",img:"🥩"},{name:"오돌뼈",img:"🍖"}],
+            weekend: [{name:"브런치",img:"🥞"},{name:"샤브샤브",img:"🍲"},{name:"배달치킨",img:"🍗"},{name:"피자파티",img:"🍕"},{name:"짜파게티",img:"🍜"},{name:"뷔페",img:"🍽️"},{name:"소고기",img:"🥩"},{name:"해물찜",img:"🐙"},{name:"집밥",img:"🍚"},{name:"편의점털기",img:"🍫"},{name:"타코/이색",img:"🌮"},{name:"냉장고파먹기",img:"🧊"},{name:"마라탕",img:"🌶️"},{name:"족발/보쌈",img:"🍖"},{name:"중국집",img:"🥢"},{name:"카페/디저트",img:"🍰"}]
+        };
         let currentFoods=[],wcCurrentRound=[],wcNextRound=[],wcIndex=0,customFoods=["짜장면","짬뽕","탕수육"],rCanvas,rCtx,rCurrentRotation=0,isSpinning=false;
         const colors=["#FF9AA2","#FFB7B2","#FFDAC1","#E2F0CB","#B5EAD7","#C7CEEA","#93C5FD","#A78BFA","#FCA5A5","#FDBA74","#FDE047","#86EFAC"];
-
-        window.resetGame = () => { document.getElementById('gameMain').classList.remove('hidden'); document.getElementById('wcGame').style.display='none'; document.getElementById('wcResult').classList.add('hidden'); document.getElementById('rouletteGame').style.display='none'; };
-        window.startWorldCupGame = () => { document.getElementById('gameMain').classList.add('hidden'); document.getElementById('wcGame').style.display='flex'; const all=[...foodData.lunch,...foodData.dinner,...foodData.weekend]; const uniq=all.filter((v,i,a)=>a.findIndex(t=>(t.name===v.name))===i); uniq.sort(()=>Math.random()-0.5); wcCurrentRound=uniq.slice(0,16); wcNextRound=[]; wcIndex=0; updateWcMatch(); };
+        function resetGame(){ document.getElementById('gameMain').classList.remove('hidden'); document.getElementById('wcGame').style.display='none'; document.getElementById('wcResult').classList.add('hidden'); document.getElementById('rouletteGame').style.display='none'; }
+        function startWorldCupGame(){ document.getElementById('gameMain').classList.add('hidden'); document.getElementById('wcGame').style.display='flex'; const all=[...foodData.lunch,...foodData.dinner,...foodData.weekend]; const uniq=all.filter((v,i,a)=>a.findIndex(t=>(t.name===v.name))===i); uniq.sort(()=>Math.random()-0.5); wcCurrentRound=uniq.slice(0,16); wcNextRound=[]; wcIndex=0; updateWcMatch(); }
         function updateWcMatch(){ if(wcIndex>=wcCurrentRound.length/2){ wcCurrentRound=[...wcNextRound]; wcNextRound=[]; wcIndex=0; wcCurrentRound.sort(()=>Math.random()-0.5); } if(wcCurrentRound.length===1){ showWcWinner(wcCurrentRound[0]); return; } document.getElementById('wcRoundBadge').innerText=wcCurrentRound.length===2?"결승":wcCurrentRound.length+"강"; const l=wcCurrentRound[wcIndex*2],r=wcCurrentRound[wcIndex*2+1]; document.getElementById('wcImgLeft').innerText=l.img; document.getElementById('wcNameLeft').innerText=l.name; document.getElementById('wcImgRight').innerText=r.img; document.getElementById('wcNameRight').innerText=r.name; }
-        window.wcChoose = (s) => { wcNextRound.push(wcCurrentRound[wcIndex*2+s]); wcIndex++; updateWcMatch(); };
+        window.wcChoose=function(s){ wcNextRound.push(wcCurrentRound[wcIndex*2+s]); wcIndex++; updateWcMatch(); }
         function showWcWinner(w){ document.getElementById('wcGame').style.display='none'; document.getElementById('wcResult').classList.remove('hidden'); document.getElementById('wcWinnerImg').innerText=w.img; document.getElementById('wcWinnerName').innerText=w.name; fireConfetti(); }
-        window.startRouletteGame = () => { document.getElementById('gameMain').classList.add('hidden'); document.getElementById('rouletteGame').style.display='flex'; initRoulette(); window.setRouletteMode('lunch'); };
+        window.startRouletteGame=function(){ document.getElementById('gameMain').classList.add('hidden'); document.getElementById('rouletteGame').style.display='flex'; initRoulette(); setRouletteMode('lunch'); }
         function initRoulette(){ rCanvas=document.getElementById('rouletteCanvas'); rCtx=rCanvas.getContext('2d'); }
-        window.setRouletteMode = (m) => { if(isSpinning)return; document.querySelectorAll('.roulette-btn').forEach(b=>b.classList.remove('active')); document.getElementById(`btn-${m}`).classList.add('active'); if(m==='custom'){ currentFoods=[...customFoods]; document.getElementById('customInputArea').style.display='block'; renderCustomItems(); }else{ currentFoods=foodData[m].map(i=>i.name); document.getElementById('customInputArea').style.display='none'; } drawRoulette(); };
-        window.addCustomItem = () => { const v=document.getElementById('customItemInput').value.trim(); if(v){ customFoods.push(v); currentFoods=[...customFoods]; document.getElementById('customItemInput').value=''; renderCustomItems(); drawRoulette(); } };
-        window.removeCustomItem = (i) => { customFoods.splice(i,1); currentFoods=[...customFoods]; renderCustomItems(); drawRoulette(); };
+        window.setRouletteMode=function(m){ if(isSpinning)return; document.querySelectorAll('.roulette-btn').forEach(b=>b.classList.remove('active')); document.getElementById(`btn-${m}`).classList.add('active'); if(m==='custom'){ currentFoods=[...customFoods]; document.getElementById('customInputArea').style.display='block'; renderCustomItems(); }else{ currentFoods=foodData[m].map(i=>i.name); document.getElementById('customInputArea').style.display='none'; } drawRoulette(); }
+        window.addCustomItem=function(){ const v=document.getElementById('customItemInput').value.trim(); if(v){ customFoods.push(v); currentFoods=[...customFoods]; document.getElementById('customItemInput').value=''; renderCustomItems(); drawRoulette(); } }
+        window.removeCustomItem=function(i){ customFoods.splice(i,1); currentFoods=[...customFoods]; renderCustomItems(); drawRoulette(); }
         function renderCustomItems(){ document.getElementById('customItemList').innerHTML=customFoods.map((t,i)=>`<span class="custom-tag">${t} <span class="custom-tag-del" onclick="removeCustomItem(${i})">×</span></span>`).join(''); }
         function drawRoulette(){ if(!rCanvas)return; const n=currentFoods.length; if(n===0){ rCtx.clearRect(0,0,rCanvas.width,rCanvas.height); return; } const arc=(2*Math.PI)/n,dpr=window.devicePixelRatio||1,rect=rCanvas.getBoundingClientRect(); rCanvas.width=rect.width*dpr; rCanvas.height=rect.height*dpr; rCtx.scale(dpr,dpr); const r=rect.width/2; rCtx.clearRect(0,0,rect.width,rect.height); for(let i=0;i<n;i++){ const a=i*arc-Math.PI/2; rCtx.beginPath(); rCtx.moveTo(r,r); rCtx.arc(r,r,r,a,a+arc); rCtx.fillStyle=colors[i%colors.length]; rCtx.fill(); rCtx.stroke(); rCtx.save(); rCtx.translate(r,r); rCtx.rotate(a+arc/2); rCtx.textAlign="right"; rCtx.fillStyle="#333"; const fs=Math.max(12,Math.min(24,200/n)); rCtx.font=`bold ${fs}px 'Noto Sans KR'`; rCtx.fillText(currentFoods[i],r-20,5); rCtx.restore(); } }
-        window.spinRoulette = () => { if(isSpinning)return; if(currentFoods.length<2){ alert("메뉴 2개 이상 필요!"); return; } isSpinning=true; document.getElementById('spinBtn').innerText="...DoRoRo..."; const r=Math.floor(Math.random()*360); rCurrentRotation+=(360*5+r); rCanvas.style.transition="transform 4s cubic-bezier(0.25,0.1,0.25,1)"; rCanvas.style.transform=`rotate(${rCurrentRotation}deg)`; setTimeout(()=>{ isSpinning=false; document.getElementById('spinBtn').innerText="돌려 돌려! START"; fireConfetti(); },4000); };
+        window.spinRoulette=function(){ if(isSpinning)return; if(currentFoods.length<2){ alert("메뉴 2개 이상 필요!"); return; } isSpinning=true; document.getElementById('spinBtn').innerText="...DoRoRo..."; const r=Math.floor(Math.random()*360); rCurrentRotation+=(360*5+r); rCanvas.style.transition="transform 4s cubic-bezier(0.25,0.1,0.25,1)"; rCanvas.style.transform=`rotate(${rCurrentRotation}deg)`; setTimeout(()=>{ isSpinning=false; document.getElementById('spinBtn').innerText="돌려 돌려! START"; fireConfetti(); },4000); }
         function fireConfetti(){ const c=['#f00','#0f0','#00f','#ff0','#0ff']; for(let i=0;i<50;i++){ const d=document.createElement('div'); d.className='confetti'; d.style.left=Math.random()*100+'vw'; d.style.top='-10px'; d.style.backgroundColor=c[Math.floor(Math.random()*c.length)]; d.style.animationDuration=(Math.random()*2+2)+'s'; document.body.appendChild(d); setTimeout(()=>d.remove(),4000); } }
 
-        // --- 초기화 ---
-        async function initApp() { await initTheme(); await loadShopsData(); }
-
-        async function initTheme() {
-            const select = document.getElementById('mainThemeSelect');
-            select.innerHTML = ''; 
-            let firstTheme = null;
-            try {
-                const docRef = doc(db, "meta", "themes");
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) {
-                    let list = docSnap.data().list || [];
-                    list.sort(); 
-                    list.forEach((t, index) => {
-                        const opt = document.createElement('option'); opt.value = t; opt.innerText = `🚩 ${t}`; select.appendChild(opt);
-                        if (index === 0) firstTheme = t;
-                    });
-                }
-                const allOpt = document.createElement('option'); allOpt.value = "ALL"; allOpt.innerText = "💎 전체 맛집 보기"; select.appendChild(allOpt); 
-                if (firstTheme) select.value = firstTheme; else select.value = "ALL";
-            } catch(e) { console.error("테마 로딩 실패", e); }
-        }
-
-        async function loadShopsData() {
-            const cachedData = localStorage.getItem(CACHE_KEY);
-            const cachedTime = localStorage.getItem(CACHE_KEY + "_time");
-            const now = new Date().getTime();
-            let isCacheUsed = false;
-            if (cachedData && cachedTime && (now - cachedTime < 30 * 60 * 1000)) {
-                try {
-                    const parsed = JSON.parse(cachedData);
-                    if (Array.isArray(parsed) && parsed.length > 0) {
-                        allShops = parsed;
-                        checkAndRender();
-                        document.getElementById('loadingOverlay').classList.add('fade-out');
-                        isCacheUsed = true;
-                    }
-                } catch (err) { }
-            }
-            if (!isCacheUsed && db) {
-                try {
-                    const snapshot = await getDocs(collection(db, "shops"));
-                    allShops = [];
-                    snapshot.forEach((doc) => allShops.push({ id: doc.id, ...doc.data() }));
-                    localStorage.setItem(CACHE_KEY, JSON.stringify(allShops));
-                    localStorage.setItem(CACHE_KEY + "_time", now);
-                    document.getElementById('loadingOverlay').classList.add('fade-out');
-                    checkAndRender();
-                } catch (e) { console.error(e); }
-            }
-        }
-
-        function checkAndRender() { 
-            if (!map) return; 
-            const bounds = map.getBounds();
-            if (!bounds || !(bounds instanceof naver.maps.LatLngBounds)) { setTimeout(checkAndRender, 100); return; }
-            updateVisibleMarkers(); 
-        }
-
-        function filterShops(shops) {
-            var theme = $('#mainThemeSelect').val();
-            if (!theme) return []; 
-            var region = $('#filterRegion').val();
-            var category = $('#filterCategory').val();
-            var purpose = $('#filterPurpose').val();
-            var keywordInput = $('#keyword').val() || "";
-            var keywords = keywordInput.toLowerCase().trim().split(/\s+/).filter(t => t.length > 0);
-            const user = auth.currentUser;
-            return shops.filter(shop => {
-                if (isLikeFilterOn) { if (!user || !shop.likedBy || !shop.likedBy.includes(user.uid)) return false; }
-                if (theme === 'ALL') {
-                    let fullInfo = "";
-                    if (shop.category) fullInfo += (Array.isArray(shop.category) ? shop.category.join(" ") : shop.category);
-                    if (shop.purpose) fullInfo += (Array.isArray(shop.purpose) ? shop.purpose.join(" ") : shop.purpose);
-                    if (shop.name) fullInfo += shop.name;
-                    if (fullInfo.includes("주차장")) return false;
-                } else {
-                    if (!shop.themes || !Array.isArray(shop.themes) || !shop.themes.includes(theme)) return false;
-                }
-                var matchRegion = (region === "") || (shop.region === region);
-                var shopCategories = Array.isArray(shop.category) ? shop.category : [shop.category];
-                var matchCategory = (category === "") || shopCategories.includes(category);
-                var shopPurposes = Array.isArray(shop.purpose) ? shop.purpose : [shop.purpose];
-                var matchPurpose = (purpose === "") || shopPurposes.includes(purpose);
-                var catString = shopCategories.join(" ") || "";
-                var searchableText = (shop.name + " " + (shop.menu || "") + " " + (shop.area || "") + " " + (shop.address || "") + " " + catString).toLowerCase();
-                var matchKeyword = true;
-                if (keywords.length > 0) { matchKeyword = keywords.every(term => searchableText.includes(term)); }
-                return matchRegion && matchCategory && matchPurpose && matchKeyword;
-            });
-        }
-
-        function updateVisibleMarkers() {
-            if (!map) return;
-            const bounds = map.getBounds();
-            if (!bounds) { setTimeout(updateVisibleMarkers, 100); return; }
-            const filtered = filterShops(allShops);
-            renderMarkers(filtered);
-        }
-
-        function renderMarkers(shops) {
-            markerList.forEach(m => m.setMap(null)); markerList = [];
-            const groups = {};
-            shops.forEach(shop => {
-                const key = parseFloat(shop.lat).toFixed(5) + "," + parseFloat(shop.lng).toFixed(5);
-                if(!groups[key]) groups[key] = [];
-                groups[key].push(shop);
-            });
-            for(const key in groups) {
-                groups[key].sort((a, b) => {
-                    const pA = a.priority || 0; const pB = b.priority || 0;
-                    if (pA !== pB) return pB - pA;
-                    const hotA = a.isHot ? 1 : 0; const hotB = b.isHot ? 1 : 0;
-                    if (hotA !== hotB) return hotB - hotA;
-                    return 0;
-                });
-                const marker = createMarker(map, groups[key], function(clickedList) {
-                    if (clickedList.length === 1) window.showPanel(clickedList[0]);
-                    else window.showSelectModal(clickedList);
-                });
-                if(marker) markerList.push(marker);
-            }
-        }
-
+        // 상세 정보 패널 표시
         window.showPanel = function(shop) {
             document.getElementById('panelTitle').innerText = shop.name;
             const score = shop.totalScore || "0.0";
@@ -376,19 +345,7 @@
             else { header.style.backgroundImage = 'none'; header.style.backgroundColor = '#ddd'; }
             let parkingBadge = '';
             if (shop.parking) { parkingBadge = `<div class="parking-badge">${shop.parking}</div>`; }
-            const user = auth.currentUser;
-            const likedList = shop.likedBy || [];
-            const isLiked = user && likedList.includes(user.uid);
-            const heartIcon = isLiked ? "❤️" : "🤍";
-            const likeCount = likedList.length;
-            const heartHtml = `<div class="like-btn-wrapper"><button id="heartBtn" class="heart-btn ${isLiked?'active':''}" onclick="toggleLike('${shop.id}')">${heartIcon}</button><span id="likeCountSpan" class="like-count">${likeCount}</span></div>`;
-            header.innerHTML = `<button class="panel-close" onclick="closePanel()">✕</button>${parkingBadge}${heartHtml}`;
-            const dynamicBtnArea = document.getElementById('dynamicBtnArea');
-            dynamicBtnArea.innerHTML = `<button class="panel-btn" style="background:#e74c3c; margin-bottom:5px;" onclick="verifyVisitByGPS(${shop.lat}, ${shop.lng}, '${shop.name}')">📍 <b>여기 왔어요! (GPS 인증)</b></button>`;
-            if (user && shop.ownerId && shop.ownerId === user.uid) {
-                // 수정 버튼을 누르면 관리자 페이지 이동이 아니라, 현재 페이지에서 모달을 엽니다.
-                dynamicBtnArea.innerHTML += `<button class="panel-btn" style="background:#2c3e50; margin-bottom:5px;" onclick="openOwnerEdit('${shop.id}')">🔧 내 가게 정보 수정하기</button>`;
-            }
+            header.innerHTML = `<button class="panel-close" onclick="closePanel()">✕</button>${parkingBadge}`;
             const btnLink = document.getElementById('panelLink');
             if (shop.link) { btnLink.href = shop.link; btnLink.style.display = 'block'; btnLink.innerText = '네이버 플레이스 보기'; } 
             else { btnLink.href = '#'; btnLink.style.display = 'none'; }
@@ -396,351 +353,600 @@
             document.getElementById('selectModal').classList.remove('show');
             document.getElementById('infoPanel').classList.add('show');
         }
-
-        window.toggleLike = async function(shopId) {
-            const user = auth.currentUser;
-            if(!user) return alert("로그인이 필요한 기능입니다. 😅");
-            const heartBtn = document.getElementById('heartBtn');
-            const countSpan = document.getElementById('likeCountSpan');
-            const shopRef = doc(db, "shops", shopId);
-            const isLiked = heartBtn.innerText === "❤️";
-            if(isLiked) { heartBtn.innerText = "🤍"; heartBtn.classList.remove('active'); countSpan.innerText = parseInt(countSpan.innerText) - 1; } 
-            else { heartBtn.innerText = "❤️"; heartBtn.classList.add('active'); countSpan.innerText = parseInt(countSpan.innerText) + 1; }
-            try {
-                if(isLiked) await updateDoc(shopRef, { likedBy: arrayRemove(user.uid) });
-                else await updateDoc(shopRef, { likedBy: arrayUnion(user.uid) });
-                const target = allShops.find(s => s.id === shopId);
-                if(target) {
-                    if(!target.likedBy) target.likedBy = [];
-                    if(isLiked) target.likedBy = target.likedBy.filter(uid => uid !== user.uid);
-                    else target.likedBy.push(user.uid);
-                }
-            } catch(e) { console.error(e); heartBtn.innerText = isLiked ? "❤️" : "🤍"; }
-        }
-
-        // [수정됨] GPS 인증 함수 (오차범위 50m로 변경)
-        window.verifyVisitByGPS = function(shopLat, shopLng, shopName) {
-            const user = auth.currentUser;
-            if(!user) return alert("로그인 후 인증 가능합니다.");
-            
-            const btn = event.target; 
-            const originalText = btn.innerHTML;
-            const userRef = doc(db, "users", user.uid);
-
-            getDoc(userRef).then(snap => {
-                if(snap.exists()) {
-                    const data = snap.data();
-                    const last = data.lastCheckIn ? data.lastCheckIn.toMillis() : 0;
-                    
-                    // ⏰ 쿨타임 체크 (60분 = 1시간)
-                    if ((new Date().getTime() - last) / (1000 * 60) < 60) {
-                        const remain = 60 - Math.floor((new Date().getTime() - last) / (1000 * 60));
-                        return alert(`⏳ 인증 쿨타임 중입니다.\n(약 ${remain}분 뒤에 다시 시도해주세요)`);
-                    }
-
-                    if(!navigator.geolocation) return alert("GPS 권한이 필요합니다.");
-                    
-                    btn.innerText = "📡 위치 확인 중..."; 
-                    btn.disabled = true;
-
-                    navigator.geolocation.getCurrentPosition(async (pos) => {
-                        // 거리 계산
-                        const dist = getDistanceFromLatLonInKm(pos.coords.latitude, pos.coords.longitude, shopLat, shopLng);
-                        
-                        // 📏 오차 범위: 50m 이내 (0.05km)
-                        // 기존 100 -> 50으로 변경됨
-                        if(dist < 50) {
-                            await updateDoc(userRef, { exp: increment(10), lastCheckIn: new Date() });
-                            alert(`🎉 인증 성공! 경험치 +10 획득!\n(${shopName} 방문 완료)`); 
-                            location.reload();
-                        } else {
-                            alert(`📍 매장 근처가 아닙니다.\n(현재 거리: 약 ${Math.round(dist)}m)`); 
-                            btn.innerHTML = originalText; 
-                            btn.disabled = false;
-                        }
-                    }, () => { 
-                        alert("위치 정보를 가져올 수 없습니다.\nGPS가 켜져 있는지 확인해주세요."); 
-                        btn.innerHTML = originalText; 
-                        btn.disabled = false; 
-                    }, {
-                        enableHighAccuracy: true, // 정확도 우선 모드
-                        timeout: 10000,
-                        maximumAge: 0
-                    });
-                }
-            });
-        }
-        function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
-            var R=6371; var dLat=deg2rad(lat2-lat1); var dLon=deg2rad(lon2-lon1);
-            var a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(deg2rad(lat1))*Math.cos(deg2rad(lat2))*Math.sin(dLon/2)*Math.sin(dLon/2);
-            var c=2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)); return R*c*1000;
-        }
-        function deg2rad(deg) { return deg*(Math.PI/180); }
-
-        // index.html 파일 내부의 openProfileModal 함수를 이걸로 덮어쓰세요
-
-        window.openProfileModal = async function() {
-            const user = auth.currentUser;
-            
-            // 1. 비로그인 상태면 경고
-            if(!user) { alert("로그인이 필요한 기능입니다."); return; }
-            
-            // 2. 로딩 중 표시 (혹시 모를 대기 시간 고려)
-            document.getElementById('pUidStr').innerText = "불러오는 중...";
-
-            const userRef = doc(db, "users", user.uid);
-            let snap = await getDoc(userRef);
-            
-            // 🔥 [핵심] DB에 정보가 없으면(신규유저) 즉시 생성 (오지은님 문제 해결)
-            if(!snap.exists()) {
-                const newUserData = {
-                    email: user.email,
-                    name: user.displayName || "이름 없음",
-                    photoURL: user.photoURL || "https://k.kakaocdn.net/dn/dpk9l1/btqmGhA2lKL/Oz0wT60Xr7KD8M8nxawb10/img_640x640.jpg", // 기본 이미지
-                    exp: 0,
-                    createdAt: new Date(),
-                    lastCheckIn: null
-                };
-                await setDoc(userRef, newUserData);
-                snap = await getDoc(userRef); // 다시 불러오기
-            }
-
-            if(snap.exists()) {
-                const data = snap.data();
-                
-                // 3. 사진이 없으면 기본 이미지로 대체 (깨짐 방지)
-                const finalImg = user.photoURL ? user.photoURL : "https://k.kakaocdn.net/dn/dpk9l1/btqmGhA2lKL/Oz0wT60Xr7KD8M8nxawb10/img_640x640.jpg";
-                document.getElementById('pImg').src = finalImg;
-                
-                document.getElementById('pName').innerText = user.displayName || "여행자";
-                
-                // 🔥 [중요] UID 확실하게 박아넣기
-                document.getElementById('pUidStr').innerText = user.uid;
-
-                // 4. 레벨 계산 로직
-                const exp = data.exp || 0;
-                let lv = 1, rankName = "배고픈 영혼", nextLevelExp = 50, prevLevelExp = 0;
-                
-                if (exp >= 300) { lv = 4; rankName = "맛의 지배자"; prevLevelExp = 300; nextLevelExp = 300; } 
-                else if (exp >= 100) { lv = 3; rankName = "대구의 아들"; prevLevelExp = 100; nextLevelExp = 300; } 
-                else if (exp >= 50) { lv = 2; rankName = "서툰 미식가"; prevLevelExp = 50; nextLevelExp = 100; }
-                
-                document.getElementById('pLevel').innerText = `LV.${lv} ${rankName}`;
-                
-                // 5. 경험치 바 채우기
-                if (lv === 4) {
-                    document.getElementById('pExpText').innerText = "MAX (전설 달성)";
-                    document.getElementById('pExpBar').style.width = '100%';
-                } else {
-                    const currentProgress = exp - prevLevelExp;
-                    const levelRange = nextLevelExp - prevLevelExp;
-                    const percent = (currentProgress / levelRange) * 100;
-                    document.getElementById('pExpText').innerText = `${currentProgress} / ${levelRange} EXP`;
-                    document.getElementById('pExpBar').style.width = `${percent}%`;
-                }
-
-                // 방문 기록 표시
-                document.getElementById('pHistory').innerHTML = '<div style="text-align:center; padding:10px; color:#aaa; font-size:12px;">- 최근 방문 인증 내역이 표시됩니다 -</div>';
-                
-                document.getElementById('profileModal').classList.add('show');
-            }
-        }
-
-        // 🔥 [추가됨] UID 복사 함수
-        window.copyMyUID = function() {
-            const uidText = document.getElementById('pUidStr').innerText;
-            if(!uidText || uidText === 'loading...') return;
-
-            navigator.clipboard.writeText(uidText).then(() => {
-                alert("✅ UID가 복사되었습니다!\n\n보물지도 관리자에게 전달해주세요.");
-            }).catch(err => {
-                prompt("Ctrl+C를 눌러 복사하세요:", uidText);
-            });
-        }
-
-        window.showSelectModal = function(list) {
-            const container = document.getElementById('selectList'); container.innerHTML = '';
-            list.forEach(shop => {
-                const div = document.createElement('div'); div.className = 'shop-select-item';
-                div.innerText = shop.name;
-                div.onclick = () => { window.closeSelectModal(); window.showPanel(shop); };
-                container.appendChild(div);
-            });
-            document.getElementById('selectModal').classList.add('show');
-        }
-        // 전역 변수로 마커 선언 (스크립트 상단 변수 선언부에 추가하거나, 이 함수 바로 위에 두셔도 됩니다)
-        let myLocationMarker = null; 
-
-        window.moveToCurrentLocation = function() {
-            if (!navigator.geolocation) { alert("위치 정보를 사용할 수 없습니다."); return; }
-            
-            const btnText = document.querySelector('.loc-text');
-            if(btnText) btnText.innerText = "탐색중..";
-            
-            navigator.geolocation.getCurrentPosition((position) => {
-                const lat = position.coords.latitude;
-                const lng = position.coords.longitude;
-                const newPos = new naver.maps.LatLng(lat, lng);
-
-                map.setCenter(newPos); 
-                map.setZoom(17); // 줌을 좀 더 당겨줍니다
-
-                // 기존 마커가 있다면 지우고 새로 생성
-                if(myLocationMarker) {
-                    myLocationMarker.setMap(null);
-                }
-
-                // 파란색 점 마커 디자인
-                myLocationMarker = new naver.maps.Marker({
-                    position: newPos,
-                    map: map,
-                    icon: {
-                        content: `
-                            <div style="
-                                width: 20px; height: 20px; background: #4285F4; 
-                                border: 3px solid white; border-radius: 50%; 
-                                box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-                                animation: pulse 2s infinite;">
-                            </div>`,
-                        anchor: new naver.maps.Point(13, 13)
-                    },
-                    zIndex: 20000
-                });
-
-                setTimeout(() => { updateVisibleMarkers(); if(btnText) btnText.innerText = "내 주변"; }, 300);
-
-            }, () => { alert("위치 정보를 가져올 수 없습니다."); if(btnText) btnText.innerText = "내 주변"; });
-        }
-        
-        let isLikeFilterOn = false;
-        window.toggleLikeFilter = function() {
-            isLikeFilterOn = !isLikeFilterOn;
-            const btn = document.getElementById('btnShowLikes');
-            btn.style.background = isLikeFilterOn ? "#e74c3c" : "white";
-            btn.style.color = isLikeFilterOn ? "white" : "#e74c3c";
-            updateVisibleMarkers();
-        }
-        
-        window.applyAllFilters = function() { updateVisibleMarkers(); };
-        window.googleLogin = function() { signInWithPopup(auth, googleProvider).then((r)=>{alert("로그인 성공"); location.reload();}); }
-        window.googleLogout = function() { if(confirm("로그아웃 하시겠습니까?")) { signOut(auth).then(() => { location.reload(); }); } };
-        
-        onAuthStateChanged(auth, (user) => {
-            if(user) { document.getElementById('btnLogin').style.display='none'; document.getElementById('myProfile').style.display='flex'; document.getElementById('userName').innerText = user.displayName; }
-        });
-
-        initApp(); 
-
-        // --- [추가됨] 점주님 전용 수정 로직 ---
-        window.openOwnerEdit = function(shopId) {
-            const shop = allShops.find(s => s.id === shopId);
-            if(!shop) return alert("가게 정보를 찾을 수 없습니다.");
-
-            // 데이터 채워넣기
-            $('#ownerShopId').val(shop.id);
-            $('#ownerShopName').val(shop.name);
-            $('#ownerShopMenu').val(shop.menu);
-            $('#ownerShopDesc').val(shop.desc);
-            $('#ownerShopLink').val(shop.link);
-            $('#ownerShopParking').val(shop.parking || "");
-            
-            // 모달 열기
-            document.getElementById('ownerModal').classList.add('show');
-            document.getElementById('infoPanel').classList.remove('show'); // 기존 패널 닫기
-        }
-
-        window.closeOwnerModal = function() {
-            document.getElementById('ownerModal').classList.remove('show');
-        }
-
-        // [수정됨] 점주 수정 저장 함수 (캐시 삭제 기능 추가)
-       // [최종 수정] 점주 수정 저장 함수 (안내 메시지 강화 버전)
-        window.saveOwnerShop = async function() {
-            const id = $('#ownerShopId').val();
-            const user = auth.currentUser;
-            
-            if(!user) return alert("로그인이 풀렸습니다. 다시 로그인해주세요.");
-            
-            const newData = {
-                menu: $('#ownerShopMenu').val(),
-                desc: $('#ownerShopDesc').val(),
-                link: $('#ownerShopLink').val(),
-                parking: $('#ownerShopParking').val(),
-                updatedAt: new Date()
-            };
-
-            // 유효성 검사
-            const targetShop = allShops.find(s => s.id === id);
-            if(!targetShop) return alert("가게 정보를 찾을 수 없습니다.");
-            if(targetShop.ownerId !== user.uid) return alert("본인의 가게만 수정할 수 있습니다.");
-
-            try {
-                // 1. 서버에 저장
-                const shopRef = doc(db, "shops", id);
-                await updateDoc(shopRef, newData);
-                
-                // 2. (선택사항) 캐시 삭제 시도 - 일단 지워는 줍니다 (운 좋으면 바로 반영됨)
-                localStorage.removeItem(CACHE_KEY);
-                localStorage.removeItem(CACHE_KEY + "_time");
-
-                // 3. 안내 메시지 띄우기 (사장님 요청사항 반영)
-                alert("✅ 수정 요청이 완료되었습니다!\n\n서버 반영 및 데이터 갱신을 위해\n최대 10~30분 정도 소요될 수 있습니다.\n\n(잠시 후 다시 확인해주세요)");
-                
-                // 4. 페이지 새로고침
-                location.reload();
-
-            } catch(e) {
-                console.error(e);
-                alert("저장 중 오류가 발생했습니다: " + e.message);
-            }
-        }
     </script>
-    <div id="ownerModal" class="modal-overlay">
-        <div class="modal-box">
-            <button class="modal-close-x" onclick="closeOwnerModal()">×</button>
-            <h3 class="modal-title" style="border-bottom:2px solid #333; padding-bottom:10px; margin-bottom:15px;">🔧 내 가게 정보 수정</h3>
+
+    <script type="module">
+        import { db, initMap, createMarker, auth, googleProvider, signInWithPopup, signOut, onAuthStateChanged } from "./common.js";
+    // 🔥 [수정됨] arrayUnion, arrayRemove 추가됨 (좋아요 기능용)
+    import { collection, getDocs, doc, getDoc, setDoc, updateDoc, increment, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    var map = initMap();
+    let allShops = [];
+    let markerList = [];
+    const CACHE_KEY = "dazzle_shops_data_v1"; 
+
+    // 리사이즈 디바운싱
+    let resizeTimer;
+    window.addEventListener('resize', function() {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => { map.refresh(); updateVisibleMarkers(); }, 100);
+    });
+
+    // 랜드마크
+    const LANDMARKS = {
+        "팔공산": { lat: 35.9899, lng: 128.6961 }, "갓바위": { lat: 35.9758, lng: 128.7694 },
+        "반월당": { lat: 35.8644, lng: 128.5933 }, "동성로": { lat: 35.8710, lng: 128.5960 },
+        "수성못": { lat: 35.8280, lng: 128.6170 }, "이월드": { lat: 35.8530, lng: 128.5630 },
+        "83타워": { lat: 35.8530, lng: 128.5630 }, "두류공원": { lat: 35.8475, lng: 128.5583 },
+        "동대구역": { lat: 35.8770, lng: 128.6285 }, "대구역": { lat: 35.8764, lng: 128.5960 },
+        "서문시장": { lat: 35.8690, lng: 128.5815 }, "김광석거리": { lat: 35.8603, lng: 128.6080 },
+        "앞산": { lat: 35.8335, lng: 128.5810 }, "강정보": { lat: 35.8430, lng: 128.4690 },
+        "디아크": { lat: 35.8430, lng: 128.4690 }, "삼성라이온즈파크": { lat: 35.8411, lng: 128.6817 },
+        "라팍": { lat: 35.8411, lng: 128.6817 }, "대구공항": { lat: 35.8970, lng: 128.6440 },
+        "경북대": { lat: 35.8906, lng: 128.6121 }, "계명대": { lat: 35.8535, lng: 128.4860 },
+        "영남대": { lat: 35.8306, lng: 128.7562 }
+    };
+
+    naver.maps.Event.addListener(map, "click", function() {
+        closePanel(); document.getElementById('faqPanel').classList.remove('show');
+    });
+
+    async function loadShopsData() {
+        const cachedData = localStorage.getItem(CACHE_KEY);
+        const cachedTime = localStorage.getItem(CACHE_KEY + "_time");
+        const now = new Date().getTime();
+        let isCacheUsed = false;
+        if (cachedData && cachedTime) {
+            try {
+                const parsed = JSON.parse(cachedData);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    allShops = parsed;
+                    checkAndRender("캐시로드");
+                    document.getElementById('loadingOverlay').classList.add('fade-out');
+                    isCacheUsed = true;
+                }
+            } catch (err) { console.warn("캐시 파싱 오류"); }
+        }
+        if(db) {
+            try {
+                const snapshot = await getDocs(collection(db, "shops"));
+                const newShops = [];
+                snapshot.forEach((doc) => newShops.push({ id: doc.id, ...doc.data() }));
+                if (newShops.length > 0 && JSON.stringify(newShops) !== cachedData) {
+                    allShops = newShops;
+                    localStorage.setItem(CACHE_KEY, JSON.stringify(allShops));
+                    localStorage.setItem(CACHE_KEY + "_time", now);
+                    checkAndRender("DB업데이트");
+                    renderFeaturedBanner(allShops);
+                    if(!isCacheUsed) document.getElementById('loadingOverlay').classList.add('fade-out');
+                }
+            } catch (e) {
+                console.error("DB 로딩 실패:", e);
+                if(!isCacheUsed) document.getElementById('loadingOverlay').classList.add('fade-out');
+            }
+        }
+    }
+
+    async function initTheme() {
+        const select = document.getElementById('mainThemeSelect');
+        try {
+            const docRef = doc(db, "meta", "themes");
+            const docSnap = await getDoc(docRef);
+            select.innerHTML = ''; 
+            if (docSnap.exists()) {
+                let list = docSnap.data().list || [];
+                list.sort();
+                list.forEach((t) => {
+                    const opt = document.createElement('option'); opt.value = t; opt.innerText = `🚩 ${t}`; select.appendChild(opt);
+                });
+                if (list.length > 0) select.value = list[0];
+            }
+            const allOpt = document.createElement('option'); allOpt.value = "ALL"; allOpt.innerText = "📂 전체 맛집 보기"; select.appendChild(allOpt); 
+            if (select.options.length === 1) select.value = "ALL";
+        } catch(e) {
+            if(select.options.length === 0) {
+                const allOpt = document.createElement('option'); allOpt.value = "ALL"; allOpt.innerText = "📂 전체 맛집 보기"; select.appendChild(allOpt); select.value = "ALL";
+            }
+        } finally {
+            checkAndRender("테마로딩완료");
+        }
+    }
+
+    function checkAndRender(source) {
+        if (!allShops || allShops.length === 0) return;
+        const bounds = map.getBounds();
+        if (!bounds || !(bounds instanceof naver.maps.LatLngBounds)) {
+            setTimeout(() => checkAndRender(source), 200); return;
+        }
+        updateVisibleMarkers();
+    }
+
+    function updateVisibleMarkers() {
+        if (!map) return;
+        const bounds = map.getBounds();
+        if (!bounds) return; 
+        const filtered = filterShops(allShops);
+        const visibleShops = filtered.filter(shop => {
+            if(!shop.lat || !shop.lng) return false;
+            const pos = new naver.maps.LatLng(shop.lat, shop.lng);
+            return bounds.hasLatLng(pos);
+        });
+        renderMarkers(visibleShops);
+    }
+
+    function renderMarkers(shops) {
+        markerList.forEach(m => m.setMap(null));
+        markerList = [];
+        const groups = {};
+        shops.forEach(shop => {
+            const key = parseFloat(shop.lat).toFixed(5) + "," + parseFloat(shop.lng).toFixed(5);
+            if(!groups[key]) groups[key] = [];
+            groups[key].push(shop);
+        });
+        for(const key in groups) {
+            groups[key].sort((a, b) => {
+                // 1순위: 좋아요 많은 순, 2순위: 최신순
+                const likeA = (a.likedBy || []).length;
+                const likeB = (b.likedBy || []).length;
+                if(likeB !== likeA) return likeB - likeA;
+                return (b.updatedAt?.seconds || 0) - (a.updatedAt?.seconds || 0);
+            });
+            const marker = createMarker(map, groups[key], function(clickedList) {
+                if (clickedList.length === 1) showPanel(clickedList[0]);
+                else showSelectModal(clickedList);
+            });
+            if(marker) markerList.push(marker);
+        }
+    }
+
+    function filterShops(shops) {
+        var theme = $('#mainThemeSelect').val();
+        var region = $('#filterRegion').val();
+        var category = $('#filterCategory').val();
+        var purpose = $('#filterPurpose').val();
+        var keywordInput = $('#keyword').val() || "";
+        var keywords = keywordInput.toLowerCase().trim().split(/\s+/).filter(t => t.length > 0);
+        return shops.filter(shop => {
+            var matchTheme = true;
+            if (theme && theme !== 'ALL') { if (!shop.themes || !shop.themes.includes(theme)) matchTheme = false; }
+            var matchRegion = (region === "") || (shop.region === region);
+            var shopCategories = Array.isArray(shop.category) ? shop.category : [shop.category];
+            var matchCategory = (category === "") || shopCategories.includes(category);
+            var shopPurposes = Array.isArray(shop.purpose) ? shop.purpose : [shop.purpose];
+            var matchPurpose = (purpose === "") || shopPurposes.includes(purpose);
+            var searchableText = (shop.name + " " + (shop.menu || "") + " " + (shop.area || "") + " " + (shop.address || "") + " " + shopCategories.join(" ")).toLowerCase();
+            var matchKeyword = true;
+            if (keywords.length > 0) { matchKeyword = keywords.every(term => searchableText.includes(term)); }
+            return matchTheme && matchRegion && matchCategory && matchPurpose && matchKeyword;
+        });
+    }
+
+    $('#keyword').on('keydown', function(e) {
+        if (e.key === 'Enter') {
+            const rawVal = $(this).val().trim();
+            const query = rawVal.replace(/\s+/g, '').toLowerCase();
+            if(!query) return;
+            for (const key in LANDMARKS) {
+                if (query.includes(key)) {
+                    const coords = LANDMARKS[key];
+                    map.setCenter(new naver.maps.LatLng(coords.lat, coords.lng));
+                    map.setZoom(15);
+                    $(this).blur(); return;
+                }
+            }
+            const targetShop = allShops.find(shop => {
+                if(!shop.name) return false;
+                return shop.name.replace(/\s+/g, '').toLowerCase().includes(query);
+            });
+            if (targetShop && targetShop.lat && targetShop.lng) {
+                map.morph(new naver.maps.LatLng(targetShop.lat, targetShop.lng), 17);
+                $(this).blur(); return;
+            }
+            searchAddressToCoordinate(rawVal);
+            $(this).blur();
+        }
+    });
+
+    function searchAddressToCoordinate(query, isRetry = false) {
+        naver.maps.Service.geocode({ query: query }, function(status, response) {
+            if (status === naver.maps.Service.Status.OK) {
+                if (response.v2 && response.v2.addresses.length > 0) {
+                    const item = response.v2.addresses[0]; map.setCenter(new naver.maps.Point(item.x, item.y)); map.setZoom(16);
+                } else if (response.result && response.result.items.length > 0) {
+                    const item = response.result.items[0]; map.setCenter(new naver.maps.Point(item.point.x, item.point.y)); map.setZoom(16);
+                } else {
+                    if(!isRetry && query.indexOf('대구') === -1) searchAddressToCoordinate("대구 " + query, true);
+                    else alert("주소를 찾을 수 없습니다.");
+                }
+            } else {
+                if(!isRetry && query.indexOf('대구') === -1) searchAddressToCoordinate("대구 " + query, true);
+                else alert("검색 실패");
+            }
+        });
+    }
+
+    let idleTimer;
+    naver.maps.Event.addListener(map, 'idle', function() { clearTimeout(idleTimer); idleTimer = setTimeout(updateVisibleMarkers, 150); });
+    window.applyAllFilters = function() { updateVisibleMarkers(); };
+
+    // 🎲 오늘 뭐 먹지? 랜덤 추천
+    window.pickRandomShop = function() {
+        const filtered = filterShops(allShops);
+        if (filtered.length === 0) return alert('조건에 맞는 가게가 없어요! 필터를 바꿔보세요 😅');
+        const btn = document.getElementById('btnRandom');
+        btn.classList.add('spinning');
+        setTimeout(() => {
+            btn.classList.remove('spinning');
+            const shop = filtered[Math.floor(Math.random() * filtered.length)];
+            showPanel(shop);
+            if (shop.lat && shop.lng) map.morph(new naver.maps.LatLng(shop.lat, shop.lng), 16);
+        }, 500);
+    };
+
+    // 🔥 이달의 핫플 배너
+    window._featuredShops = [];
+    function renderFeaturedBanner(shops) {
+        const hotShops = shops.filter(s => s.isHot === true).slice(0, 10);
+        if (hotShops.length === 0) return;
+        window._featuredShops = hotShops;
+        const scroll = document.getElementById('hotplScroll');
+        scroll.innerHTML = hotShops.map((s, i) => `
+            <div class="hotpl-card" onclick="(function(){var s=window._featuredShops[${i}]; showPanel(s); if(s.lat&&s.lng) map && map.morph(new naver.maps.LatLng(s.lat,s.lng),16);})()">
+                <div class="hotpl-card-img" style="${s.imageUrl ? `background-image:url('${s.imageUrl}')` : 'background:#f39c12'}">
+                    ${!s.imageUrl ? '🔥' : ''}
+                </div>
+                <div class="hotpl-card-name">${s.name}</div>
+                <div class="hotpl-card-cat">${Array.isArray(s.category) ? s.category[0] : (s.category || '')}</div>
+            </div>
+        `).join('');
+        document.getElementById('hotplBanner').style.display = 'block';
+    }
+
+    initTheme(); loadShopsData();
+
+    window.moveToCurrentLocation = function() {
+        map.refresh(); 
+        if (!navigator.geolocation) { alert("위치 정보를 사용할 수 없습니다."); return; }
+        const btnText = document.querySelector('.loc-text');
+        if(btnText) btnText.innerText = "탐색중..";
+        navigator.geolocation.getCurrentPosition((position) => {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            const loc = new naver.maps.LatLng(lat, lng);
+            map.setCenter(loc); map.setZoom(16);
+            setTimeout(() => { updateVisibleMarkers(); if(btnText) btnText.innerText = "내 주변"; }, 300);
+            if (window.myLocationMarker) window.myLocationMarker.setMap(null);
+            window.myLocationMarker = new naver.maps.Marker({
+                position: loc, map: map,
+                icon: { content: '<div style="width:16px;height:16px;background:#3498db;border:2px solid white;border-radius:50%;box-shadow:0 0 5px rgba(0,0,0,0.5);"></div>', anchor: new naver.maps.Point(8, 8) }
+            });
+        }, () => { alert("위치 정보를 가져올 수 없습니다."); if(btnText) btnText.innerText = "내 주변"; });
+    }
+
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js?v=2.7') 
+            .then(reg => {
+                reg.onupdatefound = () => {
+                    const installingWorker = reg.installing;
+                    installingWorker.onstatechange = () => {
+                        if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) { window.location.reload(); }
+                    };
+                };
+            }).catch(err => console.log('서비스 워커 실패', err));
+    }
+
+    let deferredPrompt; const installBtn = document.getElementById('installBtn'); const ua = navigator.userAgent.toLowerCase(); const isIos = /iphone|ipad|ipod/.test(ua); const isInApp = ua.includes('kakao') || ua.includes('instagram') || ua.includes('naver');
+    if (isIos) { installBtn.style.display = 'block'; installBtn.addEventListener('click', () => alert("📲 아이폰 설치 방법\n\n1. 사파리(Safari) 브라우저 하단 '공유' 버튼 클릭\n2. 메뉴를 내려서 '홈 화면에 추가' 선택\n3. 바탕화면에 '대구핫플여기' 앱 생성!")); } 
+    else if (isInApp) { installBtn.style.display = 'block'; installBtn.addEventListener('click', () => alert("🚫 현재 브라우저에서는 다운로드가 제한됩니다.\n\n우측 하단(또는 상단)의 [더보기 ···] 버튼을 누르고\n[다른 브라우저로 열기]를 선택해주세요!")); }
+    else { window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; installBtn.style.display = 'block'; }); installBtn.addEventListener('click', (e) => { if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt.userChoice.then((choiceResult) => { if (choiceResult.outcome === 'accepted') installBtn.style.display = 'none'; deferredPrompt = null; }); } else alert("이미 설치됨"); }); }
+
+    // ==========================================
+    // 인증 시스템
+    // ==========================================
+    window.googleLogin = function() {
+        const ua = navigator.userAgent.toLowerCase();
+        const isInApp = ua.includes('kakao') || ua.includes('instagram') || ua.includes('naver');
+        if (isInApp) {
+            alert("🔒 보안 정책상 카카오톡/인스타그램 브라우저에서는 \n구글 로그인이 제한됩니다.\n\n[해결 방법]\n우측 하단(또는 상단)의 [더보기 ···] 버튼을 누르고\n[다른 브라우저로 열기]를 선택해주세요! 🌍");
+            return;
+        }
+        signInWithPopup(auth, googleProvider).then((result) => { checkUserDB(result.user); }).catch((error) => { alert("로그인 실패: " + error.message); });
+    };
+
+    window.googleLogout = function() {
+        if(confirm("로그아웃 하시겠습니까?")) { signOut(auth).then(() => { alert("로그아웃 되었습니다."); location.reload(); }); }
+    };
+
+    const LEVEL_NAMES = ['배고픈 영혼', '서툰 미식가', '대구의 아들', '맛의 지배자'];
+    const LEVEL_EXP   = [0, 50, 100, 300];
+
+    window.openProfileModal = async function() {
+        const user = auth.currentUser;
+        if (!user) return;
+
+        // 기본 정보 세팅
+        const photoEl = document.getElementById('profilePhoto');
+        photoEl.style.display = '';
+        photoEl.src = user.photoURL || '';
+        document.getElementById('profileName').innerText = user.displayName;
+        document.getElementById('profileUid').value = user.uid;
+        document.getElementById('profileModal').classList.add('show');
+
+        // Firestore에서 유저 데이터 가져오기
+        const userRef = doc(db, "users", user.uid);
+        const snap = await getDoc(userRef);
+        if (!snap.exists()) return;
+
+        const data = snap.data();
+        const exp = data.exp || 0;
+
+        // 레벨 계산
+        let lv = 1;
+        for (let i = LEVEL_EXP.length - 1; i >= 0; i--) {
+            if (exp >= LEVEL_EXP[i]) { lv = i + 1; break; }
+        }
+        const lvName = LEVEL_NAMES[lv - 1] || '';
+        document.getElementById('profileLevel').innerText = `LV.${lv} ${lvName}`;
+
+        // EXP 바
+        const currentLvExp = LEVEL_EXP[lv - 1] || 0;
+        const nextLvExp    = LEVEL_EXP[lv] || LEVEL_EXP[LEVEL_EXP.length - 1];
+        const progress = lv >= 4 ? 100 : Math.min(100, Math.round((exp - currentLvExp) / (nextLvExp - currentLvExp) * 100));
+        const expText = lv >= 4 ? `${exp} EXP (만렙!)` : `${exp - currentLvExp} / ${nextLvExp - currentLvExp} EXP`;
+        document.getElementById('profileExpText').innerText = expText;
+        document.getElementById('profileExpBar').style.width = progress + '%';
+
+        // 방문 기록
+        const log = data.visitLog || [];
+        const logEl = document.getElementById('profileVisitLog');
+        if (log.length === 0) {
+            logEl.innerHTML = '<span style="color:#bbb;">- 최근 방문 인증 내역이 표시됩니다 -</span>';
+        } else {
+            logEl.innerHTML = log.slice().reverse().slice(0, 5).map(v =>
+                `<div style="padding:5px 0; border-bottom:1px solid #f0f0f0; display:flex; justify-content:space-between;">
+                    <span>📍 ${v.shopName}</span>
+                    <span style="color:#aaa;">${new Date(v.time?.seconds ? v.time.seconds * 1000 : v.time).toLocaleDateString('ko-KR')}</span>
+                </div>`
+            ).join('');
+        }
+    };
+
+    onAuthStateChanged(auth, async (user) => {
+        const btnLogin = document.getElementById('btnLogin');
+        const myProfile = document.getElementById('myProfile');
+        if (user) {
+            btnLogin.style.display = 'none'; myProfile.style.display = 'flex';
+            document.getElementById('userName').innerText = user.displayName;
+            const userRef = doc(db, "users", user.uid);
+            const userSnap = await getDoc(userRef);
+            if(userSnap.exists()) {
+                const data = userSnap.data();
+                const lv = calculateLevel(data.exp || 0);
+                document.getElementById('userLevelBadge').innerText = `LV.${lv}`;
+            }
+        } else {
+            btnLogin.style.display = 'flex'; myProfile.style.display = 'none';
+        }
+    });
+
+    async function checkUserDB(user) {
+        const userRef = doc(db, "users", user.uid);
+        const userSnap = await getDoc(userRef);
+        if (!userSnap.exists()) {
+            await setDoc(userRef, { name: user.displayName, email: user.email, photo: user.photoURL, exp: 0, level: 1, createdAt: new Date() });
+            alert(`반갑습니다, ${user.displayName}님! \n대구 보물지도 레벨 1부터 시작합니다! 🚩`);
+        } else { alert(`어서오세요, ${user.displayName}님!`); }
+    }
+
+    function calculateLevel(exp) { return 1 + Math.floor(exp / 10); }
+
+    function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
+        var R = 6371; var dLat = deg2rad(lat2-lat1); var dLon = deg2rad(lon2-lon1); 
+        var a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat1)) * Math.sin(dLon/2) * Math.sin(dLon/2); 
+        var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+        return R * c * 1000;
+    }
+    function deg2rad(deg) { return deg * (Math.PI/180); }
+
+    // ==========================================
+    // 🚀 [최종 수정] GPS + 쿨타임(1시간) 인증 시스템
+    // ==========================================
+    window.verifyVisitByGPS = function(shopLat, shopLng, shopName) {
+        const user = auth.currentUser;
+        if(!user) return alert("로그인 후 인증할 수 있습니다! 😅");
+
+        const btn = event.target; 
+        const originalText = btn.innerHTML;
+        
+        // 1. 쿨타임 체크 (DB 확인)
+        const userRef = doc(db, "users", user.uid);
+        
+        // DB에서 유저 정보를 먼저 가져옴
+        getDoc(userRef).then((docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                const lastTime = data.lastCheckIn ? data.lastCheckIn.toMillis() : 0;
+                const now = new Date().getTime();
+                const diffMinutes = (now - lastTime) / (1000 * 60); // 분 단위 차이
+
+                // 🔥 [핵심] 60분 이내면 인증 막기
+                if (diffMinutes < 60) {
+                    const waitTime = 60 - Math.floor(diffMinutes);
+                    alert(`⛔ 아직 배부르지 않으세요?\n\n맛집 인증은 1시간에 한 번만 가능합니다!\n(남은 시간: 약 ${waitTime}분)`);
+                    return; // 함수 종료
+                }
+                
+                // 쿨타임 지났으면 GPS 확인 시작
+                startGPSCheck(userRef, shopLat, shopLng, shopName, btn, originalText);
+            }
+        });
+    }
+
+    function startGPSCheck(userRef, shopLat, shopLng, shopName, btn, originalText) {
+        if (!navigator.geolocation) return alert("위치 정보를 사용할 수 없습니다. GPS를 켜주세요!");
+        
+        btn.innerHTML = "📡 위치 확인 중..."; 
+        btn.disabled = true;
+
+        navigator.geolocation.getCurrentPosition(async (pos) => {
+            const myLat = pos.coords.latitude; 
+            const myLng = pos.coords.longitude;
             
-            <input type="hidden" id="ownerShopId">
+            // 거리 계산
+            const distance = getDistanceFromLatLonInKm(myLat, myLng, shopLat, shopLng);
             
-            <div class="form-group">
-                <label class="form-label">업체명 (수정불가)</label>
-                <input type="text" id="ownerShopName" class="form-input" disabled style="background:#eee; color:#888;">
-            </div>
+            // 💡 [범위] 100m 이내 (조금 더 타이트하게)
+            if(distance < 100) {
+                // 성공! (경험치 +10 & 마지막 인증 시간 갱신)
+                await updateDoc(userRef, { 
+                    exp: increment(10),
+                    lastCheckIn: new Date() // 🔥 현재 시간을 기록 (다음 쿨타임 기준)
+                });
+                
+                alert(`🎉 인증 성공!\n[${shopName}] 방문 확인되었습니다.\n경험치 +10 획득! (맛있게 드세요!)`);
+                location.reload(); 
+            } else {
+                alert(`😢 매장 근처가 아닙니다.\n(현재 거리: 약 ${Math.round(distance)}m)\n\n매장 안에 들어오셔서 다시 시도해주세요!`);
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }, (err) => {
+            alert("위치 정보를 가져올 수 없습니다. 권한을 허용해주세요!");
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }, { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 });
+    }
 
-            <div class="form-group">
-                <label class="form-label">대표 메뉴</label>
-                <input type="text" id="ownerShopMenu" class="form-input" placeholder="예: 삼겹살, 김치찌개">
-            </div>
+    // ==========================================
+    // 🔥 [추가됨] 좋아요(하트) 기능 로직
+    // ==========================================
+    window.toggleLike = async function(shopId) {
+        const user = auth.currentUser;
+        if(!user) return alert("로그인이 필요한 기능입니다. 😅");
 
-            <div class="form-group">
-                <label class="form-label">🚗 주차 정보</label>
-                <select id="ownerShopParking" class="form-input">
-                    <option value="">선택하세요</option>
-                    <option value="❌ 주차 불가">❌ 주차 불가</option>
-                    <option value="⚠️ 주차 협소">⚠️ 주차 협소</option>
-                    <option value="🅿️ 주차장 완비">🅿️ 주차장 완비</option>
-                    <option value="🅿️ 주변주차가능">🅿️ 주변주차가능</option>
-                </select>
-            </div>
+        const heartBtn = document.getElementById('heartBtn');
+        const countSpan = document.getElementById('likeCountSpan');
+        const shopRef = doc(db, "shops", shopId);
+        
+        // 현재 상태 확인 (클래스로 판단)
+        const isLiked = heartBtn.innerText === "❤️";
+        
+        // 1. UI 즉시 반영 (Optimistic Update)
+        if(isLiked) {
+            heartBtn.innerText = "🤍";
+            heartBtn.classList.remove('active');
+            countSpan.innerText = parseInt(countSpan.innerText) - 1;
+        } else {
+            heartBtn.innerText = "❤️";
+            heartBtn.classList.add('active');
+            countSpan.innerText = parseInt(countSpan.innerText) + 1;
+        }
 
-            <div class="form-group">
-                <label class="form-label">🗨️ 사장님 한마디 (가게 설명)</label>
-                <textarea id="ownerShopDesc" class="form-textarea" rows="3" placeholder="손님들에게 전하고 싶은 말을 적어주세요."></textarea>
-            </div>
+        // 2. DB 업데이트 (백그라운드)
+        try {
+            if(isLiked) {
+                // 좋아요 취소: 내 ID 제거, 카운트 -1
+                await updateDoc(shopRef, {
+                    likedBy: arrayRemove(user.uid)
+                });
+            } else {
+                // 좋아요 추가: 내 ID 추가, 카운트 +1
+                await updateDoc(shopRef, {
+                    likedBy: arrayUnion(user.uid)
+                });
+            }
+            // 전체 데이터 최신화 (메모리만)
+            const target = allShops.find(s => s.id === shopId);
+            if(target) {
+                if(!target.likedBy) target.likedBy = [];
+                if(isLiked) target.likedBy = target.likedBy.filter(uid => uid !== user.uid);
+                else target.likedBy.push(user.uid);
+            }
 
-            <div class="form-group">
-                <label class="form-label">네이버 플레이스 링크</label>
-                <input type="text" id="ownerShopLink" class="form-input" placeholder="https://naver.me/...">
-            </div>
+        } catch(e) {
+            console.error(e);
+            alert("오류가 발생했습니다.");
+            // 실패 시 UI 원상복구
+            heartBtn.innerText = isLiked ? "❤️" : "🤍";
+        }
+    }
 
-            <p style="font-size:11px; color:#e74c3c; margin-top:10px;">
-                ※ 위치, 사진, 카테고리 수정이 필요하면 '대구경북 찐맛집 소통방'에 문의해주세요.
-            </p>
+    // ==========================================
+    // 📌 [수정됨] 상세 패널 열기 (하트 + GPS)
+    // ==========================================
+    window.showPanel = function(shop) {
+        window._currentShop = shop;
+        document.getElementById('panelTitle').innerText = shop.name;
+        const score = shop.totalScore || "0.0";
+        document.getElementById('panelTotal').innerHTML = `${score}<span class="total-max"> / 5.0</span>`;
+        document.getElementById('panelMenu').innerText = shop.menu || "-";
+        document.getElementById('panelAddr').innerText = shop.address || "-";
+        const reviewHtml = shop.desc ? `🗨️ "${shop.desc}"` : `🗨️ "아직 등록된 한줄평이 없어요."`;
+        document.getElementById('panelReview').innerHTML = reviewHtml;
+        
+        const metaBox = document.getElementById('panelMeta');
+        let metaHtml = '';
+        if(shop.category) (Array.isArray(shop.category) ? shop.category : [shop.category]).forEach(c => metaHtml += `<span class="panel-tag">#${c}</span>`);
+        if(shop.purpose) (Array.isArray(shop.purpose) ? shop.purpose : [shop.purpose]).forEach(p => metaHtml += `<span class="panel-tag">#${p}</span>`);
+        metaBox.innerHTML = metaHtml;
 
-            <div class="modal-btns">
-                <button class="btn-save" onclick="saveOwnerShop()" style="width:100%; background:#2c3e50;">수정 완료</button>
+        const header = document.getElementById('panelHeader');
+        if (shop.imageUrl) { header.style.backgroundImage = `url('${shop.imageUrl}')`; } 
+        else { header.style.backgroundImage = 'none'; header.style.backgroundColor = '#ddd'; }
+        
+        let parkingBadge = '';
+        if (shop.parking) { parkingBadge = `<div class="parking-badge">${shop.parking}</div>`; }
+        
+        // 🔥 [추가됨] 하트 버튼 생성
+        const user = auth.currentUser;
+        const likedList = shop.likedBy || [];
+        const isLiked = user && likedList.includes(user.uid);
+        const heartIcon = isLiked ? "❤️" : "🤍";
+        const likeCount = likedList.length;
+
+        const heartHtml = `
+            <div class="like-btn-wrapper">
+                <button id="heartBtn" class="heart-btn ${isLiked?'active':''}" onclick="toggleLike('${shop.id}')">${heartIcon}</button>
+                <span id="likeCountSpan" class="like-count">${likeCount}</span>
             </div>
-        </div>
-    </div>
+        `;
+
+        // 헤더에 닫기 버튼 + 주차 뱃지 + 하트 버튼 다 넣기
+        header.innerHTML = `<button class="panel-close" onclick="closePanel()">✕</button>${parkingBadge}${heartHtml}`;
+
+        // GPS 버튼 & 네이버 링크
+        const btnLink = document.getElementById('panelLink');
+        if (shop.link) { btnLink.href = shop.link; btnLink.style.display = 'block'; btnLink.innerText = '네이버 플레이스 보기'; } 
+        else { btnLink.href = '#'; btnLink.style.display = 'none'; }
+
+        const existingGpsBtn = document.getElementById('gpsAuthBtn');
+        if(existingGpsBtn) existingGpsBtn.remove();
+        const existingShareBtn = document.getElementById('shareBtn');
+        if(existingShareBtn) existingShareBtn.remove();
+
+        const gpsBtn = document.createElement('button');
+        gpsBtn.id = 'gpsAuthBtn';
+        gpsBtn.className = 'panel-btn';
+        gpsBtn.style.background = '#e74c3c';
+        gpsBtn.style.marginTop = '10px';
+        gpsBtn.innerHTML = '📍 <b>여기 왔어요! (GPS 인증)</b>';
+        gpsBtn.onclick = function() { verifyVisitByGPS(shop.lat, shop.lng, shop.name); };
+        
+        const shareBtn = document.createElement('button');
+        shareBtn.id = 'shareBtn';
+        shareBtn.className = 'panel-btn';
+        shareBtn.style.cssText = 'background:#fee500; color:#3c1e1e; margin-top:10px; font-weight:bold;';
+        shareBtn.innerHTML = '💬 카카오톡 공유하기';
+        shareBtn.onclick = shareShop;
+
+        const panelBody = document.querySelector('.panel-body');
+        panelBody.insertBefore(gpsBtn, btnLink);
+        panelBody.insertBefore(shareBtn, btnLink);
+
+        document.getElementById('faqPanel').classList.remove('show');
+        document.getElementById('selectModal').classList.remove('show');
+        document.getElementById('infoPanel').classList.add('show');
+    }
+    </script>
 </body>
 </html>
