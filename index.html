@@ -649,7 +649,7 @@
     }
 
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js?v=2.8')
+        navigator.serviceWorker.register('./sw.js?v=2.9')
             .then(reg => {
                 reg.onupdatefound = () => {
                     const installingWorker = reg.installing;
