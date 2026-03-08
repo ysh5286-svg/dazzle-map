@@ -65,6 +65,15 @@ body, html { margin: 0; padding: 0; height: 100%; font-family: 'Noto Sans KR', s
 .info-label { font-weight: bold; color: #2c3e50; min-width: 60px; flex-shrink: 0; }
 .info-text { flex: 1; word-break: break-all; }
 .panel-btn { display: block; width: 100%; padding: 10px; text-align: center; background: #03c75a; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px; margin-top: 5px; }
+.panel-btn-row { display: flex; gap: 6px; margin-top: 6px; }
+.panel-btn-sm {
+    flex: 1; padding: 8px 4px; text-align: center; border: none; border-radius: 8px;
+    font-weight: bold; font-size: 12px; cursor: pointer; text-decoration: none;
+    display: flex; align-items: center; justify-content: center; white-space: nowrap;
+}
+.btn-naver { background: #03c75a; color: #fff; }
+.btn-gps { background: #e74c3c; color: #fff; }
+.btn-share { background: #fee500; color: #3c1e1e; }
 
 /* 5. 하단바 (푸터) */
 .footer-copyright { 
@@ -116,6 +125,7 @@ body, html { margin: 0; padding: 0; height: 100%; font-family: 'Noto Sans KR', s
     box-shadow: 0 2px 5px rgba(0,0,0,0.1); transition: 0.2s; white-space: nowrap;
 }
 .btn-usage { background: #fdf5e6; color: #5e4034; }
+.btn-home { background: #f0f4ff; color: #2c3e50; }
 .bar-btn:active { transform: scale(0.95); }
 
 /* 6. 왼쪽 FAQ 패널 & 사업자 정보 */
@@ -601,3 +611,129 @@ body, html { margin: 0; padding: 0; height: 100%; font-family: 'Noto Sans KR', s
     color: #666; font-size: 14px; cursor: pointer; font-weight: bold;
 }
 .profile-logout-btn:hover { background: #e9ecef; }
+
+/* ========================================
+   랜딩 카테고리 선택 화면
+   ======================================== */
+#landingScreen {
+    position: fixed; top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: #ffffff;
+    z-index: 9998;
+    display: none;
+    align-items: center; justify-content: center;
+    transition: opacity 0.4s ease, transform 0.4s ease;
+}
+#landingScreen.fade-out {
+    opacity: 0; transform: translateY(-20px);
+    pointer-events: none;
+}
+.landing-inner {
+    text-align: center; padding: 20px;
+    width: 100%; max-width: 360px;
+}
+.landing-logo { margin-bottom: 36px; }
+.landing-emoji { font-size: 52px; display: block; margin-bottom: 8px; }
+.landing-title {
+    font-size: 26px; font-weight: 900; color: #c0392b;
+    margin: 0; letter-spacing: -1px;
+}
+.landing-subtitle {
+    font-size: 15px; color: #999; margin: 4px 0 0; font-weight: 500;
+}
+.landing-categories {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 12px; margin-bottom: 24px;
+}
+.landing-cat-btn {
+    background: #fff; border: 2px solid #eee;
+    border-radius: 14px; padding: 18px 10px;
+    font-size: 15px; font-weight: 700; color: #333;
+    cursor: pointer; transition: all 0.15s ease;
+    font-family: 'Noto Sans KR', sans-serif;
+}
+.landing-cat-btn:active {
+    transform: scale(0.95);
+    border-color: #c0392b; background: #fff5f5;
+}
+.landing-cat-btn:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+}
+.landing-skip-btn {
+    background: none; border: none; color: #bbb;
+    font-size: 14px; cursor: pointer; padding: 10px;
+    font-family: 'Noto Sans KR', sans-serif;
+}
+.landing-skip-btn:active { color: #888; }
+
+/* ========================================
+   🔥 핫플 플로팅 버튼 + 패널 (우측 하단)
+   ======================================== */
+.hotpl-float-btn {
+    position: fixed; bottom: 90px; right: 15px;
+    width: 52px; height: 52px; border-radius: 50%;
+    background: #fff; border: 2px solid #e74c3c;
+    box-shadow: 0 4px 12px rgba(231,76,60,0.3);
+    font-size: 24px; cursor: pointer; z-index: 350;
+    transition: transform 0.2s, box-shadow 0.2s;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0; line-height: 1;
+}
+.hotpl-float-btn:active { transform: scale(0.9); }
+.hotpl-float-btn.active {
+    background: #e74c3c;
+    box-shadow: 0 4px 16px rgba(231,76,60,0.5);
+}
+
+.hotpl-panel {
+    position: fixed; bottom: 155px; right: 15px;
+    width: 280px; max-height: 350px;
+    background: white; border-radius: 16px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.18);
+    z-index: 350; display: none; flex-direction: column;
+    overflow: hidden;
+}
+.hotpl-panel.show {
+    display: flex;
+    animation: hotplSlideUp 0.25s ease-out;
+}
+@keyframes hotplSlideUp {
+    from { opacity: 0; transform: translateY(15px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.hotpl-panel-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 15px; border-bottom: 1px solid #f0f0f0; flex-shrink: 0;
+}
+.hotpl-panel-title { font-size: 14px; font-weight: bold; color: #e74c3c; }
+.hotpl-panel-close {
+    background: none; border: none; font-size: 18px;
+    color: #999; cursor: pointer; padding: 0; line-height: 1;
+}
+.hotpl-panel-scroll {
+    display: flex; flex-direction: column;
+    overflow-y: auto; padding: 4px 0; max-height: 280px;
+    -webkit-overflow-scrolling: touch;
+}
+.hotpl-panel-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 15px; cursor: pointer; transition: background 0.15s;
+}
+.hotpl-panel-item:active { background: #fef3f2; }
+.hotpl-panel-item-img {
+    width: 48px; height: 48px; border-radius: 10px;
+    background-size: cover; background-position: center;
+    background-color: #f39c12; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+}
+.hotpl-panel-item-info { flex: 1; min-width: 0; }
+.hotpl-panel-item-name {
+    font-size: 14px; font-weight: bold; color: #222;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.hotpl-panel-item-cat { font-size: 12px; color: #888; }
+
+@media (max-width: 768px) {
+    .hotpl-panel { right: 10px; width: calc(100vw - 20px); max-width: 320px; }
+}

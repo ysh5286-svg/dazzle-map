@@ -49,6 +49,27 @@
         <p>💎 보물지도를 펼치는 중...</p>
     </div>
 
+    <!-- 랜딩 카테고리 선택 화면 -->
+    <div id="landingScreen">
+        <div class="landing-inner">
+            <div class="landing-logo">
+                <span class="landing-emoji">🗺️</span>
+                <h1 class="landing-title">대구핫플여기</h1>
+                <p class="landing-subtitle">보물지도</p>
+            </div>
+            <div class="landing-categories">
+                <button class="landing-cat-btn" data-filter-type="purpose" data-filter-value="야간영업">🌙 야간영업</button>
+                <button class="landing-cat-btn" data-filter-type="purpose" data-filter-value="혼밥/혼술">🍚 혼밥</button>
+                <button class="landing-cat-btn" data-filter-type="category" data-filter-value="술집">🍺 술집</button>
+                <button class="landing-cat-btn" data-filter-type="category" data-filter-value="카페/디저트">☕ 카페/디저트</button>
+                <button class="landing-cat-btn" data-filter-type="purpose" data-filter-value="데이트">💑 데이트</button>
+                <button class="landing-cat-btn" data-filter-type="purpose" data-filter-value="무한리필">♾️ 무한리필</button>
+                <button class="landing-cat-btn" data-filter-type="random" data-filter-value="">🎲 오늘 뭐 먹지</button>
+            </div>
+            <button class="landing-skip-btn" data-filter-type="skip" data-filter-value="">전체 보기 →</button>
+        </div>
+    </div>
+
     <div class="search-container">
         <div class="search-box-wrapper">
             <div class="theme-select-wrapper">
@@ -75,14 +96,6 @@
         </div>
     </div>
 
-    <!-- 이달의 핫플 배너 -->
-    <div id="hotplBanner" class="hotpl-banner">
-        <div class="hotpl-banner-header" onclick="toggleHotplBanner()">
-            <span class="hotpl-banner-title">🔥 이달의 핫플</span>
-            <span id="hotplArrow" class="hotpl-arrow">▶</span>
-        </div>
-        <div class="hotpl-scroll" id="hotplScroll" style="display:none;"></div>
-    </div>
 
     <div id="userStatusCard" style="position: absolute; top: 150px; right: 10px; z-index: 90; display:flex; justify-content: flex-end; width: auto;">
         <button id="btnLogin" onclick="googleLogin()" style="background:white; border:1px solid #ddd; padding:8px 12px; border-radius:20px; font-weight:bold; box-shadow:0 2px 5px rgba(0,0,0,0.1); cursor:pointer; display:flex; align-items:center; gap:5px; color:#444;">
@@ -265,9 +278,23 @@
 
             <div class="info-row"><span class="info-label">메뉴</span> <span class="info-text" id="panelMenu"></span></div>
             <div class="info-row"><span class="info-label">주소</span> <span class="info-text" id="panelAddr"></span></div>
-            
-            <a href="#" id="panelLink" target="_blank" class="panel-btn">네이버 플레이스 보기</a>
+
+            <div class="panel-btn-row" id="panelBtnRow">
+                <a href="#" id="panelLink" target="_blank" class="panel-btn-sm btn-naver">네이버</a>
+                <button id="gpsAuthBtn" class="panel-btn-sm btn-gps" style="display:none;">📍 인증</button>
+                <button id="shareBtn" class="panel-btn-sm btn-share" style="display:none;">💬 공유</button>
+            </div>
         </div>
+    </div>
+
+    <!-- 🔥 핫플 플로팅 버튼 + 패널 -->
+    <button id="hotplFloatBtn" class="hotpl-float-btn" style="display:none;" onclick="toggleHotplPanel()">🔥</button>
+    <div id="hotplPanel" class="hotpl-panel">
+        <div class="hotpl-panel-header">
+            <span class="hotpl-panel-title">🔥 이달의 핫플</span>
+            <button class="hotpl-panel-close" onclick="toggleHotplPanel()">✕</button>
+        </div>
+        <div class="hotpl-panel-scroll" id="hotplPanelScroll"></div>
     </div>
 
     <div class="bottom-bar">
@@ -282,6 +309,7 @@
             </button>
         </div>
         <div class="bottom-right">
+            <button class="bar-btn btn-home" onclick="goLanding()">🏠 홈</button>
         </div>
     </div>
 
@@ -290,16 +318,31 @@
     <script>
         function toggleFaq() { document.getElementById('faqPanel').classList.toggle('show'); }
         function closeProfileModal() { document.getElementById('profileModal').classList.remove('show'); }
+        window.goLanding = function() {
+            sessionStorage.removeItem('dazzle_landing_done');
+            // 필터 초기화
+            document.getElementById('filterRegion').value = '';
+            document.getElementById('filterCategory').value = '';
+            document.getElementById('filterPurpose').value = '';
+            document.getElementById('keyword').value = '';
+            const landing = document.getElementById('landingScreen');
+            landing.classList.remove('fade-out');
+            landing.style.display = 'flex';
+            if (window._hotplPanelOpen) toggleHotplPanel();
+        };
 
-        window._hotplExpanded = false;
-        window.toggleHotplBanner = function() {
-            window._hotplExpanded = !window._hotplExpanded;
-            const scroll = document.getElementById('hotplScroll');
-            const arrow = document.getElementById('hotplArrow');
-            const banner = document.getElementById('hotplBanner');
-            scroll.style.display = window._hotplExpanded ? 'flex' : 'none';
-            arrow.textContent = window._hotplExpanded ? '▼' : '▶';
-            banner.style.zIndex = window._hotplExpanded ? '200' : '95';
+        window._hotplPanelOpen = false;
+        window.toggleHotplPanel = function() {
+            window._hotplPanelOpen = !window._hotplPanelOpen;
+            const panel = document.getElementById('hotplPanel');
+            const btn = document.getElementById('hotplFloatBtn');
+            if (window._hotplPanelOpen) {
+                panel.classList.add('show');
+                btn.classList.add('active');
+            } else {
+                panel.classList.remove('show');
+                btn.classList.remove('active');
+            }
         };
         function copyUID() {
             const uid = document.getElementById('profileUid').value;
@@ -409,6 +452,44 @@
 
     naver.maps.Event.addListener(map, "click", function() {
         closePanel(); document.getElementById('faqPanel').classList.remove('show');
+        if (window._hotplPanelOpen) toggleHotplPanel();
+    });
+
+    function showLandingScreen() {
+        document.getElementById('loadingOverlay').classList.add('fade-out');
+        if (sessionStorage.getItem('dazzle_landing_done')) return;
+        setTimeout(() => {
+            document.getElementById('landingScreen').style.display = 'flex';
+        }, 300);
+    }
+
+    function hideLandingScreen(callback) {
+        sessionStorage.setItem('dazzle_landing_done', 'true');
+        const landing = document.getElementById('landingScreen');
+        landing.classList.add('fade-out');
+        setTimeout(() => {
+            landing.style.display = 'none';
+            if (callback) callback();
+        }, 400);
+    }
+
+    // 랜딩 버튼 클릭 이벤트
+    document.querySelectorAll('#landingScreen .landing-cat-btn, #landingScreen .landing-skip-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const filterType = this.dataset.filterType;
+            const filterValue = this.dataset.filterValue;
+            if (filterType === 'random') {
+                hideLandingScreen(() => { setTimeout(() => pickRandomShop(), 300); });
+            } else if (filterType === 'skip') {
+                hideLandingScreen();
+            } else if (filterType === 'category') {
+                document.getElementById('filterCategory').value = filterValue;
+                hideLandingScreen(() => applyAllFilters());
+            } else if (filterType === 'purpose') {
+                document.getElementById('filterPurpose').value = filterValue;
+                hideLandingScreen(() => applyAllFilters());
+            }
+        });
     });
 
     async function loadShopsData() {
@@ -422,7 +503,7 @@
                 if (Array.isArray(parsed) && parsed.length > 0) {
                     allShops = parsed;
                     checkAndRender("캐시로드");
-                    document.getElementById('loadingOverlay').classList.add('fade-out');
+                    showLandingScreen();
                     isCacheUsed = true;
                 }
             } catch (err) { console.warn("캐시 파싱 오류"); }
@@ -438,11 +519,11 @@
                     localStorage.setItem(CACHE_KEY + "_time", now);
                     checkAndRender("DB업데이트");
                     renderFeaturedBanner(allShops);
-                    if(!isCacheUsed) document.getElementById('loadingOverlay').classList.add('fade-out');
+                    if(!isCacheUsed) showLandingScreen();
                 }
             } catch (e) {
                 console.error("DB 로딩 실패:", e);
-                if(!isCacheUsed) document.getElementById('loadingOverlay').classList.add('fade-out');
+                if(!isCacheUsed) showLandingScreen();
             }
         }
     }
@@ -603,7 +684,7 @@
         }, 500);
     };
 
-    // 🔥 이달의 핫플 배너
+    // 🔥 이달의 핫플 (우측 하단 패널)
     window._featuredShops = [];
     function renderFeaturedBanner(shops) {
         const hotShops = shops.filter(s => s.isHot === true)
@@ -611,31 +692,19 @@
             .slice(0, 10);
         if (hotShops.length === 0) return;
         window._featuredShops = hotShops;
-        const scroll = document.getElementById('hotplScroll');
+        const scroll = document.getElementById('hotplPanelScroll');
         scroll.innerHTML = hotShops.map((s, i) => `
-            <div class="hotpl-card" onclick="(function(){var s=window._featuredShops[${i}]; showPanel(s); if(s.lat&&s.lng) map && map.morph(new naver.maps.LatLng(s.lat,s.lng),16);})()">
-                <div class="hotpl-card-img" style="${s.imageUrl ? `background-image:url('${s.imageUrl}')` : 'background:#f39c12'}">
+            <div class="hotpl-panel-item" onclick="(function(){var s=window._featuredShops[${i}]; showPanel(s); if(s.lat&&s.lng) map && map.morph(new naver.maps.LatLng(s.lat,s.lng),16); if(window._hotplPanelOpen) toggleHotplPanel();})()">
+                <div class="hotpl-panel-item-img" style="${s.imageUrl ? `background-image:url('${s.imageUrl}')` : 'background:#f39c12'}">
                     ${!s.imageUrl ? '🔥' : ''}
                 </div>
-                <div class="hotpl-card-name">${s.name}</div>
-                <div class="hotpl-card-cat">${Array.isArray(s.category) ? s.category[0] : (s.category || '')}</div>
+                <div class="hotpl-panel-item-info">
+                    <div class="hotpl-panel-item-name">${s.name}</div>
+                    <div class="hotpl-panel-item-cat">${Array.isArray(s.category) ? s.category[0] : (s.category || '')}</div>
+                </div>
             </div>
         `).join('');
-        document.getElementById('hotplBanner').style.display = 'block';
-
-        // 터치 드래그 스크롤
-        let isDragging = false, startX = 0, scrollLeft = 0;
-        scroll.addEventListener('touchstart', e => {
-            isDragging = true;
-            startX = e.touches[0].clientX;
-            scrollLeft = scroll.scrollLeft;
-        }, { passive: true });
-        scroll.addEventListener('touchmove', e => {
-            if (!isDragging) return;
-            const dx = startX - e.touches[0].clientX;
-            scroll.scrollLeft = scrollLeft + dx;
-        }, { passive: true });
-        scroll.addEventListener('touchend', () => { isDragging = false; });
+        document.getElementById('hotplFloatBtn').style.display = 'flex';
     }
 
     initTheme(); loadShopsData();
@@ -660,7 +729,7 @@
     }
 
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js?v=3.0')
+        navigator.serviceWorker.register('./sw.js?v=3.2')
             .catch(err => console.log('서비스 워커 실패', err));
 
         // 새 SW가 활성화되면 자동 새로고침
@@ -950,34 +1019,18 @@
         // 헤더에 닫기 버튼 + 주차 뱃지 + 하트 버튼 다 넣기
         header.innerHTML = `<button class="panel-close" onclick="closePanel()">✕</button>${parkingBadge}${heartHtml}`;
 
-        // GPS 버튼 & 네이버 링크
+        // 버튼 행: 네이버 | GPS 인증 | 공유
         const btnLink = document.getElementById('panelLink');
-        if (shop.link) { btnLink.href = shop.link; btnLink.style.display = 'block'; btnLink.innerText = '네이버 플레이스 보기'; } 
-        else { btnLink.href = '#'; btnLink.style.display = 'none'; }
+        if (shop.link) { btnLink.href = shop.link; btnLink.style.display = 'flex'; }
+        else { btnLink.style.display = 'none'; }
 
-        const existingGpsBtn = document.getElementById('gpsAuthBtn');
-        if(existingGpsBtn) existingGpsBtn.remove();
-        const existingShareBtn = document.getElementById('shareBtn');
-        if(existingShareBtn) existingShareBtn.remove();
-
-        const gpsBtn = document.createElement('button');
-        gpsBtn.id = 'gpsAuthBtn';
-        gpsBtn.className = 'panel-btn';
-        gpsBtn.style.background = '#e74c3c';
-        gpsBtn.style.marginTop = '10px';
-        gpsBtn.innerHTML = '📍 <b>여기 왔어요! (GPS 인증)</b>';
+        const gpsBtn = document.getElementById('gpsAuthBtn');
+        gpsBtn.style.display = 'flex';
         gpsBtn.onclick = function() { verifyVisitByGPS(shop.lat, shop.lng, shop.name); };
-        
-        const shareBtn = document.createElement('button');
-        shareBtn.id = 'shareBtn';
-        shareBtn.className = 'panel-btn';
-        shareBtn.style.cssText = 'background:#fee500; color:#3c1e1e; margin-top:10px; font-weight:bold;';
-        shareBtn.innerHTML = '💬 카카오톡 공유하기';
-        shareBtn.onclick = shareShop;
 
-        const panelBody = document.querySelector('.panel-body');
-        panelBody.insertBefore(gpsBtn, btnLink);
-        panelBody.insertBefore(shareBtn, btnLink);
+        const shareBtn = document.getElementById('shareBtn');
+        shareBtn.style.display = 'flex';
+        shareBtn.onclick = shareShop;
 
         document.getElementById('faqPanel').classList.remove('show');
         document.getElementById('selectModal').classList.remove('show');

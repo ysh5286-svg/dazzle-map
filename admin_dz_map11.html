@@ -127,7 +127,12 @@
                 <div class="form-group"><label class="form-label">상권 (예: 동성로)</label><input type="text" id="shopArea" class="form-input" autocomplete="off"></div>
             </div>
 
-            <div class="form-group"><label class="form-label">대표메뉴</label><input type="text" id="shopMenu" class="form-input" autocomplete="off"></div>
+            <div class="form-group">
+                <label class="form-label">대표메뉴 <button type="button" onclick="addMenuField()" style="border:none; background:#e74c3c; color:#fff; border-radius:50%; width:22px; height:22px; font-size:14px; cursor:pointer; vertical-align:middle; line-height:1;">+</button></label>
+                <div id="menuFieldsContainer">
+                    <input type="text" class="form-input menu-field" placeholder="메뉴 1" autocomplete="off">
+                </div>
+            </div>
 
             <div class="form-group" style="background:#e3f2fd; padding:10px; border-radius:5px;">
                 <label class="form-label">🚗 주차 정보</label>
@@ -406,12 +411,39 @@
             }
         }
 
+        // 메뉴 필드 관리
+        window.addMenuField = function() {
+            const con = document.getElementById('menuFieldsContainer');
+            const count = con.querySelectorAll('.menu-field').length + 1;
+            const wrap = document.createElement('div');
+            wrap.style.cssText = 'display:flex; gap:4px; margin-top:4px;';
+            wrap.innerHTML = `<input type="text" class="form-input menu-field" placeholder="메뉴 ${count}" autocomplete="off" style="flex:1;">
+                <button type="button" onclick="this.parentElement.remove()" style="border:none; background:#eee; border-radius:4px; cursor:pointer; padding:0 8px; font-size:14px; color:#e74c3c;">✕</button>`;
+            con.appendChild(wrap);
+            wrap.querySelector('input').focus();
+        };
+        function loadMenuFields(menuStr) {
+            const con = document.getElementById('menuFieldsContainer');
+            const items = menuStr ? menuStr.split(',').map(s => s.trim()).filter(s => s) : [''];
+            if (items.length === 0) items.push('');
+            con.innerHTML = items.map((item, i) => {
+                if (i === 0) return `<input type="text" class="form-input menu-field" placeholder="메뉴 1" value="${item}" autocomplete="off">`;
+                return `<div style="display:flex; gap:4px; margin-top:4px;">
+                    <input type="text" class="form-input menu-field" placeholder="메뉴 ${i+1}" value="${item}" autocomplete="off" style="flex:1;">
+                    <button type="button" onclick="this.parentElement.remove()" style="border:none; background:#eee; border-radius:4px; cursor:pointer; padding:0 8px; font-size:14px; color:#e74c3c;">✕</button>
+                </div>`;
+            }).join('');
+        }
+        function getMenuValue() {
+            return [...document.querySelectorAll('.menu-field')].map(el => el.value.trim()).filter(v => v).join(', ');
+        }
+
         window.openEditModal = function(d) {
-            $('#shopId').val(d.id); 
-            $('#shopName').val(d.name); 
-            $('#shopRegion').val(d.region || ""); 
-            $('#shopArea').val(d.area); 
-            $('#shopMenu').val(d.menu);
+            $('#shopId').val(d.id);
+            $('#shopName').val(d.name);
+            $('#shopRegion').val(d.region || "");
+            $('#shopArea').val(d.area);
+            loadMenuFields(d.menu || '');
             $('#shopIsHot').prop('checked', d.isHot === true);
             $('#shopParking').val(d.parking || ""); 
             $('#shopTotalScore').val(d.totalScore); 
@@ -428,6 +460,7 @@
 
         window.openAddModal = function() {
             $('#shopId').val(''); $('input, textarea, select').val(''); $('#shopIsHot').prop('checked', false);
+            loadMenuFields('');
             renderCheckboxes('categoryContainer', 'category', CAT_LIST, []);
             renderCheckboxes('purposeContainer', 'purpose', PUR_LIST, []);
             $('#btnDelete').hide(); $('.modal-title').text('✨ 새 업체 추가'); $('#shopModal').addClass('show');
@@ -457,7 +490,7 @@
 
             var data = {
                 name: name, category: [], purpose: [],
-                region: region, area: $('#shopArea').val(), menu: $('#shopMenu').val(),
+                region: region, area: $('#shopArea').val(), menu: getMenuValue(),
                 isHot: $('#shopIsHot').is(':checked'),
                 parking: $('#shopParking').val(), totalScore: rawScore, desc: $('#shopDesc').val(), 
                 address: address, imageUrl: $('#shopImage').val(), link: $('#shopLink').val(),
@@ -692,8 +725,9 @@
         };
 
         naver.maps.Event.addListener(map, 'click', function(e) {
-            if(currentThemeMode) return; 
+            if(currentThemeMode) return;
             $('#shopId').val(''); $('input, textarea, select').val(''); $('#shopIsHot').prop('checked', false);
+            loadMenuFields('');
             renderCheckboxes('categoryContainer', 'category', CAT_LIST, []);
             renderCheckboxes('purposeContainer', 'purpose', PUR_LIST, []);
             $('#shopLat').val(e.coord.lat()); $('#shopLng').val(e.coord.lng()); 
