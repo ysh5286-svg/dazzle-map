@@ -37,6 +37,21 @@
         .hotpl-slider:before { position:absolute; content:""; height:18px; width:18px; left:3px; bottom:3px; background:white; border-radius:50%; transition:.3s; }
         .hotpl-toggle input:checked + .hotpl-slider { background:#e74c3c; }
         .hotpl-toggle input:checked + .hotpl-slider:before { transform:translateX(18px); }
+        /* 대표 마커 순서 조정 */
+        .order-item { display:flex; align-items:center; gap:10px; padding:10px 8px; border-bottom:1px solid #f0f0f0; }
+        .order-item:last-child { border-bottom:none; }
+        .order-rank { width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:bold; color:white; flex-shrink:0; }
+        .order-rank.primary { background:#e74c3c; }
+        .order-rank.secondary { background:#bdc3c7; }
+        .order-info { flex:1; min-width:0; }
+        .order-name { font-size:14px; font-weight:bold; color:#222; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .order-cat { font-size:11px; color:#888; margin-top:2px; }
+        .order-btns { display:flex; gap:4px; flex-shrink:0; }
+        .order-btn { width:30px; height:30px; border:1px solid #ddd; border-radius:6px; background:white; cursor:pointer; font-size:14px; display:flex; align-items:center; justify-content:center; }
+        .order-btn:hover { background:#f0f0f0; }
+        .order-btn:disabled { opacity:0.3; cursor:default; }
+        .order-save-btn { width:100%; margin-top:12px; padding:10px; background:#e74c3c; color:white; border:none; border-radius:8px; font-size:14px; font-weight:bold; cursor:pointer; }
+        .order-save-btn:hover { background:#c0392b; }
     </style>
 </head>
 <body>
@@ -93,8 +108,18 @@
     <div id="selectModal" class="modal-overlay">
         <div class="modal-box">
             <button class="modal-close-x" onclick="closeSelectModal()">×</button>
-            <h3 class="modal-title" style="font-size:16px; margin-bottom:15px;">👇 수정할 매장을 선택하세요</h3>
-            <div id="selectList" class="shop-select-list"></div>
+            <div id="selectTabBar" style="display:flex; gap:0; margin-bottom:12px; border-bottom:2px solid #eee;">
+                <button class="select-tab active" onclick="switchSelectTab('edit')" id="tabEdit" style="flex:1; padding:8px; border:none; background:none; font-size:13px; font-weight:bold; cursor:pointer; color:#e74c3c; border-bottom:2px solid #e74c3c; margin-bottom:-2px;">👇 매장 선택</button>
+                <button class="select-tab" onclick="switchSelectTab('order')" id="tabOrder" style="flex:1; padding:8px; border:none; background:none; font-size:13px; font-weight:bold; cursor:pointer; color:#999; border-bottom:2px solid transparent; margin-bottom:-2px;">📌 대표 순서</button>
+            </div>
+            <div id="selectEditPane">
+                <div id="selectList" class="shop-select-list"></div>
+            </div>
+            <div id="selectOrderPane" style="display:none;">
+                <p style="font-size:11px; color:#999; margin:0 0 10px 0;">1번이 마커에 대표로 표시됩니다. 화살표로 순서를 변경하세요.</p>
+                <div id="orderList"></div>
+                <button class="order-save-btn" onclick="saveGroupOrder()">💾 순서 저장</button>
+            </div>
         </div>
     </div>
 
@@ -246,6 +271,9 @@
         import { db, initMap, createMarker } from "./common.js";
         import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, where, getDocs, setDoc, getDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+        // Expose Firebase for console bulk operations
+        window._fb = { db, updateDoc, doc, addDoc, collection, getDocs };
+
         var password = prompt("관리자 비밀번호:");
         if (password !== "2364") { document.body.innerHTML = "⛔ 접근 거부"; throw new Error("비밀번호 오류"); }
 
@@ -349,7 +377,72 @@
             }
         }
         
+        window._selectGroupList = [];
+        window._selectIsThemeMode = false;
+
+        window.switchSelectTab = function(tab) {
+            const tabEdit = document.getElementById('tabEdit');
+            const tabOrder = document.getElementById('tabOrder');
+            const editPane = document.getElementById('selectEditPane');
+            const orderPane = document.getElementById('selectOrderPane');
+            if (tab === 'edit') {
+                tabEdit.style.color = '#e74c3c'; tabEdit.style.borderBottomColor = '#e74c3c';
+                tabOrder.style.color = '#999'; tabOrder.style.borderBottomColor = 'transparent';
+                editPane.style.display = ''; orderPane.style.display = 'none';
+            } else {
+                tabOrder.style.color = '#e74c3c'; tabOrder.style.borderBottomColor = '#e74c3c';
+                tabEdit.style.color = '#999'; tabEdit.style.borderBottomColor = 'transparent';
+                editPane.style.display = 'none'; orderPane.style.display = '';
+                renderOrderList();
+            }
+        };
+
+        function renderOrderList() {
+            const container = document.getElementById('orderList');
+            const list = window._selectGroupList;
+            container.innerHTML = list.map((s, i) => {
+                const cat = Array.isArray(s.category) ? s.category[0] : (s.category || '');
+                return `<div class="order-item" data-idx="${i}">
+                    <div class="order-rank ${i === 0 ? 'primary' : 'secondary'}">${i + 1}</div>
+                    <div class="order-info">
+                        <div class="order-name">${s.name}</div>
+                        <div class="order-cat">${cat}${s.address ? ' · ' + s.address : ''}</div>
+                    </div>
+                    <div class="order-btns">
+                        <button class="order-btn" onclick="moveOrderItem(${i}, -1)" ${i === 0 ? 'disabled' : ''}>▲</button>
+                        <button class="order-btn" onclick="moveOrderItem(${i}, 1)" ${i === list.length - 1 ? 'disabled' : ''}>▼</button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        window.moveOrderItem = function(idx, dir) {
+            const list = window._selectGroupList;
+            const newIdx = idx + dir;
+            if (newIdx < 0 || newIdx >= list.length) return;
+            [list[idx], list[newIdx]] = [list[newIdx], list[idx]];
+            renderOrderList();
+        };
+
+        window.saveGroupOrder = async function() {
+            const list = window._selectGroupList;
+            try {
+                for (let i = 0; i < list.length; i++) {
+                    await updateDoc(doc(db, "shops", list[i].id), { groupOrder: i });
+                }
+                showToast(`✅ 대표 순서 저장됨 (1번: ${list[0].name})`);
+                closeSelectModal();
+            } catch(e) {
+                alert("저장 실패: " + e.message);
+            }
+        };
+
         window.showSelectModal = function(list, isThemeMode) {
+            window._selectIsThemeMode = isThemeMode;
+            // groupOrder 기준으로 정렬
+            list.sort((a, b) => (a.groupOrder ?? 999) - (b.groupOrder ?? 999));
+            window._selectGroupList = [...list];
+
             const container = document.getElementById('selectList'); container.innerHTML = '';
             list.forEach(shop => {
                 const div = document.createElement('div'); div.className = 'shop-select-item';
@@ -357,6 +450,10 @@
                 div.onclick = () => { closeSelectModal(); if(isThemeMode) toggleShopTheme(shop); else openEditModal(shop); };
                 container.appendChild(div);
             });
+
+            // 탭바: 테마모드면 순서 탭 숨기기
+            document.getElementById('selectTabBar').style.display = isThemeMode ? 'none' : 'flex';
+            switchSelectTab('edit');
             $('#selectModal').addClass('show');
         }
 
@@ -397,17 +494,17 @@
         }
 
         function renderMarkers(shops) {
-            // 🔥 [수정됨] 마커를 지울 때 '진짜로' 지우기 위해 목록 관리
-            markerList.forEach(m => m.setMap(null)); 
-            markerList = []; // 목록 초기화
-            
+            markerList.forEach(m => m.setMap(null));
+            markerList = [];
+
             const groups = {};
-            shops.forEach(s => { if(!s.lat)return; const k=s.lat.toFixed(5)+","+s.lng.toFixed(5); if(!groups[k])groups[k]=[]; groups[k].push(s); });
-            
+            shops.forEach(s => { if(!s.lat)return; const k=parseFloat(s.lat).toFixed(4)+","+parseFloat(s.lng).toFixed(4); if(!groups[k])groups[k]=[]; groups[k].push(s); });
+
             for(const k in groups) {
-                // 🔥 [중요] 새로 만든 마커를 markerList에 반드시 넣어야 나중에 지울 수 있음
+                // groupOrder 기준 정렬 (낮을수록 대표)
+                groups[k].sort((a, b) => (a.groupOrder ?? 999) - (b.groupOrder ?? 999));
                 var marker = createMarker(map, groups[k], handleMarkerClick);
-                if (marker) markerList.push(marker); 
+                if (marker) markerList.push(marker);
             }
         }
 
@@ -730,10 +827,11 @@
             loadMenuFields('');
             renderCheckboxes('categoryContainer', 'category', CAT_LIST, []);
             renderCheckboxes('purposeContainer', 'purpose', PUR_LIST, []);
-            $('#shopLat').val(e.coord.lat()); $('#shopLng').val(e.coord.lng()); 
-            $('#dupMsg').text(''); $('#btnDelete').hide(); 
+            $('#shopLat').val(e.coord.lat()); $('#shopLng').val(e.coord.lng());
+            $('#dupMsg').text(''); $('#btnDelete').hide();
             $('.modal-title').text('✨ 새 업체 등록'); $('#shopModal').addClass('show');
         });
+
     </script>
 </body>
 </html>

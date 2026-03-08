@@ -66,6 +66,17 @@
                 <button class="landing-cat-btn" data-filter-type="purpose" data-filter-value="무한리필">♾️ 무한리필</button>
                 <button class="landing-cat-btn" data-filter-type="random" data-filter-value="">🎲 오늘 뭐 먹지</button>
             </div>
+            <div class="landing-themes">
+                <div class="landing-themes-header">
+                    <span class="landing-themes-title">🚩 맛집 모음집</span>
+                    <div class="landing-themes-arrows">
+                        <button class="landing-arrow" id="landingArrowLeft" onclick="scrollLandingThemes(-1)">‹</button>
+                        <button class="landing-arrow" id="landingArrowRight" onclick="scrollLandingThemes(1)">›</button>
+                    </div>
+                </div>
+                <div class="landing-themes-track" id="landingThemesTrack">
+                </div>
+            </div>
             <button class="landing-skip-btn" data-filter-type="skip" data-filter-value="">전체 보기 →</button>
         </div>
     </div>
@@ -362,6 +373,34 @@
             }
         };
         function closePanel() { document.getElementById('infoPanel').classList.remove('show'); }
+        window.showSelectModal = function(shopList) {
+            const listEl = document.getElementById('selectList');
+            listEl.innerHTML = shopList.map((s, i) => {
+                const cat = Array.isArray(s.category) ? s.category[0] : (s.category || '');
+                const imgStyle = s.imageUrl
+                    ? `background-image:url('${s.imageUrl}'); background-size:cover; background-position:center;`
+                    : 'background:#f0f0f0; display:flex; align-items:center; justify-content:center; font-size:20px;';
+                const imgContent = s.imageUrl ? '' : '🏪';
+                return `<div class="select-item" data-idx="${i}" style="display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid #f0f0f0; cursor:pointer;">
+                    <div style="width:48px; height:48px; border-radius:10px; flex-shrink:0; ${imgStyle}">${imgContent}</div>
+                    <div style="flex:1; min-width:0;">
+                        <div style="font-size:14px; font-weight:bold; color:#222; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${s.name}</div>
+                        <div style="font-size:12px; color:#888; margin-top:2px;">${cat}</div>
+                        <div style="font-size:11px; color:#aaa; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${s.address || ''}</div>
+                    </div>
+                </div>`;
+            }).join('');
+            window._selectShopList = shopList;
+            listEl.querySelectorAll('.select-item').forEach(el => {
+                el.addEventListener('click', function() {
+                    const idx = parseInt(this.dataset.idx);
+                    const shop = window._selectShopList[idx];
+                    closeSelectModal();
+                    showPanel(shop);
+                });
+            });
+            document.getElementById('selectModal').classList.add('show');
+        };
         function closeSelectModal() { document.getElementById('selectModal').classList.remove('show'); }
         function openGameModal() { resetGame(); document.getElementById('gameModal').classList.add('show'); document.getElementById('faqPanel').classList.remove('show'); }
         function closeGameModal() { document.getElementById('gameModal').classList.remove('show'); }
@@ -457,6 +496,15 @@
 
     function showLandingScreen() {
         document.getElementById('loadingOverlay').classList.add('fade-out');
+        // URL 딥링크: ?theme=테마명 → 랜딩 스킵, 해당 테마로 바로 이동
+        const urlParams = new URLSearchParams(window.location.search);
+        const deepTheme = urlParams.get('theme');
+        if (deepTheme) {
+            sessionStorage.setItem('dazzle_landing_done', 'true');
+            document.getElementById('mainThemeSelect').value = deepTheme;
+            setTimeout(() => applyAllFilters(), 300);
+            return;
+        }
         if (sessionStorage.getItem('dazzle_landing_done')) return;
         setTimeout(() => {
             document.getElementById('landingScreen').style.display = 'flex';
@@ -483,9 +531,11 @@
             } else if (filterType === 'skip') {
                 hideLandingScreen();
             } else if (filterType === 'category') {
+                document.getElementById('mainThemeSelect').value = 'ALL';
                 document.getElementById('filterCategory').value = filterValue;
                 hideLandingScreen(() => applyAllFilters());
             } else if (filterType === 'purpose') {
+                document.getElementById('mainThemeSelect').value = 'ALL';
                 document.getElementById('filterPurpose').value = filterValue;
                 hideLandingScreen(() => applyAllFilters());
             }
@@ -528,12 +578,26 @@
         }
     }
 
+    // 랜딩 모음집 가로 스크롤
+    let _landingThemePage = 0;
+    let _landingThemeTotal = 0;
+    window.scrollLandingThemes = function(dir) {
+        const track = document.getElementById('landingThemesTrack');
+        if (!track) return;
+        const maxPage = Math.max(0, Math.ceil(_landingThemeTotal / 2) - 1);
+        _landingThemePage = Math.max(0, Math.min(maxPage, _landingThemePage + dir));
+        const cardW = track.firstElementChild ? track.firstElementChild.offsetWidth + 10 : 0;
+        track.scrollTo({ left: _landingThemePage * cardW * 2, behavior: 'smooth' });
+        document.getElementById('landingArrowLeft').disabled = (_landingThemePage === 0);
+        document.getElementById('landingArrowRight').disabled = (_landingThemePage >= maxPage);
+    };
+
     async function initTheme() {
         const select = document.getElementById('mainThemeSelect');
         try {
             const docRef = doc(db, "meta", "themes");
             const docSnap = await getDoc(docRef);
-            select.innerHTML = ''; 
+            select.innerHTML = '';
             if (docSnap.exists()) {
                 let list = docSnap.data().list || [];
                 list.sort();
@@ -541,9 +605,17 @@
                     const opt = document.createElement('option'); opt.value = t; opt.innerText = `🚩 ${t}`; select.appendChild(opt);
                 });
                 if (list.length > 0) select.value = list[0];
+                // 랜딩 화면 모음집 카드 렌더링
+                renderLandingThemes(list);
             }
-            const allOpt = document.createElement('option'); allOpt.value = "ALL"; allOpt.innerText = "📂 전체 맛집 보기"; select.appendChild(allOpt); 
+            const allOpt = document.createElement('option'); allOpt.value = "ALL"; allOpt.innerText = "📂 전체 맛집 보기"; select.appendChild(allOpt);
             if (select.options.length === 1) select.value = "ALL";
+            // URL 딥링크: ?theme= 파라미터가 있으면 해당 테마로 설정 (initTheme이 옵션 생성 후 적용)
+            const urlParams = new URLSearchParams(window.location.search);
+            const deepTheme = urlParams.get('theme');
+            if (deepTheme) {
+                select.value = deepTheme;
+            }
         } catch(e) {
             if(select.options.length === 0) {
                 const allOpt = document.createElement('option'); allOpt.value = "ALL"; allOpt.innerText = "📂 전체 맛집 보기"; select.appendChild(allOpt); select.value = "ALL";
@@ -551,6 +623,29 @@
         } finally {
             checkAndRender("테마로딩완료");
         }
+    }
+
+    function renderLandingThemes(list) {
+        const track = document.getElementById('landingThemesTrack');
+        const section = document.querySelector('.landing-themes');
+        if (!track || !section) return;
+        if (list.length === 0) { section.style.display = 'none'; return; }
+        _landingThemeTotal = list.length;
+        _landingThemePage = 0;
+        track.innerHTML = list.map(t =>
+            `<button class="landing-theme-card" data-theme="${t}">📌 ${t}</button>`
+        ).join('');
+        // 카드 클릭 이벤트
+        track.querySelectorAll('.landing-theme-card').forEach(card => {
+            card.addEventListener('click', function() {
+                const theme = this.dataset.theme;
+                document.getElementById('mainThemeSelect').value = theme;
+                hideLandingScreen(() => applyAllFilters());
+            });
+        });
+        // 화살표 초기 상태
+        document.getElementById('landingArrowLeft').disabled = true;
+        document.getElementById('landingArrowRight').disabled = (list.length <= 2);
     }
 
     function checkAndRender(source) {
@@ -580,12 +675,16 @@
         markerList = [];
         const groups = {};
         shops.forEach(shop => {
-            const key = parseFloat(shop.lat).toFixed(5) + "," + parseFloat(shop.lng).toFixed(5);
+            const key = parseFloat(shop.lat).toFixed(4) + "," + parseFloat(shop.lng).toFixed(4);
             if(!groups[key]) groups[key] = [];
             groups[key].push(shop);
         });
         for(const key in groups) {
             groups[key].sort((a, b) => {
+                // 0순위: groupOrder (관리자 설정, 낮을수록 대표)
+                const orderA = a.groupOrder ?? 999;
+                const orderB = b.groupOrder ?? 999;
+                if(orderA !== orderB) return orderA - orderB;
                 // 1순위: 좋아요 많은 순, 2순위: 최신순
                 const likeA = (a.likedBy || []).length;
                 const likeB = (b.likedBy || []).length;
@@ -729,7 +828,7 @@
     }
 
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js?v=3.2')
+        navigator.serviceWorker.register('./sw.js?v=3.7')
             .catch(err => console.log('서비스 워커 실패', err));
 
         // 새 SW가 활성화되면 자동 새로고침

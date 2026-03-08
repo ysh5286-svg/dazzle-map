@@ -659,6 +659,50 @@ body, html { margin: 0; padding: 0; height: 100%; font-family: 'Noto Sans KR', s
 .landing-cat-btn:last-child:nth-child(odd) {
     grid-column: 1 / -1;
 }
+.landing-themes {
+    margin-bottom: 20px;
+}
+.landing-themes-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 10px; padding: 0 2px;
+}
+.landing-themes-title {
+    font-size: 14px; font-weight: 700; color: #555;
+}
+.landing-themes-arrows {
+    display: flex; gap: 6px;
+}
+.landing-arrow {
+    width: 30px; height: 30px; border-radius: 50%;
+    border: 1.5px solid #ddd; background: #fff;
+    font-size: 18px; color: #888; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s ease;
+    font-family: 'Noto Sans KR', sans-serif;
+    padding: 0; line-height: 1;
+}
+.landing-arrow:active { background: #f5f5f5; border-color: #bbb; }
+.landing-arrow:disabled { opacity: 0.3; cursor: default; }
+.landing-themes-track {
+    display: flex; gap: 10px;
+    overflow: hidden;
+    scroll-behavior: smooth;
+}
+.landing-theme-card {
+    min-width: calc(50% - 5px); max-width: calc(50% - 5px);
+    background: #fff; border: 2px solid #c0392b;
+    border-radius: 12px; padding: 14px 10px;
+    font-size: 14px; font-weight: 700; color: #c0392b;
+    cursor: pointer; transition: all 0.15s ease;
+    font-family: 'Noto Sans KR', sans-serif;
+    text-align: center; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis;
+    flex-shrink: 0; box-sizing: border-box;
+}
+.landing-theme-card:active {
+    transform: scale(0.95);
+    background: #fff5f5;
+}
 .landing-skip-btn {
     background: none; border: none; color: #bbb;
     font-size: 14px; cursor: pointer; padding: 10px;
@@ -737,3 +781,8 @@ body, html { margin: 0; padding: 0; height: 100%; font-family: 'Noto Sans KR', s
 @media (max-width: 768px) {
     .hotpl-panel { right: 10px; width: calc(100vw - 20px); max-width: 320px; }
 }
+
+/* 📌 같은 위치 업체 선택 리스트 */
+.shop-select-list { padding: 0 4px; max-height: 50vh; overflow-y: auto; }
+.shop-select-list .select-item:last-child { border-bottom: none !important; }
+.shop-select-list .select-item:hover { background: #f9f9f9; border-radius: 8px; }
