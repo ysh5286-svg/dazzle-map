@@ -40,8 +40,9 @@ const categoryColors = {
 };
 
 // 3. 마커 생성 함수
-export function createMarker(map, shopList, onClick) {
+export function createMarker(map, shopList, onClick, options) {
     if (!shopList || shopList.length === 0) return null;
+    var opts = options || {};
     var mainShop = shopList[0];
     var categoryName = Array.isArray(mainShop.category) ? mainShop.category[0] : (mainShop.category || '맛집');
     var pointColor = categoryColors[categoryName] || categoryColors["default"];
@@ -49,9 +50,12 @@ export function createMarker(map, shopList, onClick) {
     var isHot = mainShop.isHot === true;
     var hotClass = isHot ? 'hot-marker' : '';
     var fireIconHtml = isHot ? `<div class="hot-fire-crown">🔥</div>` : '';
+    var themeCheckHtml = opts.themeChecked ? `<span style="position:absolute;top:-6px;right:-6px;background:#2ecc71;color:#fff;border-radius:50%;width:18px;height:18px;font-size:11px;display:flex;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,0.3);z-index:10;">✓</span>` : '';
+    var dimStyle = opts.themeDim ? 'opacity:0.35;' : '';
 
     var contentHtml = `
-        <div class="marker-label ${hotClass}" style="border: 2px solid ${pointColor}; will-change: transform; transform: translate(-50%, -100%);">
+        <div class="marker-label ${hotClass}" style="border: 2px solid ${pointColor}; will-change: transform; transform: translate(-50%, -100%); ${dimStyle}">
+            ${themeCheckHtml}
             ${fireIconHtml}
             <span class="overlay-badge" style="color: ${pointColor};">${categoryName}</span>
             <span class="overlay-name">${mainShop.name} ${badgeHtml}</span>
@@ -62,7 +66,7 @@ export function createMarker(map, shopList, onClick) {
         position: new naver.maps.LatLng(mainShop.lat, mainShop.lng),
         map: map,
         icon: { content: contentHtml, size: new naver.maps.Size(0, 0), anchor: new naver.maps.Point(0, 0) },
-        zIndex: isHot ? 9999 : 100
+        zIndex: isHot ? 9999 : (opts.themeChecked ? 5000 : 100)
     });
 
     naver.maps.Event.addListener(marker, 'mouseover', function() { marker.setZIndex(20000); });

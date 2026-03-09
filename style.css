@@ -293,6 +293,183 @@ body, html { margin: 0; padding: 0; height: 100%; font-family: 'Noto Sans KR', s
 }
 @keyframes blink { 50% { opacity: 0.5; } }
 
+/* 테마 편집 패널 */
+#themeEditorPanel {
+    margin-top: 8px;
+    background: #fafbfc;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 10px;
+    max-height: 480px;
+    overflow-y: auto;
+}
+.theme-editor-title {
+    font-size: 13px; font-weight: 700; color: #333;
+    margin-bottom: 6px;
+}
+.theme-toggle {
+    display: flex; justify-content: space-between; align-items: center;
+    cursor: pointer; padding: 4px 2px; border-radius: 4px;
+    user-select: none;
+}
+.theme-toggle:hover { background: #eef0f2; }
+.theme-toggle-arrow {
+    font-size: 10px; color: #999;
+}
+.theme-filter-bar {
+    display: flex; gap: 5px; margin-bottom: 6px;
+}
+.theme-filter-bar input,
+.theme-filter-bar select {
+    font-size: 12px; padding: 4px 6px; border: 1px solid #ccc;
+    border-radius: 4px; font-family: 'Noto Sans KR', sans-serif;
+}
+.theme-filter-bar input { flex: 1; min-width: 0; }
+.theme-filter-bar select { max-width: 110px; }
+.theme-shop-list {
+    display: flex; flex-direction: column; gap: 4px;
+    max-height: 180px; overflow-y: auto;
+}
+.theme-shop-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 6px 8px; background: #fff;
+    border: 1px solid #eee; border-radius: 6px;
+    font-size: 12px; transition: background 0.15s;
+}
+.theme-shop-item:hover { background: #f5f5f5; }
+.theme-shop-info {
+    display: flex; align-items: center; gap: 6px;
+    overflow: hidden; flex: 1; min-width: 0;
+}
+.theme-shop-name {
+    font-weight: 600; color: #222; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis;
+}
+.theme-shop-badge {
+    font-size: 10px; padding: 1px 5px; border-radius: 3px;
+    background: #ecf0f1; color: #555; white-space: nowrap;
+}
+.theme-shop-region {
+    font-size: 10px; color: #999; white-space: nowrap;
+}
+.theme-btn-add {
+    background: #2ecc71; color: white; border: none;
+    padding: 3px 8px; border-radius: 4px; font-size: 11px;
+    font-weight: 600; cursor: pointer; white-space: nowrap;
+    font-family: 'Noto Sans KR', sans-serif;
+}
+.theme-btn-add:hover { background: #27ae60; }
+.theme-btn-remove {
+    background: #e74c3c; color: white; border: none;
+    padding: 3px 8px; border-radius: 4px; font-size: 11px;
+    font-weight: 600; cursor: pointer; white-space: nowrap;
+    font-family: 'Noto Sans KR', sans-serif;
+}
+.theme-btn-remove:hover { background: #c0392b; }
+.theme-shop-list:empty::after {
+    content: '업체가 없습니다'; color: #bbb; font-size: 12px;
+    text-align: center; padding: 12px;
+}
+
+/* 테마 순서 드래그 리스트 */
+.theme-reorder-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 12px; border-bottom: 1px solid #f0f0f0;
+    background: #fff; transition: background 0.15s, opacity 0.15s;
+    user-select: none;
+}
+.theme-reorder-item:last-child { border-bottom: none; }
+.theme-reorder-item.dragging { opacity: 0.4; background: #fff3cd; }
+.theme-reorder-item.drag-over { background: #ffeaa7; border-top: 2px solid #f39c12; }
+.theme-drag-handle {
+    font-size: 16px; color: #bbb; cursor: grab; padding: 0 4px;
+    touch-action: none;
+}
+.theme-drag-handle:active { cursor: grabbing; }
+.theme-control-row { flex-wrap: wrap; }
+
+/* 방문 인증 섹션 */
+.visit-section {
+    margin: 10px 0 6px; padding: 10px 12px;
+    background: #f0f7ff; border-radius: 10px; border: 1px solid #d6e8ff;
+}
+.visit-header {
+    font-size: 13px; font-weight: 700; color: #2c3e50; margin-bottom: 4px;
+}
+.visit-counts {
+    font-size: 12px; color: #555;
+}
+.visit-counts b { color: #2980b9; font-size: 14px; }
+.visit-dot { margin: 0 4px; color: #ccc; }
+
+/* 특징 섹션 */
+.trait-section {
+    margin: 6px 0 10px; padding: 10px 12px;
+    background: #fafafa; border-radius: 10px; border: 1px solid #eee;
+}
+.trait-header {
+    font-size: 13px; font-weight: 700; color: #2c3e50; margin-bottom: 8px;
+}
+.trait-row {
+    display: flex; align-items: center; gap: 6px;
+    margin-bottom: 5px; font-size: 12px;
+}
+.trait-name {
+    min-width: 70px; color: #444; white-space: nowrap;
+}
+.trait-bar-bg {
+    flex: 1; height: 14px; background: #eee; border-radius: 7px; overflow: hidden;
+}
+.trait-bar-fill {
+    height: 100%; background: linear-gradient(90deg, #74b9ff, #0984e3);
+    border-radius: 7px; transition: width 0.4s ease;
+}
+.trait-count {
+    min-width: 28px; text-align: right; color: #888; font-size: 11px;
+}
+
+/* GPS 인증 모달 */
+.gps-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5); z-index: 9999;
+    display: flex; align-items: center; justify-content: center;
+}
+.gps-modal {
+    background: #fff; border-radius: 16px; padding: 24px;
+    text-align: center; max-width: 280px; width: 90%;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    animation: gpsPopIn 0.3s ease;
+}
+@keyframes gpsPopIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.gps-modal-icon { font-size: 48px; margin-bottom: 8px; }
+.gps-modal-title { font-size: 17px; font-weight: 700; color: #2c3e50; }
+.gps-modal-exp { font-size: 14px; color: #e74c3c; font-weight: 600; margin-top: 4px; }
+.gps-modal-btn {
+    padding: 10px 20px; border: none; border-radius: 8px;
+    font-size: 14px; font-weight: 600; cursor: pointer;
+}
+.gps-btn-primary { background: #0984e3; color: #fff; }
+.gps-btn-primary:hover { background: #0773c5; }
+.gps-btn-secondary { background: #dfe6e9; color: #555; }
+.gps-btn-secondary:hover { background: #c8d6e5; }
+
+/* 특징 체크 그리드 */
+.trait-check-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+    margin-top: 12px; text-align: left;
+}
+.trait-check-item {
+    display: flex; align-items: center; gap: 6px;
+    padding: 8px 10px; border: 1px solid #eee; border-radius: 8px;
+    font-size: 13px; cursor: pointer; user-select: none;
+    transition: background 0.15s, border-color 0.15s;
+}
+.trait-check-item:hover { background: #f0f7ff; }
+.trait-check-item.checked {
+    background: #dff0ff; border-color: #74b9ff;
+}
+.trait-check-item input { display: none; }
+
 /* 토스트 메시지 (관리자용) */
 .toast-msg {
     position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);

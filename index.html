@@ -287,6 +287,21 @@
                 </div>
             </div>
 
+            <!-- 방문 인증 섹션 -->
+            <div id="visitSection" class="visit-section" style="display:none;">
+                <div class="visit-header">📍 방문 인증</div>
+                <div class="visit-counts">
+                    <span>총 <b id="visitTotal">0</b>명</span>
+                    <span class="visit-dot">·</span>
+                    <span>최근30일 <b id="visitRecent">0</b>명</span>
+                </div>
+            </div>
+            <!-- 특징 섹션 -->
+            <div id="traitSection" class="trait-section" style="display:none;">
+                <div class="trait-header">특징</div>
+                <div id="traitBars"></div>
+            </div>
+
             <div class="info-row"><span class="info-label">메뉴</span> <span class="info-text" id="panelMenu"></span></div>
             <div class="info-row"><span class="info-label">주소</span> <span class="info-text" id="panelAddr"></span></div>
 
@@ -600,7 +615,6 @@
             select.innerHTML = '';
             if (docSnap.exists()) {
                 let list = docSnap.data().list || [];
-                list.sort();
                 list.forEach((t) => {
                     const opt = document.createElement('option'); opt.value = t; opt.innerText = `🚩 ${t}`; select.appendChild(opt);
                 });
@@ -828,7 +842,7 @@
     }
 
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js?v=3.7')
+        navigator.serviceWorker.register('./sw.js?v=3.8')
             .catch(err => console.log('서비스 워커 실패', err));
 
         // 새 SW가 활성화되면 자동 새로고침
@@ -953,62 +967,140 @@
     function deg2rad(deg) { return deg * (Math.PI/180); }
 
     // ==========================================
-    // 🚀 [최종 수정] GPS + 쿨타임(1시간) 인증 시스템
+    // 🚀 GPS 방문 인증 + 특징 체크 시스템
     // ==========================================
-    window.verifyVisitByGPS = function(shopLat, shopLng, shopName) {
-        const user = auth.currentUser;
-        if(!user) return alert("로그인 후 인증할 수 있습니다! 😅");
+    const TRAIT_LIST = [
+        "혼밥 가능", "혼술 가능", "데이트 추천", "단체 가능",
+        "웨이팅 있음", "주차 가능", "가성비 좋음", "양 많음",
+        "감성 카페", "노포 분위기"
+    ];
 
-        const btn = event.target; 
-        const originalText = btn.innerHTML;
-        
-        // 1. 쿨타임 체크 (DB 확인)
-        const userRef = doc(db, "users", user.uid);
-        
-        // DB에서 유저 정보를 먼저 가져옴
-        getDoc(userRef).then((docSnap) => {
-            if (docSnap.exists()) {
-                const data = docSnap.data();
-                const lastTime = data.lastCheckIn ? data.lastCheckIn.toMillis() : 0;
-                const now = new Date().getTime();
-                const diffMinutes = (now - lastTime) / (1000 * 60); // 분 단위 차이
-
-                // 🔥 [핵심] 60분 이내면 인증 막기
-                if (diffMinutes < 60) {
-                    const waitTime = 60 - Math.floor(diffMinutes);
-                    alert(`⛔ 아직 배부르지 않으세요?\n\n맛집 인증은 1시간에 한 번만 가능합니다!\n(남은 시간: 약 ${waitTime}분)`);
-                    return; // 함수 종료
-                }
-                
-                // 쿨타임 지났으면 GPS 확인 시작
-                startGPSCheck(userRef, shopLat, shopLng, shopName, btn, originalText);
-            }
-        });
+    // 간단한 토스트 메시지
+    function showToastMsg(msg, duration = 2000) {
+        let t = document.getElementById('toastMsg');
+        if (!t) {
+            t = document.createElement('div');
+            t.id = 'toastMsg';
+            t.style.cssText = 'position:fixed; bottom:80px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.8); color:#fff; padding:10px 20px; border-radius:20px; font-size:13px; font-weight:600; z-index:99999; transition:opacity 0.3s;';
+            document.body.appendChild(t);
+        }
+        t.textContent = msg;
+        t.style.opacity = '1';
+        t.style.display = 'block';
+        clearTimeout(t._timer);
+        t._timer = setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.style.display = 'none', 300); }, duration);
     }
 
-    function startGPSCheck(userRef, shopLat, shopLng, shopName, btn, originalText) {
+    // GPS 인증용 임시 변수
+    let _gpsShopId = null;
+    let _gpsAlreadyVoted = false;
+
+    window.verifyVisitByGPS = async function(shopId, shopLat, shopLng, shopName) {
+        const user = auth.currentUser;
+        if (!user) return alert("로그인 후 인증할 수 있습니다! 😅");
+
+        const btn = document.getElementById('gpsAuthBtn');
+        const originalText = btn.innerHTML;
+
+        // 1. 유저 DB에서 오늘 같은 가게 인증 여부 체크
+        const userRef = doc(db, "users", user.uid);
+        const userSnap = await getDoc(userRef);
+        if (!userSnap.exists()) return;
+
+        const data = userSnap.data();
+        const visitLog = data.visitLog || [];
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+        const todayMs = todayStart.getTime();
+
+        const alreadyToday = visitLog.some(v => {
+            const vTime = v.time?.seconds ? v.time.seconds * 1000 : (v.time || 0);
+            return v.shopId === shopId && vTime >= todayMs;
+        });
+
+        if (alreadyToday) {
+            return alert("⛔ 오늘 이미 이 가게를 인증했습니다!\n내일 다시 방문해주세요 😊");
+        }
+
+        // 쿨다운 OK → GPS 확인 시작
+        _gpsShopId = shopId;
+        startGPSCheck(userRef, shopId, shopLat, shopLng, shopName, btn, originalText);
+    }
+
+    async function startGPSCheck(userRef, shopId, shopLat, shopLng, shopName, btn, originalText) {
         if (!navigator.geolocation) return alert("위치 정보를 사용할 수 없습니다. GPS를 켜주세요!");
-        
-        btn.innerHTML = "📡 위치 확인 중..."; 
+
+        btn.innerHTML = "📡 위치 확인 중...";
         btn.disabled = true;
 
         navigator.geolocation.getCurrentPosition(async (pos) => {
-            const myLat = pos.coords.latitude; 
+            const myLat = pos.coords.latitude;
             const myLng = pos.coords.longitude;
-            
-            // 거리 계산
             const distance = getDistanceFromLatLonInKm(myLat, myLng, shopLat, shopLng);
-            
-            // 💡 [범위] 100m 이내 (조금 더 타이트하게)
-            if(distance < 100) {
-                // 성공! (경험치 +10 & 마지막 인증 시간 갱신)
-                await updateDoc(userRef, { 
-                    exp: increment(10),
-                    lastCheckIn: new Date() // 🔥 현재 시간을 기록 (다음 쿨타임 기준)
-                });
-                
-                alert(`🎉 인증 성공!\n[${shopName}] 방문 확인되었습니다.\n경험치 +10 획득! (맛있게 드세요!)`);
-                location.reload(); 
+
+            if (distance < 100) {
+                try {
+                    const user = auth.currentUser;
+                    const now = Date.now();
+
+                    // 1) User 문서 업데이트: EXP +10, visitLog에 추가
+                    await updateDoc(userRef, {
+                        exp: increment(10),
+                        lastCheckIn: new Date(),
+                        visitLog: arrayUnion({
+                            shopId: shopId,
+                            shopName: shopName,
+                            time: new Date(),
+                            distance: Math.round(distance)
+                        })
+                    });
+
+                    // 2) Shop 문서 업데이트: visitCount +1, recentVisits에 추가
+                    const shopRef = doc(db, "shops", shopId);
+                    const shopSnap = await getDoc(shopRef);
+                    if (shopSnap.exists()) {
+                        const shopData = shopSnap.data();
+                        // 30일 이상 된 방문 기록 정리
+                        const cutoff = now - 30 * 24 * 60 * 60 * 1000;
+                        let recentVisits = (shopData.recentVisits || []).filter(v => v.ts > cutoff);
+                        recentVisits.push({ uid: user.uid, ts: now });
+                        await updateDoc(shopRef, {
+                            visitCount: increment(1),
+                            recentVisits: recentVisits
+                        });
+
+                        // 로컬 데이터 업데이트 (패널 즉시 반영)
+                        if (window._currentShop && window._currentShop.id === shopId) {
+                            window._currentShop.visitCount = (window._currentShop.visitCount || 0) + 1;
+                            window._currentShop.recentVisits = recentVisits;
+                            document.getElementById('visitTotal').textContent = window._currentShop.visitCount;
+                            document.getElementById('visitRecent').textContent = recentVisits.filter(v => v.ts > cutoff).length;
+                            document.getElementById('visitSection').style.display = 'block';
+                        }
+
+                        // 특징 투표 여부 체크
+                        const traitVoters = shopData.traitVoters || [];
+                        _gpsAlreadyVoted = traitVoters.includes(user.uid);
+                    }
+
+                    // 3) 레벨 뱃지 즉시 갱신
+                    const updatedSnap = await getDoc(userRef);
+                    if (updatedSnap.exists()) {
+                        const lv = calculateLevel(updatedSnap.data().exp || 0);
+                        document.getElementById('userLevelBadge').innerText = `LV.${lv}`;
+                    }
+
+                    // 4) GPS 성공 모달 표시
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                    showGpsSuccessModal();
+
+                } catch (e) {
+                    console.error("GPS 인증 저장 오류:", e);
+                    alert("인증 저장 중 오류가 발생했습니다. 다시 시도해주세요.");
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }
             } else {
                 alert(`😢 매장 근처가 아닙니다.\n(현재 거리: 약 ${Math.round(distance)}m)\n\n매장 안에 들어오셔서 다시 시도해주세요!`);
                 btn.innerHTML = originalText;
@@ -1019,6 +1111,105 @@
             btn.innerHTML = originalText;
             btn.disabled = false;
         }, { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 });
+    }
+
+    // ==========================================
+    // 모달 제어 함수들
+    // ==========================================
+    function showGpsSuccessModal() {
+        const modal = document.getElementById('gpsSuccessModal');
+        const askDiv = document.getElementById('gpsTraitAsk');
+        const doneDiv = document.getElementById('gpsTraitDone');
+        if (_gpsAlreadyVoted) {
+            // 이미 특징 투표한 유저 → 바로 완료 메시지
+            askDiv.style.display = 'none';
+            doneDiv.style.display = 'block';
+        } else {
+            askDiv.style.display = 'block';
+            doneDiv.style.display = 'none';
+        }
+        modal.style.display = 'flex';
+    }
+
+    window.closeGpsModal = function() {
+        document.getElementById('gpsSuccessModal').style.display = 'none';
+    }
+
+    window.openTraitCheck = function() {
+        document.getElementById('gpsSuccessModal').style.display = 'none';
+        // 특징 체크리스트 렌더링
+        const grid = document.getElementById('traitCheckList');
+        grid.innerHTML = TRAIT_LIST.map(t =>
+            `<label class="trait-check-item" onclick="this.classList.toggle('checked')">
+                <input type="checkbox" value="${t}">
+                <span>${t}</span>
+            </label>`
+        ).join('');
+        document.getElementById('traitCheckModal').style.display = 'flex';
+    }
+
+    window.skipTraits = function() {
+        document.getElementById('gpsSuccessModal').style.display = 'none';
+        showToastMsg("방문 인증 완료! +10 경험치");
+    }
+
+    window.submitTraits = async function() {
+        const user = auth.currentUser;
+        if (!user || !_gpsShopId) return;
+
+        const checked = [...document.querySelectorAll('#traitCheckList input:checked')].map(el => el.value);
+        if (checked.length === 0) {
+            return alert("하나 이상의 특징을 선택해주세요!");
+        }
+
+        try {
+            // 1) Shop 문서: 각 특징 increment(1) + traitVoters에 uid 추가
+            const shopRef = doc(db, "shops", _gpsShopId);
+            const traitUpdates = {};
+            checked.forEach(t => { traitUpdates[`traits.${t}`] = increment(1); });
+            traitUpdates['traitVoters'] = arrayUnion(user.uid);
+            await updateDoc(shopRef, traitUpdates);
+
+            // 2) User EXP +5
+            const userRef = doc(db, "users", user.uid);
+            await updateDoc(userRef, { exp: increment(5) });
+
+            // 3) 레벨 뱃지 즉시 갱신
+            const updatedSnap = await getDoc(userRef);
+            if (updatedSnap.exists()) {
+                const lv = calculateLevel(updatedSnap.data().exp || 0);
+                document.getElementById('userLevelBadge').innerText = `LV.${lv}`;
+            }
+
+            // 4) 로컬 데이터 업데이트 (특징 바 즉시 반영)
+            if (window._currentShop && window._currentShop.id === _gpsShopId) {
+                const traits = window._currentShop.traits || {};
+                checked.forEach(t => { traits[t] = (traits[t] || 0) + 1; });
+                window._currentShop.traits = traits;
+                // 특징 바 다시 렌더링
+                const traitEntries = Object.entries(traits).filter(([k, v]) => v > 0).sort((a, b) => b[1] - a[1]);
+                if (traitEntries.length > 0) {
+                    const maxVal = traitEntries[0][1];
+                    document.getElementById('traitBars').innerHTML = traitEntries.map(([name, count]) => {
+                        const pct = Math.round((count / maxVal) * 100);
+                        return `<div class="trait-row">
+                            <span class="trait-name">${name}</span>
+                            <div class="trait-bar-bg"><div class="trait-bar-fill" style="width:${pct}%"></div></div>
+                            <span class="trait-count">(${count})</span>
+                        </div>`;
+                    }).join('');
+                    document.getElementById('traitSection').style.display = 'block';
+                }
+            }
+
+            // 5) 모달 닫기 + 토스트
+            document.getElementById('traitCheckModal').style.display = 'none';
+            showToastMsg("특징 체크 완료! +5 경험치");
+
+        } catch (e) {
+            console.error("특징 체크 저장 오류:", e);
+            alert("저장 중 오류가 발생했습니다. 다시 시도해주세요.");
+        }
     }
 
     // ==========================================
@@ -1118,6 +1309,37 @@
         // 헤더에 닫기 버튼 + 주차 뱃지 + 하트 버튼 다 넣기
         header.innerHTML = `<button class="panel-close" onclick="closePanel()">✕</button>${parkingBadge}${heartHtml}`;
 
+        // 📍 방문 인증 섹션 렌더링
+        const visitSec = document.getElementById('visitSection');
+        const visitTotal = shop.visitCount || 0;
+        const recentVisits = (shop.recentVisits || []).filter(v => v.ts > Date.now() - 30 * 24 * 60 * 60 * 1000);
+        if (visitTotal > 0 || recentVisits.length > 0) {
+            document.getElementById('visitTotal').textContent = visitTotal;
+            document.getElementById('visitRecent').textContent = recentVisits.length;
+            visitSec.style.display = 'block';
+        } else {
+            visitSec.style.display = 'none';
+        }
+
+        // 📊 특징 섹션 렌더링
+        const traitSec = document.getElementById('traitSection');
+        const traits = shop.traits || {};
+        const traitEntries = Object.entries(traits).filter(([k, v]) => v > 0).sort((a, b) => b[1] - a[1]);
+        if (traitEntries.length > 0) {
+            const maxVal = traitEntries[0][1];
+            document.getElementById('traitBars').innerHTML = traitEntries.map(([name, count]) => {
+                const pct = Math.round((count / maxVal) * 100);
+                return `<div class="trait-row">
+                    <span class="trait-name">${name}</span>
+                    <div class="trait-bar-bg"><div class="trait-bar-fill" style="width:${pct}%"></div></div>
+                    <span class="trait-count">(${count})</span>
+                </div>`;
+            }).join('');
+            traitSec.style.display = 'block';
+        } else {
+            traitSec.style.display = 'none';
+        }
+
         // 버튼 행: 네이버 | GPS 인증 | 공유
         const btnLink = document.getElementById('panelLink');
         if (shop.link) { btnLink.href = shop.link; btnLink.style.display = 'flex'; }
@@ -1125,7 +1347,7 @@
 
         const gpsBtn = document.getElementById('gpsAuthBtn');
         gpsBtn.style.display = 'flex';
-        gpsBtn.onclick = function() { verifyVisitByGPS(shop.lat, shop.lng, shop.name); };
+        gpsBtn.onclick = function() { verifyVisitByGPS(shop.id, shop.lat, shop.lng, shop.name); };
 
         const shareBtn = document.getElementById('shareBtn');
         shareBtn.style.display = 'flex';
@@ -1136,5 +1358,33 @@
         document.getElementById('infoPanel').classList.add('show');
     }
     </script>
+
+    <!-- GPS 인증 성공 모달 -->
+    <div id="gpsSuccessModal" class="gps-overlay" style="display:none;" onclick="if(event.target===this)closeGpsModal()">
+        <div class="gps-modal">
+            <div class="gps-modal-icon">🎉</div>
+            <div class="gps-modal-title">방문 인증 완료!</div>
+            <div class="gps-modal-exp">+10 경험치</div>
+            <div id="gpsTraitAsk" style="margin-top:14px;">
+                <p style="font-size:13px; color:#555; margin-bottom:10px;">이 가게 특징 체크할까요?</p>
+                <div style="display:flex; gap:8px; justify-content:center;">
+                    <button class="gps-modal-btn gps-btn-primary" onclick="openTraitCheck()">체크하기</button>
+                    <button class="gps-modal-btn gps-btn-secondary" onclick="skipTraits()">건너뛰기</button>
+                </div>
+            </div>
+            <div id="gpsTraitDone" style="display:none; margin-top:10px;">
+                <button class="gps-modal-btn gps-btn-secondary" onclick="closeGpsModal()" style="width:100%;">확인</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 특징 체크 모달 -->
+    <div id="traitCheckModal" class="gps-overlay" style="display:none;">
+        <div class="gps-modal" style="max-width:320px;">
+            <div class="gps-modal-title" style="font-size:15px;">이 가게 어땠나요?</div>
+            <div id="traitCheckList" class="trait-check-grid"></div>
+            <button class="gps-modal-btn gps-btn-primary" style="width:100%; margin-top:12px;" onclick="submitTraits()">✅ 완료</button>
+        </div>
+    </div>
 </body>
 </html>
