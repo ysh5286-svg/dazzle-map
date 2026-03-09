@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dazzle-map-v3.8'; // 버전 업데이트 시 같이수정 >> index >> navigator.serviceWorker.register('./sw.js?v=3.8')
+const CACHE_NAME = 'dazzle-map-v3.9'; // 버전 업데이트 시 같이수정 >> index >> navigator.serviceWorker.register('./sw.js?v=3.9')
 
 const urlsToCache = [
   './',
@@ -13,14 +13,15 @@ const urlsToCache = [
 ];
 
 self.addEventListener('install', (event) => {
-  // 🔥 [중요] 대기 중인 서비스 워커를 즉시 활성화하도록 강제함 (skipWaiting)
-  self.skipWaiting(); 
-
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
         console.log('서비스 워커: 파일 캐싱 시작');
-        return cache.addAll(urlsToCache);
+        // 개별 캐싱 (하나 실패해도 나머지 진행)
+        return Promise.allSettled(
+          urlsToCache.map(url => cache.add(url).catch(e => console.warn('캐시 실패:', url)))
+        );
       })
   );
 });
@@ -28,19 +29,31 @@ self.addEventListener('install', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = event.request.url;
 
-  // 네이버 지도, 파이어베이스 등 외부 API는 캐시 제외
-  if (url.includes('naver') || 
-      url.includes('firestore') || 
-      url.includes('googleapis') || 
-      url.includes('gstatic')) {
-    return; 
+  // 네이버 지도, 파이어베이스 등 외부 API는 캐시 제외 (항상 네트워크)
+  if (url.includes('naver') ||
+      url.includes('firestore') ||
+      url.includes('firebase') ||
+      url.includes('googleapis.com/identitytoolkit') ||
+      url.includes('googleapis.com/securetoken')) {
+    return;
   }
 
+  // 🚀 Stale-While-Revalidate: 캐시 즉시 반환 + 백그라운드에서 최신 버전 업데이트
   event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        return response || fetch(event.request);
-      })
+    caches.open(CACHE_NAME).then(cache => {
+      return cache.match(event.request).then(cachedResponse => {
+        const fetchPromise = fetch(event.request).then(networkResponse => {
+          // 정상 응답만 캐시 업데이트
+          if (networkResponse && networkResponse.status === 200) {
+            cache.put(event.request, networkResponse.clone());
+          }
+          return networkResponse;
+        }).catch(() => cachedResponse); // 네트워크 실패 시 캐시 사용
+
+        // 캐시가 있으면 즉시 반환 (빠른 로딩), 없으면 네트워크 대기
+        return cachedResponse || fetchPromise;
+      });
+    })
   );
 });
 
@@ -56,10 +69,8 @@ self.addEventListener('activate', (event) => {
         })
       );
     }).then(() => {
-        // 🔥 [중요] 새 서비스 워커가 즉시 페이지를 제어하도록 설정 (clients.claim)
         return self.clients.claim();
     }).then(() => {
-        // 🔄 모든 열린 탭에 새로고침 신호 보내기
         return self.clients.matchAll({ type: 'window' });
     }).then(clients => {
         clients.forEach(client => client.postMessage({ type: 'SW_UPDATED' }));

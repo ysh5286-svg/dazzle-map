@@ -5,10 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     
     <title>대구핫플여기 보물지도</title>
-    
+
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#c0392b">
     <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/google/material-design-icons/master/png/maps/local_dining/materialicons/48dp/2x/baseline_local_dining_black_48dp.png">
+
+    <!-- 🚀 사전 연결: DNS + TLS 핸드셰이크를 미리 수행하여 로딩 가속 -->
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://oapi.map.naver.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="dns-prefetch" href="https://www.gstatic.com">
+    <link rel="dns-prefetch" href="https://firestore.googleapis.com">
+    <link rel="dns-prefetch" href="https://oapi.map.naver.com">
 
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🗺️</text></svg>">
     <meta property="og:title" content="🗺️ 대구핫플여기 보물지도">
@@ -504,6 +514,19 @@
         "영남대": { lat: 35.8306, lng: 128.7562 }
     };
 
+    // 지도 준비 완료 시 렌더링 재시도 (핵심: 모바일에서 bounds가 늦게 잡히는 문제 해결)
+    let _mapReady = false;
+    naver.maps.Event.addListener(map, "init", function() {
+        _mapReady = true;
+        tryRender("지도init");
+    });
+    naver.maps.Event.addListener(map, "idle", function() {
+        if (!_mapReady) {
+            _mapReady = true;
+            tryRender("지도idle");
+        }
+    });
+
     naver.maps.Event.addListener(map, "click", function() {
         closePanel(); document.getElementById('faqPanel').classList.remove('show');
         if (window._hotplPanelOpen) toggleHotplPanel();
@@ -557,40 +580,53 @@
         });
     });
 
+    let _dataReady = false;
+    let _themeReady = false;
+
     async function loadShopsData() {
         const cachedData = localStorage.getItem(CACHE_KEY);
         const cachedTime = localStorage.getItem(CACHE_KEY + "_time");
         const now = new Date().getTime();
         let isCacheUsed = false;
+
+        // 1단계: 캐시 우선 로드 (즉시)
         if (cachedData && cachedTime) {
             try {
                 const parsed = JSON.parse(cachedData);
                 if (Array.isArray(parsed) && parsed.length > 0) {
                     allShops = parsed;
-                    checkAndRender("캐시로드");
-                    showLandingScreen();
+                    _dataReady = true;
+                    tryRender("캐시로드");
                     isCacheUsed = true;
                 }
             } catch (err) { console.warn("캐시 파싱 오류"); }
         }
-        if(db) {
+
+        // 2단계: Firestore에서 최신 데이터 (백그라운드)
+        if (db) {
             try {
                 const snapshot = await getDocs(collection(db, "shops"));
                 const newShops = [];
-                snapshot.forEach((doc) => newShops.push({ id: doc.id, ...doc.data() }));
-                if (newShops.length > 0 && JSON.stringify(newShops) !== cachedData) {
-                    allShops = newShops;
-                    localStorage.setItem(CACHE_KEY, JSON.stringify(allShops));
-                    localStorage.setItem(CACHE_KEY + "_time", now);
-                    checkAndRender("DB업데이트");
-                    renderFeaturedBanner(allShops);
-                    if(!isCacheUsed) showLandingScreen();
+                snapshot.forEach((d) => newShops.push({ id: d.id, ...d.data() }));
+                if (newShops.length > 0) {
+                    const newJson = JSON.stringify(newShops);
+                    if (newJson !== cachedData) {
+                        allShops = newShops;
+                        localStorage.setItem(CACHE_KEY, newJson);
+                        localStorage.setItem(CACHE_KEY + "_time", now);
+                        _dataReady = true;
+                        tryRender("DB업데이트");
+                        renderFeaturedBanner(allShops);
+                    }
                 }
             } catch (e) {
                 console.error("DB 로딩 실패:", e);
-                if(!isCacheUsed) showLandingScreen();
             }
         }
+
+        // 데이터 로드 완료 (캐시든 DB든)
+        _dataReady = true;
+        tryRender("데이터완료");
     }
 
     // 랜딩 모음집 가로 스크롤
@@ -635,7 +671,8 @@
                 const allOpt = document.createElement('option'); allOpt.value = "ALL"; allOpt.innerText = "📂 전체 맛집 보기"; select.appendChild(allOpt); select.value = "ALL";
             }
         } finally {
-            checkAndRender("테마로딩완료");
+            _themeReady = true;
+            tryRender("테마로딩완료");
         }
     }
 
@@ -660,6 +697,18 @@
         // 화살표 초기 상태
         document.getElementById('landingArrowLeft').disabled = true;
         document.getElementById('landingArrowRight').disabled = (list.length <= 2);
+    }
+
+    // tryRender: 데이터 + 테마 모두 준비되면 렌더링 + 랜딩 표시
+    let _renderDone = false;
+    function tryRender(source) {
+        if (!_dataReady || !_themeReady) return;
+        if (!allShops || allShops.length === 0) return;
+        checkAndRender(source);
+        if (!_renderDone) {
+            _renderDone = true;
+            showLandingScreen();
+        }
     }
 
     function checkAndRender(source) {
@@ -820,7 +869,22 @@
         document.getElementById('hotplFloatBtn').style.display = 'flex';
     }
 
-    initTheme(); loadShopsData();
+    // 🚀 병렬 로딩 + 안전장치: 테마·데이터 동시 로드, 15초 타임아웃
+    Promise.all([
+        initTheme().catch(e => { console.error("테마 로딩 실패:", e); _themeReady = true; }),
+        loadShopsData().catch(e => { console.error("데이터 로딩 실패:", e); _dataReady = true; })
+    ]).then(() => {
+        tryRender("로딩완료");
+    });
+
+    // 타임아웃 안전장치: 15초 내 로딩 안 되면 강제로 랜딩 표시
+    setTimeout(() => {
+        if (!_renderDone) {
+            _renderDone = true;
+            showLandingScreen();
+            console.warn("⏰ 로딩 타임아웃 — 강제 랜딩 표시");
+        }
+    }, 15000);
 
     window.moveToCurrentLocation = function() {
         map.refresh(); 
@@ -842,7 +906,7 @@
     }
 
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js?v=3.8')
+        navigator.serviceWorker.register('./sw.js?v=3.9')
             .catch(err => console.log('서비스 워커 실패', err));
 
         // 새 SW가 활성화되면 자동 새로고침
