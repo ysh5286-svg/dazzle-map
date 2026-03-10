@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>관리자 모드 (필터 수정완료)</title>
+    <script type="text/javascript" src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=krsv42ftzf&submodules=geocoder"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* 관리자 페이지 전용 스타일 */
+        .admin-search-input { padding: 8px; border: 1px solid #ccc; border-radius: 5px; font-size: 13px; width: 120px; outline: none; color: #333; }
+        .admin-select { padding: 8px; border: 1px solid #ddd; border-radius: 5px; font-size: 13px; color: #333; background: white; cursor: pointer; }
+        .search-box-wrapper { gap: 5px; flex-wrap: wrap; }
+
+        .bulk-textarea { width: 100%; height: 200px; font-size: 12px; font-family: monospace; padding: 10px; border: 1px solid #ccc; background: #f4f4f4; margin-bottom: 10px; }
+        .bulk-status { font-size: 12px; color: #e74c3c; margin-top: 5px; font-weight: bold; max-height: 100px; overflow-y: auto; }
+        .shop-select-item { display: flex; justify-content: space-between; align-items: center; }
+        .shop-select-info { flex: 1; cursor: pointer; }
+        .dup-msg { font-size: 12px; margin-left: 10px; font-weight: bold; }
+        .check-item { display: inline-flex; align-items: center; margin-right: 10px; margin-bottom: 5px; cursor: pointer; font-size: 13px; }
+        .check-item input { margin-right: 5px; cursor: pointer; }
+        
+        .hot-check-wrapper {
+            background: #ffe3e3; border: 2px solid #ff6b6b; padding: 10px; border-radius: 8px; margin-bottom: 15px; display: flex; align-items: center; gap: 10px;
+        }
+        .hot-check-label { font-weight: bold; color: #c0392b; font-size: 14px; display: flex; align-items: center; gap: 5px; cursor: pointer; }
+        .hot-check-input { width: 20px; height: 20px; cursor: pointer; accent-color: #e74c3c; }
+        /* 이달의 핫플 관리 */
+        .hotpl-row { display:flex; align-items:center; justify-content:space-between; padding:10px 14px; border-bottom:1px solid #f0f0f0; }
+        .hotpl-row:last-child { border-bottom:none; }
+        .hotpl-row-name { font-size:13px; color:#333; }
+        .hotpl-toggle { position:relative; display:inline-block; width:42px; height:24px; flex-shrink:0; }
+        .hotpl-toggle input { opacity:0; width:0; height:0; }
+        .hotpl-slider { position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background:#ccc; border-radius:24px; transition:.3s; }
+        .hotpl-slider:before { position:absolute; content:""; height:18px; width:18px; left:3px; bottom:3px; background:white; border-radius:50%; transition:.3s; }
+        .hotpl-toggle input:checked + .hotpl-slider { background:#e74c3c; }
+        .hotpl-toggle input:checked + .hotpl-slider:before { transform:translateX(18px); }
+        /* 대표 마커 순서 조정 */
+        .order-item { display:flex; align-items:center; gap:10px; padding:10px 8px; border-bottom:1px solid #f0f0f0; }
+        .order-item:last-child { border-bottom:none; }
+        .order-rank { width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:bold; color:white; flex-shrink:0; }
+        .order-rank.primary { background:#e74c3c; }
+        .order-rank.secondary { background:#bdc3c7; }
+        .order-info { flex:1; min-width:0; }
+        .order-name { font-size:14px; font-weight:bold; color:#222; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .order-cat { font-size:11px; color:#888; margin-top:2px; }
+        .order-btns { display:flex; gap:4px; flex-shrink:0; }
+        .order-btn { width:30px; height:30px; border:1px solid #ddd; border-radius:6px; background:white; cursor:pointer; font-size:14px; display:flex; align-items:center; justify-content:center; }
+        .order-btn:hover { background:#f0f0f0; }
+        .order-btn:disabled { opacity:0.3; cursor:default; }
+        .order-save-btn { width:100%; margin-top:12px; padding:10px; background:#e74c3c; color:white; border:none; border-radius:8px; font-size:14px; font-weight:bold; cursor:pointer; }
+        .order-save-btn:hover { background:#c0392b; }
+    </style>
+</head>
+<body>
+    <div class="search-container">
+        <div class="search-box-wrapper" style="background:#c0392b; color:white; flex-direction:row; align-items:center; padding: 10px;">
+            <div style="display:flex; align-items:center; gap:5px; flex-wrap:wrap; flex:1;">
+                <strong style="white-space:nowrap;">🔒 관리</strong>
+                
+                <select id="adminRegion" class="admin-select" onchange="applyAdminFilters()">
+                    <option value="">📍 지역 전체</option><option value="중구">중구</option><option value="수성구">수성구</option><option value="동구">동구</option><option value="서구">서구</option><option value="남구">남구</option><option value="북구">북구</option><option value="달서구">달서구</option><option value="달성군">달성군</option><option value="경산">경산</option><option value="군위군">군위군</option><option value="칠곡군">칠곡군</option><option value="대구 밖">대구 밖</option>
+                </select>
+                <select id="adminCategory" class="admin-select" onchange="applyAdminFilters()">
+                    <option value="">🍜 업종 전체</option><option value="한식">한식</option><option value="중식">중식</option><option value="일식">일식</option><option value="양식">양식</option><option value="분식">분식</option><option value="고기/구이">고기/구이</option><option value="회/해산물">회/해산물</option><option value="아시안">아시안</option><option value="술집">술집</option><option value="카페/디저트">카페/디저트</option><option value="빵집">빵집</option><option value="패스트푸드">패스트푸드</option><option value="포장/배달">포장/배달</option>
+                </select>
+                <select id="adminPurpose" class="admin-select" onchange="applyAdminFilters()">
+                    <option value="">✨ 분위기 전체</option><option value="노포">노포</option><option value="데이트">데이트</option><option value="단체회식">단체회식</option><option value="혼밥/혼술">혼밥/혼술</option><option value="무한리필">무한리필</option><option value="이색맛집">이색맛집</option><option value="뷰맛집">뷰맛집</option><option value="상견례">상견례</option><option value="야간영업">야간영업</option>
+                </select>
+
+                <input type="text" id="adminSearch" class="admin-search-input" placeholder="🔍 이름 검색" onkeyup="applyAdminFilters()">
+                <label style="display:flex; align-items:center; gap:4px; background:#e74c3c; border:2px solid white; border-radius:6px; padding:4px 8px; cursor:pointer; white-space:nowrap; font-size:12px; font-weight:bold;">
+                    <input type="checkbox" id="filterNoImage" onchange="applyAdminFilters()" style="width:14px; height:14px; cursor:pointer; accent-color:white;">
+                    📷 사진없음만
+                </label>
+            </div>
+            
+            <div style="display:flex; gap:5px;">
+                <button onclick="openBulkModal()" style="background:#f1c40f; color:#333; border:none; padding:6px 10px; border-radius:5px; font-weight:bold; cursor:pointer; font-size:12px; white-space:nowrap;">⚡ 일괄</button>
+                <button onclick="openHotplModal()" style="background:#e74c3c; color:white; border:none; padding:6px 10px; border-radius:5px; font-weight:bold; cursor:pointer; font-size:12px; white-space:nowrap;">🔥 핫플</button>
+                <button onclick="openAddModal()" style="background:#2c3e50; color:white; border:none; padding:6px 10px; border-radius:5px; font-weight:bold; cursor:pointer; font-size:12px; white-space:nowrap;">➕ 추가</button>
+                <button onclick="location.href='index.html'" style="background:white; color:#c0392b; border:none; padding:6px 10px; border-radius:5px; font-weight:bold; cursor:pointer; font-size:12px; white-space:nowrap;">나가기</button>
+            </div>
+        </div>
+
+        <div class="admin-theme-panel">
+            <div class="theme-control-row">
+                <span style="font-weight:bold; font-size:13px; color:#333;">🎨 테마:</span>
+                <select id="adminThemeSelect" class="form-select" style="flex:1;" onchange="toggleThemeMode()">
+                    <option value="">(기본) 업체 정보 수정 모드</option>
+                </select>
+                <button onclick="addNewTheme()" style="background:#2ecc71; color:white; border:none; padding:6px 10px; border-radius:4px; cursor:pointer;">+추가</button>
+                <button onclick="deleteTheme()" style="background:#e74c3c; color:white; border:none; padding:6px 10px; border-radius:4px; cursor:pointer;">-삭제</button>
+                <button onclick="renameTheme()" style="background:#3498db; color:white; border:none; padding:6px 10px; border-radius:4px; cursor:pointer; margin-left:5px;">✏️이름 변경</button>
+                <button onclick="openThemeReorderPanel()" style="background:#f39c12; color:white; border:none; padding:6px 10px; border-radius:4px; cursor:pointer; margin-left:5px;">🔢순서</button>
+            </div>
+            <div id="themeModeStatus" class="theme-mode-badge">
+                ⚡ <b>테마 태깅 모드 ON</b><br>지도의 핀을 클릭하면 해당 테마에 즉시 추가/제거됩니다.
+            </div>
+            <!-- 테마 순서 변경 패널 -->
+            <div id="themeReorderPanel" style="display:none; margin-top:8px; background:#fffbea; border:1px solid #f39c12; border-radius:8px; padding:10px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <span style="font-size:13px; font-weight:700; color:#333;">🔢 테마 순서 변경</span>
+                    <button onclick="closeThemeReorderPanel()" style="border:none; background:none; font-size:18px; cursor:pointer; color:#888;">×</button>
+                </div>
+                <div id="themeReorderList" style="max-height:300px; overflow-y:auto; border:1px solid #eee; border-radius:6px; background:#fff;"></div>
+                <button onclick="saveThemeOrder()" style="margin-top:8px; width:100%; padding:8px; background:#f39c12; color:#fff; border:none; border-radius:6px; font-size:13px; font-weight:700; cursor:pointer;">💾 순서 저장</button>
+            </div>
+            <!-- 테마 편집 패널 -->
+            <div id="themeEditorPanel" style="display:none;">
+                <div class="theme-editor-section">
+                    <div class="theme-editor-title theme-toggle" onclick="toggleThemeSection('registered')" id="themeRegisteredTitle">
+                        <span>✅ 등록된 업체 (0개)</span><span class="theme-toggle-arrow" id="themeRegArrow">▼</span>
+                    </div>
+                    <div id="themeRegisteredBody">
+                        <div class="theme-shop-list" id="themeRegisteredList"></div>
+                    </div>
+                </div>
+                <hr style="border:none; border-top:1px dashed #ddd; margin:8px 0;">
+                <div class="theme-editor-section">
+                    <div class="theme-editor-title theme-toggle" onclick="toggleThemeSection('available')" id="themeAvailableTitle">
+                        <span>📋 업체 추가</span><span class="theme-toggle-arrow" id="themeAvArrow">▼</span>
+                    </div>
+                    <div id="themeAvailableBody">
+                        <div class="theme-filter-bar">
+                            <input type="text" id="themeSearchInput" placeholder="🔍 이름 검색" oninput="renderThemeEditor()">
+                            <select id="themeCatFilter" onchange="renderThemeEditor()">
+                                <option value="">업종 전체</option>
+                            </select>
+                            <select id="themeRegionFilter" onchange="renderThemeEditor()">
+                                <option value="">지역 전체</option>
+                            </select>
+                        </div>
+                        <div class="theme-shop-list" id="themeAvailableList"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="toast" class="toast-msg">처리되었습니다</div>
+    <div class="admin-notice" style="position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(192, 57, 43, 0.9); color: white; padding: 10px 20px; border-radius: 30px; font-size: 13px; z-index: 200; pointer-events: none; text-align: center; width: 80%;">지도 클릭 또는 상단 버튼 사용</div>
+    <div id="map"></div>
+
+    <div id="selectModal" class="modal-overlay">
+        <div class="modal-box">
+            <button class="modal-close-x" onclick="closeSelectModal()">×</button>
+            <div id="selectTabBar" style="display:flex; gap:0; margin-bottom:12px; border-bottom:2px solid #eee;">
+                <button class="select-tab active" onclick="switchSelectTab('edit')" id="tabEdit" style="flex:1; padding:8px; border:none; background:none; font-size:13px; font-weight:bold; cursor:pointer; color:#e74c3c; border-bottom:2px solid #e74c3c; margin-bottom:-2px;">👇 매장 선택</button>
+                <button class="select-tab" onclick="switchSelectTab('order')" id="tabOrder" style="flex:1; padding:8px; border:none; background:none; font-size:13px; font-weight:bold; cursor:pointer; color:#999; border-bottom:2px solid transparent; margin-bottom:-2px;">📌 대표 순서</button>
+            </div>
+            <div id="selectEditPane">
+                <div id="selectList" class="shop-select-list"></div>
+            </div>
+            <div id="selectOrderPane" style="display:none;">
+                <p style="font-size:11px; color:#999; margin:0 0 10px 0;">1번이 마커에 대표로 표시됩니다. 화살표로 순서를 변경하세요.</p>
+                <div id="orderList"></div>
+                <button class="order-save-btn" onclick="saveGroupOrder()">💾 순서 저장</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="shopModal" class="modal-overlay">
+        <div class="modal-box">
+            <button class="modal-close-x" onclick="closeModal()">×</button>
+            <h3 class="modal-title">업체 정보 관리</h3>
+            <input type="hidden" id="shopId"><input type="hidden" id="shopLat"><input type="hidden" id="shopLng">
+            
+            <div class="form-group">
+                <label class="form-label">업체명 <span id="dupMsg" class="dup-msg"></span></label>
+                <input type="text" id="shopName" class="form-input" placeholder="상호명을 입력하세요" autocomplete="off">
+            </div>
+
+            <div class="hot-check-wrapper">
+                <label class="hot-check-label">
+                    <input type="checkbox" id="shopIsHot" class="hot-check-input">
+                    🔥 이달의 핫플 + 지도 강조 (배너 등록 & 테두리 표시)
+                </label>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">📍 지역 (필수)</label>
+                    <select id="shopRegion" class="form-input">
+                        <option value="">선택하세요</option>
+                        <option value="중구">중구</option><option value="수성구">수성구</option><option value="동구">동구</option><option value="서구">서구</option><option value="남구">남구</option><option value="북구">북구</option><option value="달서구">달서구</option><option value="달성군">달성군</option><option value="경산">경산</option><option value="군위군">군위군</option><option value="칠곡군">칠곡군</option><option value="대구 밖">대구 밖</option>
+                    </select>
+                </div>
+                <div class="form-group"><label class="form-label">상권 (예: 동성로)</label><input type="text" id="shopArea" class="form-input" autocomplete="off"></div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">대표메뉴 <button type="button" onclick="addMenuField()" style="border:none; background:#e74c3c; color:#fff; border-radius:50%; width:22px; height:22px; font-size:14px; cursor:pointer; vertical-align:middle; line-height:1;">+</button></label>
+                <div id="menuFieldsContainer">
+                    <input type="text" class="form-input menu-field" placeholder="메뉴 1" autocomplete="off">
+                </div>
+            </div>
+
+            <div class="form-group" style="background:#e3f2fd; padding:10px; border-radius:5px;">
+                <label class="form-label">🚗 주차 정보</label>
+                <select id="shopParking" class="form-input" style="font-weight:bold;">
+                    <option value="">선택하세요</option>
+                    <option value="❌ 주차 불가">❌ 주차 불가</option>
+                    <option value="⚠️ 주차 협소">⚠️ 주차 협소 (1~2대)</option>
+                    <option value="🅿️ 주차장 완비">🅿️ 주차장 완비</option>
+                </select>
+            </div>
+            
+            <div class="form-group" style="background:#fff9db; padding:10px; border-radius:5px;">
+                <label class="form-label" style="color:#f59f00;">⭐ 다즐 별점 (5.0 만점 / 0.25 단위)</label>
+                <input type="number" id="shopTotalScore" class="form-input" step="0.25" max="5.0" placeholder="예: 4.25" style="font-weight:bold; font-size:16px;">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">🗨️ 한줄평</label>
+                <textarea id="shopDesc" class="form-textarea" placeholder="추천 멘트" rows="2"></textarea>
+            </div>
+
+            <div class="form-group"><label class="form-label">주소</label><input type="text" id="shopAddress" class="form-input" autocomplete="off"></div>
+            <div class="form-group">
+                <label class="form-label">이미지 URL</label>
+                <div style="display:flex; gap:6px; align-items:center;">
+                    <input type="text" id="shopImage" class="form-input" autocomplete="off" oninput="previewShopImage(this.value)" style="flex:1;">
+                    <img id="shopImagePreview" src="" style="width:48px; height:48px; border-radius:6px; object-fit:cover; border:1px solid #ddd; display:none;" onerror="this.style.display='none'">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">네이버 플레이스 링크</label>
+                <div style="display:flex; gap:6px;">
+                    <input type="text" id="shopLink" class="form-input" autocomplete="off" style="flex:1;">
+                    <button type="button" onclick="openNaverPlace()" style="background:#03c75a; color:white; border:none; padding:6px 10px; border-radius:6px; cursor:pointer; font-size:12px; font-weight:bold; white-space:nowrap;">N 열기</button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">업종</label>
+                <div class="multi-select-container" id="categoryContainer"></div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">목적</label>
+                <div class="multi-select-container" id="purposeContainer"></div>
+            </div>
+            
+            <div class="modal-btns">
+                <button class="btn-delete" id="btnDelete" onclick="deleteCurrentShop()">삭제</button>
+                <button class="btn-save" onclick="saveShop()">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="bulkModal" class="modal-overlay">
+        <div class="modal-box" style="max-width:620px;">
+            <button class="modal-close-x" onclick="closeBulkModal()">×</button>
+            <h3 class="modal-title">⚡ 업체 일괄 등록</h3>
+            <p style="font-size:12px; color:#888; margin-bottom:8px;">한 줄에 하나씩 <b>상호명 / 주소</b> 형식으로 입력하세요.</p>
+            <div style="margin-bottom:10px;">
+                <label style="font-size:12px; font-weight:bold; color:#333; display:block; margin-bottom:5px;">🍜 업종 (일괄 적용)</label>
+                <div id="bulkCategoryContainer" style="display:flex; flex-wrap:wrap; gap:2px;"></div>
+                <div style="display:flex; gap:4px; margin-top:5px;">
+                    <input type="text" id="bulkNewCat" class="admin-search-input" placeholder="새 업종 입력" style="flex:1; font-size:12px;">
+                    <button type="button" onclick="addBulkCustomCat()" style="background:#2ecc71; color:white; border:none; padding:4px 10px; border-radius:5px; font-size:12px; font-weight:bold; cursor:pointer; white-space:nowrap;">+ 추가</button>
+                </div>
+            </div>
+            <div style="margin-bottom:10px;">
+                <label style="font-size:12px; font-weight:bold; color:#333; display:block; margin-bottom:5px;">✨ 분위기 (일괄 적용)</label>
+                <div id="bulkPurposeContainer" style="display:flex; flex-wrap:wrap; gap:2px;"></div>
+            </div>
+            <textarea id="bulkDataInput" class="bulk-textarea" placeholder="예시:
+맛있는집 / 대구광역시 중구 동성로 123
+커피하우스 / 대구광역시 수성구 범어로 45
+노포식당 / 대구광역시 남구 대명로 67"></textarea>
+            <div id="bulkStatus" class="bulk-status"></div>
+            <div class="modal-btns">
+                <button class="btn-save" style="background:#f1c40f; color:#333;" onclick="processBulkData()">🚀 일괄 등록</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="hotplModal" class="modal-overlay">
+        <div class="modal-box" style="max-width:480px; max-height:85vh; display:flex; flex-direction:column;">
+            <button class="modal-close-x" onclick="document.getElementById('hotplModal').classList.remove('show')">×</button>
+            <h3 class="modal-title">🔥 이달의 핫플 관리</h3>
+
+            <!-- 탭 전환 -->
+            <div style="display:flex; gap:6px; margin-bottom:10px;">
+                <button onclick="switchHotplTab('select')" id="hotplTabSelect" class="hotpl-tab active" style="flex:1; padding:7px; border:1px solid #e74c3c; background:#e74c3c; color:#fff; border-radius:6px; cursor:pointer; font-size:13px; font-weight:600;">📋 핫플 선택</button>
+                <button onclick="switchHotplTab('order')" id="hotplTabOrder" class="hotpl-tab" style="flex:1; padding:7px; border:1px solid #ddd; background:#fff; color:#333; border-radius:6px; cursor:pointer; font-size:13px; font-weight:600;">🔢 순서 변경</button>
+            </div>
+
+            <!-- 탭1: 핫플 선택 (기존) -->
+            <div id="hotplSelectPane" style="display:flex; flex-direction:column; flex:1; overflow:hidden;">
+                <p style="font-size:12px; color:#888; margin-bottom:10px;">토글 ON = 메인화면 이달의 핫플 배너에 표시됩니다.</p>
+                <input type="text" id="hotplSearch" placeholder="🔍 매장 검색" oninput="filterHotplList()" style="border:1px solid #ddd; border-radius:6px; padding:7px 10px; font-size:13px; margin-bottom:10px; outline:none;">
+                <div id="hotplList" style="overflow-y:auto; flex:1; border:1px solid #eee; border-radius:8px;"></div>
+            </div>
+
+            <!-- 탭2: 순서 변경 -->
+            <div id="hotplOrderPane" style="display:none; flex-direction:column; flex:1; overflow:hidden;">
+                <p style="font-size:12px; color:#888; margin-bottom:10px;">화살표로 배너 표시 순서를 변경하세요. (위 = 먼저 표시)</p>
+                <div id="hotplOrderList" style="overflow-y:auto; flex:1; border:1px solid #eee; border-radius:8px;"></div>
+                <button onclick="saveHotplOrder()" style="margin-top:10px; padding:10px; background:#e74c3c; color:#fff; border:none; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer;">💾 순서 저장</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { db, initMap, createMarker } from "./common.js";
+        import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, where, getDocs, setDoc, getDoc, arrayUnion, arrayRemove, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // Expose Firebase for console bulk operations
+        window._fb = { db, updateDoc, doc, addDoc, collection, getDocs };
+
+        var password = prompt("관리자 비밀번호:");
+        if (password !== "2364") { document.body.innerHTML = "⛔ 접근 거부"; throw new Error("비밀번호 오류"); }
+
+        var map = initMap();
+        let markerList = [];
+        let allShopsData = [];
+        let currentThemeMode = ""; 
+        let themeList = []; 
+        const CAT_LIST = ['한식', '중식', '일식', '양식', '분식', '고기/구이', '회/해산물', '아시안', '술집', '카페/디저트', '빵집', '패스트푸드', '포장/배달'];
+        const PUR_LIST = ['노포', '데이트', '단체회식', '혼밥/혼술', '무한리필', '이색맛집', '뷰맛집', '상견례', '야간영업'];
+
+        window.closeModal = function() { $('#shopModal').removeClass('show'); }
+        window.openBulkModal = function() {
+            $('#bulkDataInput').val(''); $('#bulkStatus').html('');
+            // 업종 체크박스 렌더
+            const catCon = document.getElementById('bulkCategoryContainer');
+            catCon.innerHTML = CAT_LIST.map(c => `<label class="check-item"><input type="checkbox" name="bulkCat" value="${c}"> ${c}</label>`).join('');
+            // 분위기 체크박스 렌더
+            const purCon = document.getElementById('bulkPurposeContainer');
+            purCon.innerHTML = PUR_LIST.map(p => `<label class="check-item"><input type="checkbox" name="bulkPur" value="${p}"> ${p}</label>`).join('');
+            $('#bulkModal').addClass('show');
+        }
+        window.addBulkCustomCat = function() {
+            const input = document.getElementById('bulkNewCat');
+            const val = input.value.trim();
+            if (!val) return;
+            const con = document.getElementById('bulkCategoryContainer');
+            // 중복 체크
+            if ([...con.querySelectorAll('input[name="bulkCat"]')].some(el => el.value === val)) { input.value = ''; return; }
+            const label = document.createElement('label');
+            label.className = 'check-item';
+            label.innerHTML = `<input type="checkbox" name="bulkCat" value="${val}" checked> ${val}`;
+            con.appendChild(label);
+            input.value = '';
+        }
+        window.closeBulkModal = function() { $('#bulkModal').removeClass('show'); }
+        window.closeSelectModal = function() { $('#selectModal').removeClass('show'); }
+
+        function renderCheckboxes(containerId, name, items, selected = []) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            const selectedList = Array.isArray(selected) ? selected : (selected ? [selected] : []);
+            items.forEach(item => {
+                const isChecked = selectedList.includes(item);
+                const label = document.createElement('label');
+                label.className = 'check-item';
+                label.innerHTML = `<input type="checkbox" name="${name}" value="${item}" ${isChecked ? 'checked' : ''}> ${item}`;
+                container.appendChild(label);
+            });
+        }
+
+        async function loadThemes() {
+            const docRef = doc(db, "meta", "themes");
+            const docSnap = await getDoc(docRef);
+            const select = document.getElementById('adminThemeSelect');
+            select.innerHTML = '<option value="">(기본) 업체 정보 수정 모드</option>';
+            if (docSnap.exists()) {
+                themeList = docSnap.data().list || [];
+                themeList.forEach(t => {
+                    const opt = document.createElement('option');
+                    opt.value = t; opt.innerText = `📂 ${t}`;
+                    select.appendChild(opt);
+                });
+            }
+        }
+        loadThemes();
+        
+        // 섹션 접기/펼치기
+        window.toggleThemeSection = function(section) {
+            const bodyId = section === 'registered' ? 'themeRegisteredBody' : 'themeAvailableBody';
+            const arrowId = section === 'registered' ? 'themeRegArrow' : 'themeAvArrow';
+            const body = document.getElementById(bodyId);
+            const arrow = document.getElementById(arrowId);
+            if (body.style.display === 'none') {
+                body.style.display = '';
+                arrow.textContent = '▼';
+            } else {
+                body.style.display = 'none';
+                arrow.textContent = '▶';
+            }
+        }
+
+        window.toggleThemeMode = function() {
+            const val = document.getElementById('adminThemeSelect').value;
+            currentThemeMode = val;
+            const badge = document.getElementById('themeModeStatus');
+            const editor = document.getElementById('themeEditorPanel');
+            if (val) {
+                badge.style.display = 'block';
+                badge.innerHTML = `⚡ <b>[${val}]</b> 태깅 모드 ON<br>핀 클릭 또는 아래 리스트에서 추가/제거`;
+                editor.style.display = 'block';
+                initThemeFilterOptions();
+                renderThemeEditor();
+            } else {
+                badge.style.display = 'none';
+                editor.style.display = 'none';
+            }
+            applyAdminFilters(); // 테마 변경 시 지도 핀 상태 업데이트
+        }
+
+        // 테마 편집 필터 옵션 초기화 (최초 1회)
+        let _themeFilterInited = false;
+        function initThemeFilterOptions() {
+            if (_themeFilterInited) return;
+            _themeFilterInited = true;
+            const catSel = document.getElementById('themeCatFilter');
+            const regSel = document.getElementById('themeRegionFilter');
+            CAT_LIST.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; catSel.appendChild(o); });
+            const regions = ['중구','수성구','동구','서구','남구','북구','달서구','달성군','경산','군위군','칠곡군','대구 밖'];
+            regions.forEach(r => { const o = document.createElement('option'); o.value = r; o.textContent = r; regSel.appendChild(o); });
+        }
+
+        // 테마 편집 패널 렌더링
+        window.renderThemeEditor = function() {
+            if (!currentThemeMode) return;
+            const keyword = (document.getElementById('themeSearchInput').value || '').toLowerCase().replace(/\s+/g, '');
+            const catFilter = document.getElementById('themeCatFilter').value;
+            const regFilter = document.getElementById('themeRegionFilter').value;
+
+            // 등록/미등록 분류
+            const registered = [];
+            const available = [];
+            allShopsData.filter(s => s.name).forEach(shop => {
+                const inTheme = shop.themes && shop.themes.includes(currentThemeMode);
+                if (inTheme) { registered.push(shop); }
+                else { available.push(shop); }
+            });
+            registered.sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+
+            // 등록된 업체 렌더
+            const regTitle = document.getElementById('themeRegisteredTitle');
+            regTitle.querySelector('span').textContent = `✅ 등록된 업체 (${registered.length}개)`;
+            const regList = document.getElementById('themeRegisteredList');
+            regList.innerHTML = registered.map(s => {
+                const cats = Array.isArray(s.category) ? s.category : [s.category || ''];
+                return `<div class="theme-shop-item">
+                    <div class="theme-shop-info">
+                        <span class="theme-shop-name">${s.name}</span>
+                        <span class="theme-shop-badge">${cats[0]}</span>
+                        <span class="theme-shop-region">${s.region || ''}</span>
+                    </div>
+                    <button class="theme-btn-remove" onclick="removeShopFromTheme('${s.id}')">✕ 제거</button>
+                </div>`;
+            }).join('');
+
+            // 미등록 업체 필터링
+            let filtered = available.filter(shop => {
+                const shopCats = Array.isArray(shop.category) ? shop.category : [shop.category || ''];
+                const searchText = (shop.name + ' ' + (shop.menu || '') + ' ' + (shop.area || '') + ' ' + shopCats.join(' ')).toLowerCase().replace(/\s+/g, '');
+                const matchKeyword = !keyword || searchText.includes(keyword);
+                const matchCat = !catFilter || shopCats.includes(catFilter);
+                const matchRegion = !regFilter || shop.region === regFilter;
+                return matchKeyword && matchCat && matchRegion;
+            });
+            filtered.sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+
+            // 미등록 업체 렌더
+            const avList = document.getElementById('themeAvailableList');
+            avList.innerHTML = filtered.map(s => {
+                const cats = Array.isArray(s.category) ? s.category : [s.category || ''];
+                return `<div class="theme-shop-item">
+                    <div class="theme-shop-info">
+                        <span class="theme-shop-name">${s.name}</span>
+                        <span class="theme-shop-badge">${cats[0]}</span>
+                        <span class="theme-shop-region">${s.region || ''}</span>
+                    </div>
+                    <button class="theme-btn-add" onclick="addShopToTheme('${s.id}')">+ 추가</button>
+                </div>`;
+            }).join('');
+        }
+
+        // 테마에 업체 추가
+        window.addShopToTheme = async function(shopId) {
+            if (!currentThemeMode) return;
+            try {
+                await updateDoc(doc(db, "shops", shopId), { themes: arrayUnion(currentThemeMode) });
+                // 로컬 데이터 즉시 업데이트
+                const shop = allShopsData.find(s => s.id === shopId);
+                if (shop) {
+                    if (!shop.themes) shop.themes = [];
+                    if (!shop.themes.includes(currentThemeMode)) shop.themes.push(currentThemeMode);
+                }
+                showToast(`➕ 추가됨`);
+                renderThemeEditor();
+                applyAdminFilters(); // 지도 핀 업데이트
+            } catch(e) { alert(e.message); }
+        }
+
+        // 테마에서 업체 제거
+        window.removeShopFromTheme = async function(shopId) {
+            if (!currentThemeMode) return;
+            try {
+                await updateDoc(doc(db, "shops", shopId), { themes: arrayRemove(currentThemeMode) });
+                // 로컬 데이터 즉시 업데이트
+                const shop = allShopsData.find(s => s.id === shopId);
+                if (shop && shop.themes) {
+                    shop.themes = shop.themes.filter(t => t !== currentThemeMode);
+                }
+                showToast(`➖ 제거됨`);
+                renderThemeEditor();
+                applyAdminFilters(); // 지도 핀 업데이트
+            } catch(e) { alert(e.message); }
+        }
+        window.addNewTheme = async function() {
+            const name = prompt("새로운 테마 이름:"); if(!name) return; if(themeList.includes(name)) return alert("중복");
+            themeList.push(name); await setDoc(doc(db, "meta", "themes"), { list: themeList }, { merge: true }); alert("추가됨"); loadThemes();
+        }
+        window.renameTheme = async function() {
+            const oldName = $('#adminThemeSelect').val(); if(!oldName) return alert("선택필요");
+            const newName = prompt("새 이름:", oldName); if(!newName || newName===oldName) return;
+            if (themeList.includes(newName)) return alert("이미 존재하는 이름입니다");
+            // 1. meta/themes 업데이트
+            themeList = themeList.map(t => t === oldName ? newName : t);
+            await setDoc(doc(db, "meta", "themes"), { list: themeList });
+            // 2. 해당 테마의 모든 업체 themes 배열 업데이트
+            showToast('🔄 업체 테마 업데이트 중...');
+            const q = query(collection(db, "shops"), where("themes", "array-contains", oldName));
+            const snapshot = await getDocs(q);
+            if (!snapshot.empty) {
+                const BATCH_SIZE = 250;
+                const docs = snapshot.docs;
+                for (let i = 0; i < docs.length; i += BATCH_SIZE) {
+                    const batch = writeBatch(db);
+                    docs.slice(i, i + BATCH_SIZE).forEach(shopDoc => {
+                        const ref = doc(db, "shops", shopDoc.id);
+                        batch.update(ref, { themes: arrayRemove(oldName) });
+                        batch.update(ref, { themes: arrayUnion(newName) });
+                    });
+                    await batch.commit();
+                }
+                // 로컬 캐시도 업데이트
+                allShopsData.forEach(shop => {
+                    if (shop.themes && shop.themes.includes(oldName)) {
+                        shop.themes = shop.themes.map(t => t === oldName ? newName : t);
+                    }
+                });
+            }
+            showToast(`✅ 이름 변경 완료! (${snapshot.size}개 업체 업데이트)`);
+            loadThemes();
+        }
+        window.deleteTheme = async function() {
+            const target = $('#adminThemeSelect').val(); if(!target) return alert("선택필요");
+            if(!confirm("삭제합니까?")) return;
+            await updateDoc(doc(db, "meta", "themes"), { list: arrayRemove(target) });
+            alert("삭제됨"); loadThemes(); $('#adminThemeSelect').val(""); toggleThemeMode();
+        }
+
+        // ========== 테마 순서 변경 (드래그 앤 드롭) ==========
+        let _dragIdx = null;
+        window.openThemeReorderPanel = function() {
+            document.getElementById('adminThemeSelect').value = '';
+            toggleThemeMode();
+            document.getElementById('themeReorderPanel').style.display = 'block';
+            renderThemeReorderList();
+        };
+        window.closeThemeReorderPanel = function() {
+            document.getElementById('themeReorderPanel').style.display = 'none';
+        };
+        function renderThemeReorderList() {
+            const list = document.getElementById('themeReorderList');
+            if (themeList.length === 0) {
+                list.innerHTML = '<p style="padding:20px; text-align:center; color:#aaa;">등록된 테마가 없습니다.</p>';
+                return;
+            }
+            list.innerHTML = themeList.map((t, i) => `
+                <div class="theme-reorder-item" draggable="true" data-idx="${i}">
+                    <span class="theme-drag-handle">☰</span>
+                    <span style="font-size:14px; font-weight:700; color:#f39c12; min-width:22px;">${i + 1}</span>
+                    <span style="flex:1; font-size:13px; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${t}</span>
+                </div>
+            `).join('');
+            // 이벤트 바인딩
+            list.querySelectorAll('.theme-reorder-item').forEach(el => {
+                el.addEventListener('dragstart', onDragStart);
+                el.addEventListener('dragover', onDragOver);
+                el.addEventListener('drop', onDrop);
+                el.addEventListener('dragend', onDragEnd);
+                // 터치 지원
+                const handle = el.querySelector('.theme-drag-handle');
+                handle.addEventListener('touchstart', onTouchStart, { passive: false });
+            });
+        }
+        function onDragStart(e) {
+            _dragIdx = +this.dataset.idx;
+            this.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        }
+        function onDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            const items = [...document.querySelectorAll('.theme-reorder-item')];
+            items.forEach(el => el.classList.remove('drag-over'));
+            this.classList.add('drag-over');
+        }
+        function onDrop(e) {
+            e.preventDefault();
+            const dropIdx = +this.dataset.idx;
+            if (_dragIdx === null || _dragIdx === dropIdx) return;
+            const moved = themeList.splice(_dragIdx, 1)[0];
+            themeList.splice(dropIdx, 0, moved);
+            renderThemeReorderList();
+        }
+        function onDragEnd() {
+            _dragIdx = null;
+            document.querySelectorAll('.theme-reorder-item').forEach(el => {
+                el.classList.remove('dragging', 'drag-over');
+            });
+        }
+        // 터치 드래그 지원
+        let _touchEl = null, _touchClone = null, _touchStartY = 0;
+        function onTouchStart(e) {
+            e.preventDefault();
+            const item = this.closest('.theme-reorder-item');
+            _dragIdx = +item.dataset.idx;
+            _touchEl = item;
+            _touchStartY = e.touches[0].clientY;
+            item.classList.add('dragging');
+            // 고스트 복제
+            _touchClone = item.cloneNode(true);
+            _touchClone.style.cssText = 'position:fixed; pointer-events:none; z-index:9999; opacity:0.85; width:' + item.offsetWidth + 'px; left:' + item.getBoundingClientRect().left + 'px; top:' + e.touches[0].clientY + 'px; transform:translateY(-50%);';
+            document.body.appendChild(_touchClone);
+            document.addEventListener('touchmove', onTouchMove, { passive: false });
+            document.addEventListener('touchend', onTouchEnd);
+        }
+        function onTouchMove(e) {
+            e.preventDefault();
+            if (!_touchClone) return;
+            _touchClone.style.top = e.touches[0].clientY + 'px';
+            // 하이라이트
+            const items = [...document.querySelectorAll('.theme-reorder-item')];
+            items.forEach(el => el.classList.remove('drag-over'));
+            const target = document.elementFromPoint(e.touches[0].clientX, e.touches[0].clientY);
+            if (target) {
+                const row = target.closest('.theme-reorder-item');
+                if (row && row !== _touchEl) row.classList.add('drag-over');
+            }
+        }
+        function onTouchEnd(e) {
+            document.removeEventListener('touchmove', onTouchMove);
+            document.removeEventListener('touchend', onTouchEnd);
+            if (_touchClone) { _touchClone.remove(); _touchClone = null; }
+            // 드롭 위치 결정
+            const touch = e.changedTouches[0];
+            const target = document.elementFromPoint(touch.clientX, touch.clientY);
+            if (target) {
+                const row = target.closest('.theme-reorder-item');
+                if (row && _dragIdx !== null) {
+                    const dropIdx = +row.dataset.idx;
+                    if (_dragIdx !== dropIdx) {
+                        const moved = themeList.splice(_dragIdx, 1)[0];
+                        themeList.splice(dropIdx, 0, moved);
+                    }
+                }
+            }
+            _dragIdx = null;
+            _touchEl = null;
+            renderThemeReorderList();
+        }
+        window.saveThemeOrder = async function() {
+            try {
+                await setDoc(doc(db, "meta", "themes"), { list: themeList });
+                showToast('✅ 테마 순서 저장됨');
+                loadThemes();
+                closeThemeReorderPanel();
+            } catch(e) { alert('저장 실패: ' + e.message); }
+        };
+
+        function handleMarkerClick(clickedList) {
+            if (currentThemeMode) {
+                if(clickedList.length > 1) showSelectModal(clickedList, true); 
+                else toggleShopTheme(clickedList[0]);
+            } else {
+                if (clickedList.length === 1) openEditModal(clickedList[0]);
+                else showSelectModal(clickedList, false);
+            }
+        }
+        
+        window._selectGroupList = [];
+        window._selectIsThemeMode = false;
+
+        window.switchSelectTab = function(tab) {
+            const tabEdit = document.getElementById('tabEdit');
+            const tabOrder = document.getElementById('tabOrder');
+            const editPane = document.getElementById('selectEditPane');
+            const orderPane = document.getElementById('selectOrderPane');
+            if (tab === 'edit') {
+                tabEdit.style.color = '#e74c3c'; tabEdit.style.borderBottomColor = '#e74c3c';
+                tabOrder.style.color = '#999'; tabOrder.style.borderBottomColor = 'transparent';
+                editPane.style.display = ''; orderPane.style.display = 'none';
+            } else {
+                tabOrder.style.color = '#e74c3c'; tabOrder.style.borderBottomColor = '#e74c3c';
+                tabEdit.style.color = '#999'; tabEdit.style.borderBottomColor = 'transparent';
+                editPane.style.display = 'none'; orderPane.style.display = '';
+                renderOrderList();
+            }
+        };
+
+        function renderOrderList() {
+            const container = document.getElementById('orderList');
+            const list = window._selectGroupList;
+            container.innerHTML = list.map((s, i) => {
+                const cat = Array.isArray(s.category) ? s.category[0] : (s.category || '');
+                return `<div class="order-item" data-idx="${i}">
+                    <div class="order-rank ${i === 0 ? 'primary' : 'secondary'}">${i + 1}</div>
+                    <div class="order-info">
+                        <div class="order-name">${s.name}</div>
+                        <div class="order-cat">${cat}${s.address ? ' · ' + s.address : ''}</div>
+                    </div>
+                    <div class="order-btns">
+                        <button class="order-btn" onclick="moveOrderItem(${i}, -1)" ${i === 0 ? 'disabled' : ''}>▲</button>
+                        <button class="order-btn" onclick="moveOrderItem(${i}, 1)" ${i === list.length - 1 ? 'disabled' : ''}>▼</button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        window.moveOrderItem = function(idx, dir) {
+            const list = window._selectGroupList;
+            const newIdx = idx + dir;
+            if (newIdx < 0 || newIdx >= list.length) return;
+            [list[idx], list[newIdx]] = [list[newIdx], list[idx]];
+            renderOrderList();
+        };
+
+        window.saveGroupOrder = async function() {
+            const list = window._selectGroupList;
+            try {
+                for (let i = 0; i < list.length; i++) {
+                    await updateDoc(doc(db, "shops", list[i].id), { groupOrder: i });
+                }
+                showToast(`✅ 대표 순서 저장됨 (1번: ${list[0].name})`);
+                closeSelectModal();
+            } catch(e) {
+                alert("저장 실패: " + e.message);
+            }
+        };
+
+        window.showSelectModal = function(list, isThemeMode) {
+            window._selectIsThemeMode = isThemeMode;
+            // groupOrder 기준으로 정렬
+            list.sort((a, b) => (a.groupOrder ?? 999) - (b.groupOrder ?? 999));
+            window._selectGroupList = [...list];
+
+            const container = document.getElementById('selectList'); container.innerHTML = '';
+            list.forEach(shop => {
+                const div = document.createElement('div'); div.className = 'shop-select-item';
+                div.innerHTML = `<div class="shop-select-info"><span class="shop-select-name">${shop.name}</span></div>`;
+                div.onclick = () => { closeSelectModal(); if(isThemeMode) toggleShopTheme(shop); else openEditModal(shop); };
+                container.appendChild(div);
+            });
+
+            // 탭바: 테마모드면 순서 탭 숨기기
+            document.getElementById('selectTabBar').style.display = isThemeMode ? 'none' : 'flex';
+            switchSelectTab('edit');
+            $('#selectModal').addClass('show');
+        }
+
+        async function toggleShopTheme(shop) {
+            const shopRef = doc(db, "shops", shop.id);
+            const isAdded = shop.themes && shop.themes.includes(currentThemeMode);
+            try {
+                if(isAdded) {
+                    await updateDoc(shopRef, { themes: arrayRemove(currentThemeMode) });
+                    if (shop.themes) shop.themes = shop.themes.filter(t => t !== currentThemeMode);
+                    showToast(`➖ 제거됨`);
+                } else {
+                    await updateDoc(shopRef, { themes: arrayUnion(currentThemeMode) });
+                    if (!shop.themes) shop.themes = [];
+                    if (!shop.themes.includes(currentThemeMode)) shop.themes.push(currentThemeMode);
+                    showToast(`➕ 추가됨`);
+                }
+                // 테마 편집 패널도 실시간 반영
+                if (document.getElementById('themeEditorPanel').style.display !== 'none') {
+                    renderThemeEditor();
+                }
+            } catch(e){alert(e.message);}
+        }
+        function showToast(msg) { const el=document.getElementById('toast'); el.innerText=msg; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),1500); }
+
+        onSnapshot(collection(db, "shops"), (snapshot) => {
+            allShopsData = []; snapshot.forEach(doc => allShopsData.push({ id: doc.id, ...doc.data() }));
+            applyAdminFilters();
+            if (currentThemeMode) renderThemeEditor();
+        });
+
+        window.applyAdminFilters = function() {
+            var region = $('#adminRegion').val();
+            var category = $('#adminCategory').val();
+            var purpose = $('#adminPurpose').val();
+            var keyword = $('#adminSearch').val().toLowerCase().replace(/\s+/g, '');
+            var noImageOnly = $('#filterNoImage').is(':checked');
+
+            var filtered = allShopsData.filter(shop => {
+                var matchRegion = (region === "") || (shop.region === region);
+                var shopCats = Array.isArray(shop.category) ? shop.category : [shop.category];
+                var matchCategory = (category === "") || shopCats.includes(category);
+                var shopPurps = Array.isArray(shop.purpose) ? shop.purpose : [shop.purpose];
+                var matchPurpose = (purpose === "") || shopPurps.includes(purpose);
+                var searchableText = (shop.name + " " + (shop.menu || "") + " " + (shop.area || "") + " " + shopCats.join(" ")).toLowerCase().replace(/\s+/g, '');
+                var matchKeyword = (keyword === "") || searchableText.includes(keyword);
+                var matchNoImage = !noImageOnly || !shop.imageUrl || !shop.imageUrl.trim();
+                return matchRegion && matchCategory && matchPurpose && matchKeyword && matchNoImage;
+            });
+            renderMarkers(filtered);
+        }
+
+        function renderMarkers(shops) {
+            markerList.forEach(m => m.setMap(null));
+            markerList = [];
+
+            const groups = {};
+            shops.forEach(s => { if(!s.lat)return; const k=parseFloat(s.lat).toFixed(4)+","+parseFloat(s.lng).toFixed(4); if(!groups[k])groups[k]=[]; groups[k].push(s); });
+
+            for(const k in groups) {
+                // groupOrder 기준 정렬 (낮을수록 대표)
+                groups[k].sort((a, b) => (a.groupOrder ?? 999) - (b.groupOrder ?? 999));
+                // 테마 모드: 등록 업체는 체크 표시, 미등록 업체는 흐리게
+                let markerOpts = null;
+                if (currentThemeMode) {
+                    const hasThemed = groups[k].some(s => s.themes && s.themes.includes(currentThemeMode));
+                    markerOpts = hasThemed ? { themeChecked: true } : { themeDim: true };
+                }
+                var marker = createMarker(map, groups[k], handleMarkerClick, markerOpts);
+                if (marker) markerList.push(marker);
+            }
+        }
+
+        // 메뉴 필드 관리
+        window.addMenuField = function() {
+            const con = document.getElementById('menuFieldsContainer');
+            const count = con.querySelectorAll('.menu-field').length + 1;
+            const wrap = document.createElement('div');
+            wrap.style.cssText = 'display:flex; gap:4px; margin-top:4px;';
+            wrap.innerHTML = `<input type="text" class="form-input menu-field" placeholder="메뉴 ${count}" autocomplete="off" style="flex:1;">
+                <button type="button" onclick="this.parentElement.remove()" style="border:none; background:#eee; border-radius:4px; cursor:pointer; padding:0 8px; font-size:14px; color:#e74c3c;">✕</button>`;
+            con.appendChild(wrap);
+            wrap.querySelector('input').focus();
+        };
+        function loadMenuFields(menuStr) {
+            const con = document.getElementById('menuFieldsContainer');
+            const items = menuStr ? menuStr.split(',').map(s => s.trim()).filter(s => s) : [''];
+            if (items.length === 0) items.push('');
+            con.innerHTML = items.map((item, i) => {
+                if (i === 0) return `<input type="text" class="form-input menu-field" placeholder="메뉴 1" value="${item}" autocomplete="off">`;
+                return `<div style="display:flex; gap:4px; margin-top:4px;">
+                    <input type="text" class="form-input menu-field" placeholder="메뉴 ${i+1}" value="${item}" autocomplete="off" style="flex:1;">
+                    <button type="button" onclick="this.parentElement.remove()" style="border:none; background:#eee; border-radius:4px; cursor:pointer; padding:0 8px; font-size:14px; color:#e74c3c;">✕</button>
+                </div>`;
+            }).join('');
+        }
+        function getMenuValue() {
+            return [...document.querySelectorAll('.menu-field')].map(el => el.value.trim()).filter(v => v).join(', ');
+        }
+
+        window.openEditModal = function(d) {
+            $('#shopId').val(d.id);
+            $('#shopName').val(d.name);
+            $('#shopRegion').val(d.region || "");
+            $('#shopArea').val(d.area);
+            loadMenuFields(d.menu || '');
+            $('#shopIsHot').prop('checked', d.isHot === true);
+            $('#shopParking').val(d.parking || ""); 
+            $('#shopTotalScore').val(d.totalScore); 
+            $('#shopDesc').val(d.desc); 
+            $('#shopAddress').val(d.address);
+            $('#shopImage').val(d.imageUrl); previewShopImage(d.imageUrl);
+            $('#shopLink').val(d.link);
+            $('#shopLat').val(d.lat); $('#shopLng').val(d.lng);
+            $('#dupMsg').text('');
+            renderCheckboxes('categoryContainer', 'category', CAT_LIST, d.category);
+            renderCheckboxes('purposeContainer', 'purpose', PUR_LIST, d.purpose);
+            $('#btnDelete').show(); $('.modal-title').text('📝 정보 수정'); $('#shopModal').addClass('show');
+        }
+
+        window.openAddModal = function() {
+            $('#shopId').val(''); $('input, textarea, select').val(''); $('#shopIsHot').prop('checked', false);
+            loadMenuFields('');
+            renderCheckboxes('categoryContainer', 'category', CAT_LIST, []);
+            renderCheckboxes('purposeContainer', 'purpose', PUR_LIST, []);
+            $('#btnDelete').hide(); $('.modal-title').text('✨ 새 업체 추가'); $('#shopModal').addClass('show');
+        }
+
+        async function geocodeAddress(addr) { return new Promise(r=>{ naver.maps.Service.geocode({query:addr}, (s,res)=>{ if(s===naver.maps.Service.Status.OK && res.v2.addresses.length>0) r({lat:parseFloat(res.v2.addresses[0].y), lng:parseFloat(res.v2.addresses[0].x)}); else r(null); }); }); }
+
+        window.saveShop = async function() {
+            var id = $('#shopId').val();
+            var name = $('#shopName').val().trim();
+            if (!name) { alert("⛔ 업체명을 입력해주세요!"); $('#shopName').focus(); return; }
+            var region = $('#shopRegion').val();
+            if (!region) { alert("⛔ 지역을 선택해주세요!"); $('#shopRegion').focus(); return; }
+
+            var lat = parseFloat($('#shopLat').val()); var lng = parseFloat($('#shopLng').val());
+            var address = $('#shopAddress').val().trim();
+            
+            if (isNaN(lat) || isNaN(lng) || lat===0) {
+                 if (!address) { alert("주소 필수"); return; }
+                 const res = await geocodeAddress(address);
+                 if(res) { lat=res.lat; lng=res.lng; $('#shopLat').val(lat); $('#shopLng').val(lng); } 
+                 else { alert("주소 찾기 실패"); return; }
+            }
+
+            let rawScore = parseFloat($('#shopTotalScore').val()) || 0;
+            if (rawScore > 5) { alert("최대 5점입니다."); return; }
+
+            var data = {
+                name: name, category: [], purpose: [],
+                region: region, area: $('#shopArea').val(), menu: getMenuValue(),
+                isHot: $('#shopIsHot').is(':checked'),
+                parking: $('#shopParking').val(), totalScore: rawScore, desc: $('#shopDesc').val(), 
+                address: address, imageUrl: $('#shopImage').val(), link: $('#shopLink').val(),
+                lat: lat, lng: lng, updatedAt: new Date(),
+                themes: allShopsData.find(s => s.id === id)?.themes || [] 
+            };
+            document.querySelectorAll('input[name="category"]').forEach(node => { if(node.checked) data.category.push(node.value); });
+            document.querySelectorAll('input[name="purpose"]').forEach(node => { if(node.checked) data.purpose.push(node.value); });
+
+            try {
+                if (id) { await updateDoc(doc(db, "shops", id), data); alert("✅ 수정 완료!"); } 
+                else { data.createdAt = new Date(); await addDoc(collection(db, "shops"), data); alert("✅ 등록 완료!"); }
+                closeModal(); 
+            } catch (e) { alert("저장 실패: " + e.message); }
+        }
+
+        window.deleteCurrentShop = async function() {
+            var id = $('#shopId').val(); if(!id) return;
+            if(confirm("삭제?")) { try{ await deleteDoc(doc(db,"shops",id)); alert("삭제됨"); closeModal(); }catch(e){alert("실패");} }
+        }
+        window.processBulkData = async function() {
+            const raw = $('#bulkDataInput').val().trim();
+            if (!raw) { alert("데이터를 입력해주세요!"); return; }
+            const statusEl = document.getElementById('bulkStatus');
+            statusEl.innerHTML = '';
+
+            // 주소에서 지역 자동 추출
+            const REGION_MAP = {
+                '중구': '중구', '수성구': '수성구', '동구': '동구', '서구': '서구',
+                '남구': '남구', '북구': '북구', '달서구': '달서구', '달성군': '달성군',
+                '경산': '경산', '경산시': '경산', '군위군': '군위군', '칠곡군': '칠곡군'
+            };
+            function detectRegion(addr) {
+                for (const [key, val] of Object.entries(REGION_MAP)) {
+                    if (addr.includes(key)) return val;
+                }
+                return '대구 밖';
+            }
+
+            // 파싱: "상호명 / 주소" 또는 "상호명/주소"
+            const lines = raw.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('//'));
+            const items = [];
+            for (const line of lines) {
+                const parts = line.split('/').map(s => s.trim());
+                if (parts.length < 2 || !parts[0] || !parts[1]) {
+                    statusEl.innerHTML += `⚠️ 형식오류 (건너뜀): ${line}<br>`;
+                    continue;
+                }
+                items.push({ name: parts[0], address: parts.slice(1).join('/').trim() });
+            }
+
+            if (items.length === 0) { alert("등록할 데이터가 없습니다."); return; }
+
+            // 중복 체크용 기존 업체명 목록
+            const existingNames = allShopsData.filter(s => s.name).map(s => s.name.replace(/\s+/g, ''));
+
+            // 선택된 업종/분위기 가져오기
+            const bulkCats = [...document.querySelectorAll('input[name="bulkCat"]:checked')].map(el => el.value);
+            const bulkPurs = [...document.querySelectorAll('input[name="bulkPur"]:checked')].map(el => el.value);
+
+            if (!confirm(`${items.length}개 업체를 등록합니다. 진행할까요?`)) return;
+
+            let ok = 0, fail = 0;
+            for (let i = 0; i < items.length; i++) {
+                const item = items[i];
+                statusEl.innerHTML += `⏳ [${i+1}/${items.length}] ${item.name} 처리 중...<br>`;
+                statusEl.scrollTop = statusEl.scrollHeight;
+
+                // 중복 체크
+                if (existingNames.includes(item.name.replace(/\s+/g, ''))) {
+                    statusEl.innerHTML += `⚠️ <b>${item.name}</b> - 이미 등록된 업체 (건너뜀)<br>`;
+                    continue;
+                }
+
+                // 주소 → 좌표 변환
+                const coords = await geocodeAddress(item.address);
+                if (!coords) {
+                    statusEl.innerHTML += `❌ <b>${item.name}</b> - 주소 좌표변환 실패<br>`;
+                    fail++;
+                    continue;
+                }
+
+                const region = detectRegion(item.address);
+                const data = {
+                    name: item.name,
+                    address: item.address,
+                    lat: coords.lat,
+                    lng: coords.lng,
+                    region: region,
+                    category: bulkCats, purpose: bulkPurs,
+                    area: '', menu: '', desc: '',
+                    imageUrl: '', link: '',
+                    parking: '', totalScore: 0,
+                    isHot: false, themes: [],
+                    createdAt: new Date(),
+                    updatedAt: new Date()
+                };
+
+                try {
+                    await addDoc(collection(db, "shops"), data);
+                    ok++;
+                    statusEl.innerHTML += `✅ <b>${item.name}</b> (${region}) 등록 완료<br>`;
+                } catch(e) {
+                    fail++;
+                    statusEl.innerHTML += `❌ <b>${item.name}</b> - 저장 실패: ${e.message}<br>`;
+                }
+                statusEl.scrollTop = statusEl.scrollHeight;
+            }
+            statusEl.innerHTML += `<br><b>🏁 완료: ${ok}개 성공, ${fail}개 실패</b>`;
+        }
+
+        // 📷 이미지 미리보기
+        window.previewShopImage = function(url) {
+            const img = document.getElementById('shopImagePreview');
+            if (url && url.trim()) { img.src = url.trim(); img.style.display = 'block'; }
+            else { img.style.display = 'none'; }
+        };
+        window.openNaverPlace = function() {
+            const link = $('#shopLink').val().trim();
+            if (link) window.open(link, '_blank');
+            else alert('네이버 플레이스 링크를 먼저 입력하세요.');
+        };
+
+        // 🔥 이달의 핫플 관리
+        window.openHotplModal = function() {
+            document.getElementById('hotplModal').classList.add('show');
+            document.getElementById('hotplSearch').value = '';
+            switchHotplTab('select');
+            renderHotplList(allShopsData);
+        };
+
+        // 탭 전환
+        window.switchHotplTab = function(tab) {
+            const selBtn = document.getElementById('hotplTabSelect');
+            const ordBtn = document.getElementById('hotplTabOrder');
+            const selPane = document.getElementById('hotplSelectPane');
+            const ordPane = document.getElementById('hotplOrderPane');
+            if (tab === 'select') {
+                selBtn.style.background = '#e74c3c'; selBtn.style.color = '#fff'; selBtn.style.borderColor = '#e74c3c';
+                ordBtn.style.background = '#fff'; ordBtn.style.color = '#333'; ordBtn.style.borderColor = '#ddd';
+                selPane.style.display = 'flex'; ordPane.style.display = 'none';
+            } else {
+                ordBtn.style.background = '#e74c3c'; ordBtn.style.color = '#fff'; ordBtn.style.borderColor = '#e74c3c';
+                selBtn.style.background = '#fff'; selBtn.style.color = '#333'; selBtn.style.borderColor = '#ddd';
+                selPane.style.display = 'none'; ordPane.style.display = 'flex';
+                renderHotplOrderList();
+            }
+        };
+
+        function renderHotplList(shops) {
+            const sorted = [...shops].filter(s => s.name).sort((a, b) => (b.isHot ? 1 : 0) - (a.isHot ? 1 : 0) || a.name.localeCompare(b.name, 'ko'));
+            document.getElementById('hotplList').innerHTML = sorted.map(s => `
+                <div class="hotpl-row" id="hotpl-row-${s.id}">
+                    <span class="hotpl-row-name">${s.name} <small style="color:#aaa; font-size:11px;">${s.area || ''}</small></span>
+                    <label class="hotpl-toggle">
+                        <input type="checkbox" ${s.isHot ? 'checked' : ''} onchange="toggleHotStatus('${s.id}', this.checked)">
+                        <span class="hotpl-slider"></span>
+                    </label>
+                </div>
+            `).join('');
+        }
+
+        // 순서 변경 리스트 렌더링
+        function renderHotplOrderList() {
+            const hotShops = allShopsData.filter(s => s.name && s.isHot === true)
+                .sort((a, b) => (a.hotOrder ?? 999) - (b.hotOrder ?? 999));
+            const list = document.getElementById('hotplOrderList');
+            if (hotShops.length === 0) {
+                list.innerHTML = '<p style="padding:20px; text-align:center; color:#aaa;">핫플로 선택된 업체가 없습니다.<br>📋 핫플 선택 탭에서 먼저 추가하세요.</p>';
+                return;
+            }
+            list.innerHTML = hotShops.map((s, i) => `
+                <div class="hotpl-order-row" data-id="${s.id}" style="display:flex; align-items:center; padding:10px 12px; border-bottom:1px solid #f0f0f0; gap:8px;">
+                    <span style="font-size:16px; font-weight:700; color:#e74c3c; min-width:24px; text-align:center;">${i + 1}</span>
+                    <span style="flex:1; font-size:14px; font-weight:500;">${s.name} <small style="color:#aaa; font-size:11px;">${s.area || ''}</small></span>
+                    <button onclick="moveHotpl('${s.id}','up')" ${i === 0 ? 'disabled' : ''} style="border:none; background:#f8f8f8; border-radius:4px; cursor:pointer; padding:4px 8px; font-size:16px; ${i === 0 ? 'opacity:0.3; cursor:default;' : ''}">▲</button>
+                    <button onclick="moveHotpl('${s.id}','down')" ${i === hotShops.length - 1 ? 'disabled' : ''} style="border:none; background:#f8f8f8; border-radius:4px; cursor:pointer; padding:4px 8px; font-size:16px; ${i === hotShops.length - 1 ? 'opacity:0.3; cursor:default;' : ''}">▼</button>
+                </div>
+            `).join('');
+        }
+
+        // 순서 이동
+        window.moveHotpl = function(id, dir) {
+            const hotShops = allShopsData.filter(s => s.name && s.isHot === true)
+                .sort((a, b) => (a.hotOrder ?? 999) - (b.hotOrder ?? 999));
+            const idx = hotShops.findIndex(s => s.id === id);
+            if (idx < 0) return;
+            const swapIdx = dir === 'up' ? idx - 1 : idx + 1;
+            if (swapIdx < 0 || swapIdx >= hotShops.length) return;
+            // 로컬 hotOrder 스왑
+            const orderA = hotShops[idx].hotOrder ?? idx;
+            const orderB = hotShops[swapIdx].hotOrder ?? swapIdx;
+            hotShops[idx].hotOrder = orderB;
+            hotShops[swapIdx].hotOrder = orderA;
+            renderHotplOrderList();
+        };
+
+        // 순서 저장 (Firebase에 각 핫플 업체의 hotOrder 업데이트)
+        window.saveHotplOrder = async function() {
+            const hotShops = allShopsData.filter(s => s.name && s.isHot === true)
+                .sort((a, b) => (a.hotOrder ?? 999) - (b.hotOrder ?? 999));
+            let ok = 0, fail = 0;
+            for (let i = 0; i < hotShops.length; i++) {
+                hotShops[i].hotOrder = i;
+                try {
+                    await updateDoc(doc(db, "shops", hotShops[i].id), { hotOrder: i });
+                    ok++;
+                } catch(e) { fail++; }
+            }
+            showToast(`✅ 순서 저장 완료! (${ok}개 성공${fail ? ', ' + fail + '개 실패' : ''})`);
+        };
+
+        window.filterHotplList = function() {
+            const q = document.getElementById('hotplSearch').value.toLowerCase();
+            const filtered = allShopsData.filter(s => s.name && (s.name.toLowerCase().includes(q) || (s.area || '').toLowerCase().includes(q)));
+            renderHotplList(filtered);
+        };
+        window.toggleHotStatus = async function(id, isHot) {
+            try {
+                const updateData = { isHot };
+                if (isHot) {
+                    // 새로 핫플 추가 시 맨 뒤 순서 부여
+                    const maxOrder = allShopsData.filter(s => s.isHot === true && s.hotOrder != null)
+                        .reduce((max, s) => Math.max(max, s.hotOrder), -1);
+                    updateData.hotOrder = maxOrder + 1;
+                }
+                await updateDoc(doc(db, "shops", id), updateData);
+                const shop = allShopsData.find(s => s.id === id);
+                if (shop) { shop.isHot = isHot; if (isHot) shop.hotOrder = updateData.hotOrder; }
+                showToast(isHot ? '🔥 핫플 추가됨' : '➖ 핫플 제거됨');
+            } catch(e) { alert("저장 실패: " + e.message); }
+        };
+
+        naver.maps.Event.addListener(map, 'click', function(e) {
+            if(currentThemeMode) return;
+            $('#shopId').val(''); $('input, textarea, select').val(''); $('#shopIsHot').prop('checked', false);
+            loadMenuFields('');
+            renderCheckboxes('categoryContainer', 'category', CAT_LIST, []);
+            renderCheckboxes('purposeContainer', 'purpose', PUR_LIST, []);
+            $('#shopLat').val(e.coord.lat()); $('#shopLng').val(e.coord.lng());
+            $('#dupMsg').text(''); $('#btnDelete').hide();
+            $('.modal-title').text('✨ 새 업체 등록'); $('#shopModal').addClass('show');
+        });
+
+    </script>
+</body>
+</html>
