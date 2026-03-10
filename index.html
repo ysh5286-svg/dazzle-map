@@ -54,6 +54,15 @@
 </style>
 </head>
 <body>
+    <!-- 인앱 브라우저 안내 배너 -->
+    <div id="inappBanner" class="inapp-banner" style="display:none;">
+        <div class="inapp-banner-text">
+            <span class="inapp-banner-icon">🌐</span>
+            <span>로그인·인증 등 일부 기능이 제한됩니다</span>
+        </div>
+        <button id="inappOpenBtn" class="inapp-banner-btn">외부 브라우저로 열기</button>
+    </div>
+
     <div id="loadingOverlay">
         <div class="spinner"></div>
         <p>💎 보물지도를 펼치는 중...</p>
@@ -955,10 +964,6 @@
     if (isInApp && !isStandalone) {
         const banner = document.getElementById('inappBanner');
         banner.style.display = 'flex';
-        // 배너 높이만큼 body 상단 여백 추가 (카테고리 가림 방지)
-        setTimeout(() => {
-            document.body.style.paddingTop = banner.offsetHeight + 'px';
-        }, 50);
         document.getElementById('inappOpenBtn').addEventListener('click', () => {
             const currentUrl = location.href;
             if (isAndroid) {
@@ -1516,14 +1521,6 @@
     }
     </script>
 
-    <!-- 인앱 브라우저 안내 배너 -->
-    <div id="inappBanner" class="inapp-banner" style="display:none;">
-        <div class="inapp-banner-text">
-            <span class="inapp-banner-icon">🌐</span>
-            <span>로그인·인증 등 일부 기능이 제한됩니다</span>
-        </div>
-        <button id="inappOpenBtn" class="inapp-banner-btn">외부 브라우저로 열기</button>
-    </div>
 
     <!-- iOS 앱 설치 가이드 모달 -->
     <div id="iosGuideModal" class="gps-overlay" style="display:none;" onclick="if(event.target===this)this.style.display='none'">
