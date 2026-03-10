@@ -801,6 +801,7 @@
         checkAndRender(source);
         if (!_renderDone) {
             _renderDone = true;
+            updateFooterStats();
             // ?shop=shopId 딥링크: 해당 상점 바로 열기
             const shopParam = new URLSearchParams(window.location.search).get('shop');
             if (shopParam) {
@@ -817,8 +818,6 @@
                     return;
                 }
             }
-            // 푸터 누적 수치
-            updateFooterStats();
             showLandingScreen();
         }
     }
