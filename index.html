@@ -857,7 +857,7 @@
         if (!sessionStorage.getItem('dazzle_pv_counted')) {
             sessionStorage.setItem('dazzle_pv_counted', 'true');
             try { await updateDoc(pvRef, { count: increment(1) }); } catch(e) {
-                try { await setDoc(pvRef, { count: 4800 }); } catch(e2) {}
+                try { await setDoc(pvRef, { count: 12488 }); } catch(e2) {}
             }
         }
         try {
