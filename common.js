@@ -25,7 +25,7 @@ export { signInWithPopup, signOut, onAuthStateChanged };
 export function initMap() {
     return new naver.maps.Map('map', {
         center: new naver.maps.LatLng(35.8693, 128.5955),
-        zoom: 16,
+        zoom: 15,
         zoomControl: false,
         mapTypeControl: false
     });

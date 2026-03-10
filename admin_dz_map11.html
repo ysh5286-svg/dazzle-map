@@ -243,7 +243,12 @@
                 <label class="form-label">목적</label>
                 <div class="multi-select-container" id="purposeContainer"></div>
             </div>
-            
+
+            <div class="form-group" style="background:#e8f5e9; padding:10px; border-radius:5px;">
+                <label class="form-label" style="color:#2e7d32;">🔑 사장님 UID (Google 고유코드)</label>
+                <input type="text" id="shopOwnerUid" class="form-input" placeholder="사장님의 Google UID를 입력하세요" autocomplete="off">
+            </div>
+
             <div class="modal-btns">
                 <button class="btn-delete" id="btnDelete" onclick="deleteCurrentShop()">삭제</button>
                 <button class="btn-save" onclick="saveShop()">저장</button>
@@ -880,6 +885,7 @@
             $('#shopAddress').val(d.address);
             $('#shopImage').val(d.imageUrl); previewShopImage(d.imageUrl);
             $('#shopLink').val(d.link);
+            $('#shopOwnerUid').val(d.ownerUid || '');
             $('#shopLat').val(d.lat); $('#shopLng').val(d.lng);
             $('#dupMsg').text('');
             renderCheckboxes('categoryContainer', 'category', CAT_LIST, d.category);
@@ -924,7 +930,8 @@
                 parking: $('#shopParking').val(), totalScore: rawScore, desc: $('#shopDesc').val(), 
                 address: address, imageUrl: $('#shopImage').val(), link: $('#shopLink').val(),
                 lat: lat, lng: lng, updatedAt: new Date(),
-                themes: allShopsData.find(s => s.id === id)?.themes || [] 
+                themes: allShopsData.find(s => s.id === id)?.themes || [],
+                ownerUid: $('#shopOwnerUid').val().trim() || ""
             };
             document.querySelectorAll('input[name="category"]').forEach(node => { if(node.checked) data.category.push(node.value); });
             document.querySelectorAll('input[name="purpose"]').forEach(node => { if(node.checked) data.purpose.push(node.value); });

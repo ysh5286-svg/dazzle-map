@@ -170,7 +170,7 @@
                 </div>
                 <div style="margin-top:16px;">
                     <div style="font-size:13px; font-weight:bold; color:#e74c3c; margin-bottom:8px;">🚩 방문 인증 기록</div>
-                    <div id="profileVisitLog" style="font-size:12px; color:#888; text-align:center; padding:10px 0;">- 최근 방문 인증 내역이 표시됩니다 -</div>
+                    <div id="profileVisitLog" style="font-size:12px; color:#888; text-align:center; padding:10px 0; max-height:200px; overflow-y:auto;">- 최근 방문 인증 내역이 표시됩니다 -</div>
                 </div>
                 <button onclick="googleLogout()" class="profile-logout-btn">로그아웃</button>
             </div>
@@ -296,6 +296,7 @@
         <div class="panel-body">
             <div>
                 <h2 class="panel-title" id="panelTitle">가게 이름</h2>
+                <div id="panelBizStatus" style="display:none; margin:6px 0 4px; display:flex; gap:6px; flex-wrap:wrap;"></div>
                 <div class="panel-meta" id="panelMeta"></div>
             </div>
 
@@ -331,6 +332,76 @@
                 <a href="#" id="panelLink" target="_blank" class="panel-btn-sm btn-naver">플레이스</a>
                 <button id="gpsAuthBtn" class="panel-btn-sm btn-login" style="display:none;">🔑 로그인</button>
                 <button id="shareBtn" class="panel-btn-sm btn-share" style="display:none;">💬 공유</button>
+                <button id="ownerEditBtn" class="panel-btn-sm btn-owner-edit" style="display:none;">✏️ 수정</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 사장님 수정 모달 -->
+    <div id="ownerEditModal" class="modal-overlay" onclick="if(event.target===this) closeOwnerEditModal()">
+        <div class="modal-box" style="max-width:460px; max-height:85vh; overflow-y:auto;">
+            <button class="modal-close-x" onclick="closeOwnerEditModal()">×</button>
+            <h3 class="modal-title" style="color:#2e7d32;">✏️ 내 가게 정보 수정</h3>
+            <input type="hidden" id="ownerEditShopId">
+
+            <div class="form-group" style="background:#e8f5e9; padding:10px; border-radius:8px;">
+                <label class="form-label" style="color:#2e7d32;">📢 영업 상태</label>
+                <select id="ownerEditBizStatus" class="form-input">
+                    <option value="">설정 안함</option>
+                    <option value="영업중">🟢 영업중</option>
+                    <option value="브레이크타임">🟡 브레이크타임</option>
+                    <option value="오늘 휴무">🔴 오늘 휴무</option>
+                    <option value="임시 휴무">⚫ 임시 휴무</option>
+                </select>
+            </div>
+
+            <div class="form-group" style="background:#e8f5e9; padding:10px; border-radius:8px;">
+                <label class="form-label" style="color:#2e7d32;">⏳ 웨이팅</label>
+                <select id="ownerEditWaitStatus" class="form-input">
+                    <option value="">설정 안함</option>
+                    <option value="없음">웨이팅 없음</option>
+                    <option value="10분">약 10분</option>
+                    <option value="20분">약 20분</option>
+                    <option value="30분 이상">30분 이상</option>
+                </select>
+                <p style="font-size:11px; color:#888; margin-top:6px;">* 영업 상태와 웨이팅은 매일 자정에 자동 초기화됩니다.</p>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">대표메뉴 (쉼표로 구분)</label>
+                <textarea id="ownerEditMenu" class="form-textarea" rows="2" placeholder="예: 돈까스, 냉면, 우동"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">🗨️ 한줄 소개</label>
+                <textarea id="ownerEditDesc" class="form-textarea" rows="2" placeholder="우리 가게를 한 줄로 소개해주세요"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">이미지 URL</label>
+                <div style="display:flex; gap:6px; align-items:center;">
+                    <input type="text" id="ownerEditImage" class="form-input" autocomplete="off" oninput="previewOwnerImage(this.value)" style="flex:1;">
+                    <img id="ownerEditImagePreview" src="" style="width:48px; height:48px; border-radius:6px; object-fit:cover; border:1px solid #ddd; display:none;" onerror="this.style.display='none'">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">플레이스 링크</label>
+                <input type="text" id="ownerEditLink" class="form-input" autocomplete="off">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">🚗 주차 정보</label>
+                <select id="ownerEditParking" class="form-input">
+                    <option value="">선택하세요</option>
+                    <option value="❌ 주차 불가">❌ 주차 불가</option>
+                    <option value="⚠️ 주차 협소 (1~2대)">⚠️ 주차 협소 (1~2대)</option>
+                    <option value="🅿️ 주차장 완비">🅿️ 주차장 완비</option>
+                </select>
+            </div>
+
+            <div style="text-align:center; margin-top:15px;">
+                <button onclick="saveOwnerEdit()" style="background:#2e7d32; color:#fff; border:none; border-radius:8px; padding:12px 40px; font-size:15px; font-weight:700; cursor:pointer;">💾 저장</button>
             </div>
         </div>
     </div>
@@ -1073,7 +1144,7 @@
         if (log.length === 0) {
             logEl.innerHTML = '<span style="color:#bbb;">- 최근 방문 인증 내역이 표시됩니다 -</span>';
         } else {
-            logEl.innerHTML = log.slice().reverse().slice(0, 5).map(v =>
+            logEl.innerHTML = log.slice().reverse().map(v =>
                 `<div style="padding:5px 0; border-bottom:1px solid #f0f0f0; display:flex; justify-content:space-between;">
                     <span>📍 ${v.shopName}</span>
                     <span style="color:#aaa;">${new Date(v.time?.seconds ? v.time.seconds * 1000 : v.time).toLocaleDateString('ko-KR')}</span>
@@ -1434,6 +1505,18 @@
     window.showPanel = function(shop) {
         window._currentShop = shop;
         document.getElementById('panelTitle').innerText = shop.name;
+
+        // 영업 상태 + 웨이팅 뱃지 (당일만 표시, 자정 자동 초기화)
+        const bizStatusEl = document.getElementById('panelBizStatus');
+        const today = new Date().toISOString().slice(0, 10);
+        const isToday = shop.bizStatusDate === today;
+        const bizIcons = { '영업중': '🟢', '브레이크타임': '🟡', '오늘 휴무': '🔴', '임시 휴무': '⚫' };
+        let badges = '';
+        if (isToday && shop.bizStatus) badges += `<span class="biz-badge" style="background:${shop.bizStatus === '영업중' ? '#e8f5e9' : shop.bizStatus === '브레이크타임' ? '#fff8e1' : '#ffebee'}; color:#333; padding:3px 8px; border-radius:12px; font-size:12px; font-weight:600;">${bizIcons[shop.bizStatus] || ''} ${shop.bizStatus}</span>`;
+        if (isToday && shop.waitStatus) badges += `<span class="biz-badge" style="background:#e3f2fd; color:#333; padding:3px 8px; border-radius:12px; font-size:12px; font-weight:600;">⏳ 웨이팅 ${shop.waitStatus}</span>`;
+        if (badges) { bizStatusEl.innerHTML = badges; bizStatusEl.style.display = 'flex'; }
+        else { bizStatusEl.style.display = 'none'; }
+
         const score = shop.totalScore || "0.0";
         const ratingBox = document.querySelector('.rating-box');
         if (parseFloat(score) > 0) {
@@ -1530,10 +1613,94 @@
         shareBtn.style.display = 'flex';
         shareBtn.onclick = shareShop;
 
+        // 🔑 사장님 수정 버튼
+        const ownerEditBtn = document.getElementById('ownerEditBtn');
+        if (auth.currentUser && shop.ownerUid && auth.currentUser.uid === shop.ownerUid) {
+            ownerEditBtn.style.display = 'flex';
+            ownerEditBtn.onclick = function() { openOwnerEditModal(shop); };
+        } else {
+            ownerEditBtn.style.display = 'none';
+        }
+
         document.getElementById('faqPanel').classList.remove('show');
         document.getElementById('selectModal').classList.remove('show');
         document.getElementById('infoPanel').classList.add('show');
     }
+
+    // ==========================================
+    // 🔑 사장님 가게 정보 수정 기능
+    // ==========================================
+    window.previewOwnerImage = function(url) {
+        const img = document.getElementById('ownerEditImagePreview');
+        if (url && url.startsWith('http')) { img.src = url; img.style.display = 'block'; }
+        else { img.style.display = 'none'; }
+    };
+
+    window.openOwnerEditModal = function(shop) {
+        document.getElementById('ownerEditShopId').value = shop.id;
+        document.getElementById('ownerEditMenu').value = Array.isArray(shop.menu) ? shop.menu.join(', ') : (shop.menu || '');
+        document.getElementById('ownerEditDesc').value = shop.desc || '';
+        document.getElementById('ownerEditImage').value = shop.imageUrl || '';
+        document.getElementById('ownerEditLink').value = shop.link || '';
+        document.getElementById('ownerEditParking').value = shop.parking || '';
+        document.getElementById('ownerEditBizStatus').value = shop.bizStatus || '';
+        document.getElementById('ownerEditWaitStatus').value = shop.waitStatus || '';
+
+        const imgUrl = shop.imageUrl || '';
+        const preview = document.getElementById('ownerEditImagePreview');
+        if (imgUrl && imgUrl.startsWith('http')) { preview.src = imgUrl; preview.style.display = 'block'; }
+        else { preview.style.display = 'none'; }
+
+        document.getElementById('ownerEditModal').classList.add('show');
+    };
+
+    window.closeOwnerEditModal = function() {
+        document.getElementById('ownerEditModal').classList.remove('show');
+    };
+
+    window.saveOwnerEdit = async function() {
+        const user = auth.currentUser;
+        if (!user) { alert('로그인이 필요합니다.'); return; }
+
+        const shopId = document.getElementById('ownerEditShopId').value;
+        if (!shopId) return;
+
+        // Firestore에서 ownerUid 재검증 (보안)
+        const shopRef = doc(db, "shops", shopId);
+        const shopSnap = await getDoc(shopRef);
+        if (!shopSnap.exists() || shopSnap.data().ownerUid !== user.uid) {
+            alert('수정 권한이 없습니다.');
+            return;
+        }
+
+        const updateData = {
+            menu: document.getElementById('ownerEditMenu').value.trim(),
+            desc: document.getElementById('ownerEditDesc').value.trim(),
+            imageUrl: document.getElementById('ownerEditImage').value.trim(),
+            link: document.getElementById('ownerEditLink').value.trim(),
+            parking: document.getElementById('ownerEditParking').value,
+            bizStatus: document.getElementById('ownerEditBizStatus').value,
+            waitStatus: document.getElementById('ownerEditWaitStatus').value,
+            bizStatusDate: new Date().toISOString().slice(0, 10),
+            updatedAt: new Date()
+        };
+
+        try {
+            await updateDoc(shopRef, updateData);
+            // 로컬 데이터 동기화
+            const idx = allShops.findIndex(s => s.id === shopId);
+            if (idx !== -1) Object.assign(allShops[idx], updateData);
+            if (window._currentShop && window._currentShop.id === shopId) {
+                Object.assign(window._currentShop, updateData);
+            }
+            closeOwnerEditModal();
+            showPanel(window._currentShop);
+            showToastMsg('수정 완료!');
+        } catch (e) {
+            console.error('Owner edit error:', e);
+            alert('저장 실패: ' + e.message);
+        }
+    };
     </script>
 
 
