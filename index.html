@@ -444,7 +444,7 @@
         </div>
     </div>
 
-    <div id="footerStatsBtn" class="float-stats-btn" onclick="expandFooterStats()">📊</div>
+    <div id="footerStatsBtn" class="float-stats-btn" onclick="expandFooterStats()">👣</div>
     <div id="footerStats" class="float-stats" style="display:none;"></div>
 
     <div id="map"></div>
@@ -850,11 +850,22 @@
         }
     }
 
-    function updateFooterStats() {
+    async function updateFooterStats() {
         const shopCount = allShops.length;
-        const totalVisits = 4800 + allShops.reduce((sum, s) => sum + (s.visitCount || 0), 0);
-        const el = document.getElementById('footerStats');
-        if (el) el.innerHTML = `📍${shopCount}곳 수록 · 👣${totalVisits.toLocaleString()}명 다녀감`;
+        const pvRef = doc(db, "meta", "pageViews");
+        // 세션당 1회만 카운트
+        if (!sessionStorage.getItem('dazzle_pv_counted')) {
+            sessionStorage.setItem('dazzle_pv_counted', 'true');
+            try { await updateDoc(pvRef, { count: increment(1) }); } catch(e) {
+                try { await setDoc(pvRef, { count: 4800 }); } catch(e2) {}
+            }
+        }
+        try {
+            const pvSnap = await getDoc(pvRef);
+            const pvCount = pvSnap.exists() ? (pvSnap.data().count || 0) : 0;
+            const el = document.getElementById('footerStats');
+            if (el) el.innerHTML = `📍${shopCount}곳 수록 · 👣${pvCount.toLocaleString()}명 방문`;
+        } catch(e) {}
     }
 
     let _statsTimer = null;
@@ -1065,7 +1076,7 @@
     }
 
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js?v=4.6')
+        navigator.serviceWorker.register('./sw.js?v=4.7')
             .catch(err => console.log('서비스 워커 실패', err));
 
         // 새 SW가 활성화되면 자동 새로고침
