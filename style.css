@@ -73,6 +73,7 @@ body, html { margin: 0; padding: 0; height: 100%; font-family: 'Noto Sans KR', s
 }
 .btn-naver { background: #03c75a; color: #fff; }
 .btn-gps { background: #e74c3c; color: #fff; }
+.btn-login { background: #3498db; color: #fff; }
 .btn-share { background: #fee500; color: #3c1e1e; }
 
 /* 5. 하단바 (푸터) */

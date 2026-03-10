@@ -37,6 +37,7 @@
 
     <script type="text/javascript" src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=krsv42ftzf&submodules=geocoder"></script>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js" crossorigin="anonymous"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <style>
@@ -317,7 +318,7 @@
 
             <div class="panel-btn-row" id="panelBtnRow">
                 <a href="#" id="panelLink" target="_blank" class="panel-btn-sm btn-naver">플레이스</a>
-                <button id="gpsAuthBtn" class="panel-btn-sm btn-gps" style="display:none;">📍 인증</button>
+                <button id="gpsAuthBtn" class="panel-btn-sm btn-login" style="display:none;">🔑 로그인</button>
                 <button id="shareBtn" class="panel-btn-sm btn-share" style="display:none;">💬 공유</button>
             </div>
         </div>
@@ -385,16 +386,37 @@
             navigator.clipboard.writeText(uid).then(() => alert('복사됐어요! 사장님께 전달해주세요 😊'));
         }
 
+        // 카카오 SDK 초기화 (앱키 등록 후 활성화)
+        const KAKAO_APP_KEY = '4c7a04105835e7f5b9b6346c33cd0d5d';
+        if (KAKAO_APP_KEY && window.Kakao && !Kakao.isInitialized()) {
+            Kakao.init(KAKAO_APP_KEY);
+        }
+
         window.shareShop = function() {
             const shop = window._currentShop;
             if (!shop) return;
+            const shareUrl = 'https://www.heredaegu.com';
             const text = `🗺️ ${shop.name}\n📍 ${shop.address || '대구 맛집'}\n\n대구핫플여기에서 발견한 찐맛집!`;
-            if (navigator.share) {
-                navigator.share({ title: `${shop.name} - 대구핫플여기`, text: text, url: 'https://www.heredaegu.com' }).catch(() => {});
+
+            // 카카오 SDK가 초기화되어 있으면 카카오 리치 공유
+            if (window.Kakao && Kakao.isInitialized()) {
+                Kakao.Share.sendDefault({
+                    objectType: 'location',
+                    address: shop.address || '대구',
+                    content: {
+                        title: shop.name,
+                        description: shop.menu || '대구핫플여기 추천 맛집',
+                        imageUrl: shop.imageUrl || 'https://dazzlepeople.cafe24.com/bizdemo158475/component/board/board_1/u_image/4/546462826_Gemini_Generated_Image_ummtjlummtjlummt.jpg',
+                        link: { mobileWebUrl: shareUrl, webUrl: shareUrl }
+                    },
+                    buttons: [{ title: '지도에서 보기', link: { mobileWebUrl: shareUrl, webUrl: shareUrl } }]
+                });
+            } else if (navigator.share) {
+                navigator.share({ title: `${shop.name} - 대구핫플여기`, text: text, url: shareUrl }).catch(() => {});
             } else {
-                navigator.clipboard.writeText(`${text}\nhttps://www.heredaegu.com`)
+                navigator.clipboard.writeText(`${text}\n${shareUrl}`)
                     .then(() => alert('복사됐어요! 카카오톡에 붙여넣기 해주세요 😊'))
-                    .catch(() => prompt('링크를 복사하세요:', 'https://www.heredaegu.com'));
+                    .catch(() => prompt('링크를 복사하세요:', shareUrl));
             }
         };
         function closePanel() { document.getElementById('infoPanel').classList.remove('show'); }
@@ -457,11 +479,17 @@
         window.showPanel = function(shop) {
             document.getElementById('panelTitle').innerText = shop.name;
             const score = shop.totalScore || "0.0";
-            document.getElementById('panelTotal').innerHTML = `${score}<span class="total-max"> / 5.0</span>`;
+            const ratingBox = document.querySelector('.rating-box');
+            if (parseFloat(score) > 0) {
+                document.getElementById('panelTotal').innerHTML = `${score}<span class="total-max"> / 5.0</span>`;
+                const reviewHtml = shop.desc ? `🗨️ "${shop.desc}"` : '';
+                document.getElementById('panelReview').innerHTML = reviewHtml;
+                ratingBox.style.display = 'block';
+            } else {
+                ratingBox.style.display = 'none';
+            }
             document.getElementById('panelMenu').innerText = shop.menu || "-";
             document.getElementById('panelAddr').innerText = shop.address || "-";
-            const reviewHtml = shop.desc ? `🗨️ "${shop.desc}"` : `🗨️ "아직 등록된 한줄평이 없어요."`;
-            document.getElementById('panelReview').innerHTML = reviewHtml;
             const metaBox = document.getElementById('panelMeta');
             let metaHtml = '';
             if(shop.category) (Array.isArray(shop.category) ? shop.category : [shop.category]).forEach(c => metaHtml += `<span class="panel-tag">#${c}</span>`);
@@ -1385,12 +1413,18 @@
         window._currentShop = shop;
         document.getElementById('panelTitle').innerText = shop.name;
         const score = shop.totalScore || "0.0";
-        document.getElementById('panelTotal').innerHTML = `${score}<span class="total-max"> / 5.0</span>`;
+        const ratingBox = document.querySelector('.rating-box');
+        if (parseFloat(score) > 0) {
+            document.getElementById('panelTotal').innerHTML = `${score}<span class="total-max"> / 5.0</span>`;
+            const reviewHtml = shop.desc ? `🗨️ "${shop.desc}"` : '';
+            document.getElementById('panelReview').innerHTML = reviewHtml;
+            ratingBox.style.display = 'block';
+        } else {
+            ratingBox.style.display = 'none';
+        }
         document.getElementById('panelMenu').innerText = shop.menu || "-";
         document.getElementById('panelAddr').innerText = shop.address || "-";
-        const reviewHtml = shop.desc ? `🗨️ "${shop.desc}"` : `🗨️ "아직 등록된 한줄평이 없어요."`;
-        document.getElementById('panelReview').innerHTML = reviewHtml;
-        
+
         const metaBox = document.getElementById('panelMeta');
         let metaHtml = '';
         if(shop.category) (Array.isArray(shop.category) ? shop.category : [shop.category]).forEach(c => metaHtml += `<span class="panel-tag">#${c}</span>`);
@@ -1437,7 +1471,8 @@
         const traitSec = document.getElementById('traitSection');
         const traits = shop.traits || {};
         const traitEntries = Object.entries(traits).filter(([k, v]) => v > 0).sort((a, b) => b[1] - a[1]);
-        if (traitEntries.length > 0) {
+        const totalVotes = traitEntries.reduce((sum, [, v]) => sum + v, 0);
+        if (traitEntries.length > 0 && totalVotes >= 3) {
             const maxVal = traitEntries[0][1];
             document.getElementById('traitBars').innerHTML = traitEntries.map(([name, count]) => {
                 const pct = Math.round((count / maxVal) * 100);
@@ -1459,7 +1494,15 @@
 
         const gpsBtn = document.getElementById('gpsAuthBtn');
         gpsBtn.style.display = 'flex';
-        gpsBtn.onclick = function() { verifyVisitByGPS(shop.id, shop.lat, shop.lng, shop.name); };
+        if (auth.currentUser) {
+            gpsBtn.innerHTML = '📍 인증';
+            gpsBtn.className = 'panel-btn-sm btn-gps';
+            gpsBtn.onclick = function() { verifyVisitByGPS(shop.id, shop.lat, shop.lng, shop.name); };
+        } else {
+            gpsBtn.innerHTML = '🔑 로그인';
+            gpsBtn.className = 'panel-btn-sm btn-login';
+            gpsBtn.onclick = function() { verifyVisitByGPS(shop.id, shop.lat, shop.lng, shop.name); };
+        }
 
         const shareBtn = document.getElementById('shareBtn');
         shareBtn.style.display = 'flex';
