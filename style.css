@@ -121,7 +121,13 @@ body, html { margin: 0; padding: 0; height: 100%; font-family: 'Noto Sans KR', s
 .loc-text { font-size: 11px; font-weight: bold; color: #2c3e50; }
 
 .bottom-right { flex: 1; display: flex; justify-content: flex-end; align-items: center; gap: 6px; }
-.footer-stats { font-size: 11px; color: #777; font-weight: 600; white-space: nowrap; line-height: 1.2; text-align: right; }
+.float-stats {
+    position: fixed; bottom: 90px; left: 15px;
+    background: rgba(255,255,255,0.92); border-radius: 16px;
+    padding: 6px 12px; font-size: 11px; color: #555; font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12); z-index: 350;
+    white-space: nowrap;
+}
 .bar-btn {
     border: none; padding: 8px 14px; border-radius: 20px; font-size: 12px; font-weight: bold; cursor: pointer;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1); transition: 0.2s; white-space: nowrap;
