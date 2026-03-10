@@ -431,7 +431,8 @@
         </div>
     </div>
 
-    <div id="footerStats" class="float-stats"></div>
+    <div id="footerStatsBtn" class="float-stats-btn" onclick="expandFooterStats()">📊</div>
+    <div id="footerStats" class="float-stats" style="display:none;"></div>
 
     <div id="map"></div>
 
@@ -828,6 +829,19 @@
         const el = document.getElementById('footerStats');
         if (el) el.innerHTML = `📍${shopCount}곳 수록 · 👣${totalVisits.toLocaleString()}명 다녀감`;
     }
+
+    let _statsTimer = null;
+    window.expandFooterStats = function() {
+        const btn = document.getElementById('footerStatsBtn');
+        const stats = document.getElementById('footerStats');
+        btn.style.display = 'none';
+        stats.style.display = 'block';
+        clearTimeout(_statsTimer);
+        _statsTimer = setTimeout(() => {
+            stats.style.display = 'none';
+            btn.style.display = 'flex';
+        }, 5000);
+    };
 
     function checkAndRender(source) {
         if (!allShops || allShops.length === 0) return;
