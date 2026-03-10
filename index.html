@@ -191,8 +191,14 @@
                     <div class="level-box" style="margin-top:10px; background:#f8f9fa; padding:10px; border-radius:8px; border:1px solid #eee;">
                         <div class="lv-row"><span class="lv-badge lv1">LV.1</span> 가입 즉시 (배고픈 영혼)</div>
                         <div class="lv-row"><span class="lv-badge lv2">LV.2</span> 방문 5회 (서툰 미식가)</div>
-                        <div class="lv-row"><span class="lv-badge lv3">LV.3</span> 방문 10회 (대구의 아들)</div>
-                        <div class="lv-row"><span class="lv-badge lv4">LV.4</span> 방문 30회 (맛의 지배자)</div>
+                        <div class="lv-row"><span class="lv-badge lv3">LV.3</span> 방문 10회 (동네 탐험가)</div>
+                        <div class="lv-row"><span class="lv-badge lv4">LV.4</span> 방문 20회 (골목 헌터)</div>
+                        <div class="lv-row"><span class="lv-badge lv5">LV.5</span> 방문 35회 (대구의 아들)</div>
+                        <div class="lv-row"><span class="lv-badge lv6">LV.6</span> 방문 50회 (맛집 사냥꾼)</div>
+                        <div class="lv-row"><span class="lv-badge lv7">LV.7</span> 방문 75회 (미식 고수)</div>
+                        <div class="lv-row"><span class="lv-badge lv8">LV.8</span> 방문 120회 (맛의 지배자)</div>
+                        <div class="lv-row"><span class="lv-badge lv9">LV.9</span> 방문 200회 (대구 보물왕)</div>
+                        <div class="lv-row"><span class="lv-badge lv10">LV.10</span> 방문 300회 (전설의 미식가)</div>
                     </div>
                     <p style="font-size:11px; color:#888; margin-top:5px;">※ 만렙 달성 시 '다즐피플' 시크릿 파티 초대권 증정!</p>
                 </div>
@@ -1038,7 +1044,7 @@
     }
 
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js?v=4.5')
+        navigator.serviceWorker.register('./sw.js?v=4.6')
             .catch(err => console.log('서비스 워커 실패', err));
 
         // 새 SW가 활성화되면 자동 새로고침
@@ -1122,8 +1128,8 @@
         if(confirm("로그아웃 하시겠습니까?")) { signOut(auth).then(() => { alert("로그아웃 되었습니다."); location.reload(); }); }
     };
 
-    const LEVEL_NAMES = ['배고픈 영혼', '서툰 미식가', '대구의 아들', '맛의 지배자'];
-    const LEVEL_EXP   = [0, 50, 100, 300];
+    const LEVEL_NAMES = ['배고픈 영혼', '서툰 미식가', '동네 탐험가', '골목 헌터', '대구의 아들', '맛집 사냥꾼', '미식 고수', '맛의 지배자', '대구 보물왕', '전설의 미식가'];
+    const LEVEL_EXP   = [0, 50, 100, 200, 350, 500, 750, 1200, 2000, 3000];
 
     window.openProfileModal = async function() {
         const user = auth.currentUser;
@@ -1156,8 +1162,8 @@
         // EXP 바
         const currentLvExp = LEVEL_EXP[lv - 1] || 0;
         const nextLvExp    = LEVEL_EXP[lv] || LEVEL_EXP[LEVEL_EXP.length - 1];
-        const progress = lv >= 4 ? 100 : Math.min(100, Math.round((exp - currentLvExp) / (nextLvExp - currentLvExp) * 100));
-        const expText = lv >= 4 ? `${exp} EXP (만렙!)` : `${exp - currentLvExp} / ${nextLvExp - currentLvExp} EXP`;
+        const progress = lv >= 10 ? 100 : Math.min(100, Math.round((exp - currentLvExp) / (nextLvExp - currentLvExp) * 100));
+        const expText = lv >= 10 ? `${exp} EXP (만렙!)` : `${exp - currentLvExp} / ${nextLvExp - currentLvExp} EXP`;
         document.getElementById('profileExpText').innerText = expText;
         document.getElementById('profileExpBar').style.width = progress + '%';
 
@@ -1265,17 +1271,35 @@
 
         const data = userSnap.data();
         const visitLog = data.visitLog || [];
+        const now = Date.now();
         const todayStart = new Date();
         todayStart.setHours(0, 0, 0, 0);
         const todayMs = todayStart.getTime();
 
+        // 하루 3회 제한
+        const todayCount = visitLog.filter(v => {
+            const vTime = v.time?.seconds ? v.time.seconds * 1000 : (v.time || 0);
+            return vTime >= todayMs;
+        }).length;
+        if (todayCount >= 3) {
+            return alert("⛔ 오늘 인증 횟수(3회)를 모두 사용했습니다!\n내일 다시 도전해주세요 😊");
+        }
+
+        // 같은 매장 1일 1회 제한
         const alreadyToday = visitLog.some(v => {
             const vTime = v.time?.seconds ? v.time.seconds * 1000 : (v.time || 0);
             return v.shopId === shopId && vTime >= todayMs;
         });
-
         if (alreadyToday) {
             return alert("⛔ 오늘 이미 이 가게를 인증했습니다!\n내일 다시 방문해주세요 😊");
+        }
+
+        // 매장 간 30분 쿨타임
+        const lastAny = visitLog.map(v => v.time?.seconds ? v.time.seconds * 1000 : (v.time || 0))
+            .sort((a, b) => b - a)[0];
+        if (lastAny && now - lastAny < 30 * 60 * 1000) {
+            const remain = Math.ceil((30 * 60 * 1000 - (now - lastAny)) / 60000);
+            return alert(`⏳ 다음 인증까지 ${remain}분 남았습니다!\n(매장 간 30분 쿨타임)`);
         }
 
         // 쿨다운 OK → GPS 확인 시작

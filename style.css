@@ -717,8 +717,14 @@ body, html { margin: 0; padding: 0; height: 100%; font-family: 'Noto Sans KR', s
 /* 레벨별 색상 */
 .lv1 { background-color: #95a5a6; } /* 회색 */
 .lv2 { background-color: #2ecc71; } /* 초록 */
-.lv3 { background-color: #3498db; } /* 파랑 */
-.lv4 { background-color: #e74c3c; box-shadow: 0 2px 4px rgba(231,76,60,0.4); } /* 빨강(만렙) */
+.lv3 { background-color: #27ae60; } /* 진초록 */
+.lv4 { background-color: #3498db; } /* 파랑 */
+.lv5 { background-color: #2980b9; } /* 진파랑 */
+.lv6 { background-color: #8e44ad; } /* 보라 */
+.lv7 { background-color: #e67e22; } /* 주황 */
+.lv8 { background-color: #e74c3c; } /* 빨강 */
+.lv9 { background-color: #c0392b; box-shadow: 0 2px 4px rgba(192,57,43,0.4); } /* 진빨강 */
+.lv10 { background: linear-gradient(135deg, #f39c12, #e74c3c, #8e44ad); box-shadow: 0 2px 6px rgba(231,76,60,0.5); } /* 전설 */
 
 /* 좋아요 하트 버튼 */
 .like-btn-wrapper {
