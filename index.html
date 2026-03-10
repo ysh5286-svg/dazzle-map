@@ -419,7 +419,6 @@
     <div class="bottom-bar">
         <div class="bottom-left">
             <button class="bar-btn btn-usage" onclick="toggleFaq()">📖 사용법</button>
-            <a href="https://www.dazzlepeople.com" target="_blank" class="footer-copyright" style="margin-left:10px;">© Dazzle People</a>
         </div>
         <div class="bottom-center">
             <button class="btn-location-mode" onclick="moveToCurrentLocation()">
@@ -428,6 +427,7 @@
             </button>
         </div>
         <div class="bottom-right">
+            <span id="footerStats" class="footer-stats"></span>
             <button class="bar-btn btn-home" onclick="goLanding()">🏠 홈</button>
         </div>
     </div>
@@ -816,8 +816,17 @@
                     return;
                 }
             }
+            // 푸터 누적 수치
+            updateFooterStats();
             showLandingScreen();
         }
+    }
+
+    function updateFooterStats() {
+        const shopCount = allShops.length;
+        const totalVisits = 4800 + allShops.reduce((sum, s) => sum + (s.visitCount || 0), 0);
+        const el = document.getElementById('footerStats');
+        if (el) el.innerHTML = `📍${shopCount}곳 수록 · 👣${totalVisits.toLocaleString()}명 다녀감`;
     }
 
     function checkAndRender(source) {
@@ -1015,7 +1024,7 @@
     }
 
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js?v=4.3')
+        navigator.serviceWorker.register('./sw.js?v=4.4')
             .catch(err => console.log('서비스 워커 실패', err));
 
         // 새 SW가 활성화되면 자동 새로고침
