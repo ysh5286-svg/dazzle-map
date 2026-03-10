@@ -554,7 +554,9 @@ body, html { margin: 0; padding: 0; height: 100%; font-family: 'Noto Sans KR', s
 .rating-top {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 8px;
+    width: 100%;
 }
 .total-score {
     font-size: 36px !important; /* 글자 크기 키움 */

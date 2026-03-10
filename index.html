@@ -37,7 +37,6 @@
 
     <script type="text/javascript" src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=krsv42ftzf&submodules=geocoder"></script>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js" crossorigin="anonymous"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <style>
@@ -386,36 +385,19 @@
             navigator.clipboard.writeText(uid).then(() => alert('복사됐어요! 사장님께 전달해주세요 😊'));
         }
 
-        // 카카오 SDK 초기화 (앱키 등록 후 활성화)
-        const KAKAO_APP_KEY = '4c7a04105835e7f5b9b6346c33cd0d5d';
-        if (KAKAO_APP_KEY && window.Kakao && !Kakao.isInitialized()) {
-            Kakao.init(KAKAO_APP_KEY);
-        }
-
         window.shareShop = function() {
             const shop = window._currentShop;
             if (!shop) return;
-            const shareUrl = 'https://www.heredaegu.com';
+            const shareUrl = `https://www.heredaegu.com?shop=${encodeURIComponent(shop.id)}`;
             const text = `🗺️ ${shop.name}\n📍 ${shop.address || '대구 맛집'}\n\n대구핫플여기에서 발견한 찐맛집!`;
 
-            // 카카오 SDK가 초기화되어 있으면 카카오 리치 공유
-            if (window.Kakao && Kakao.isInitialized()) {
-                Kakao.Share.sendDefault({
-                    objectType: 'location',
-                    address: shop.address || '대구',
-                    content: {
-                        title: shop.name,
-                        description: shop.menu || '대구핫플여기 추천 맛집',
-                        imageUrl: shop.imageUrl || 'https://dazzlepeople.cafe24.com/bizdemo158475/component/board/board_1/u_image/4/546462826_Gemini_Generated_Image_ummtjlummtjlummt.jpg',
-                        link: { mobileWebUrl: shareUrl, webUrl: shareUrl }
-                    },
-                    buttons: [{ title: '지도에서 보기', link: { mobileWebUrl: shareUrl, webUrl: shareUrl } }]
-                });
-            } else if (navigator.share) {
+            // Web Share API (모바일: 카톡/문자/인스타 등 모든 앱 공유)
+            if (navigator.share) {
                 navigator.share({ title: `${shop.name} - 대구핫플여기`, text: text, url: shareUrl }).catch(() => {});
             } else {
+                // 데스크톱: 클립보드 복사
                 navigator.clipboard.writeText(`${text}\n${shareUrl}`)
-                    .then(() => alert('복사됐어요! 카카오톡에 붙여넣기 해주세요 😊'))
+                    .then(() => alert('링크가 복사됐어요! 카카오톡에 붙여넣기 해주세요 😊'))
                     .catch(() => prompt('링크를 복사하세요:', shareUrl));
             }
         };
@@ -735,6 +717,21 @@
         checkAndRender(source);
         if (!_renderDone) {
             _renderDone = true;
+            // ?shop=shopId 딥링크: 해당 상점 바로 열기
+            const shopParam = new URLSearchParams(window.location.search).get('shop');
+            if (shopParam) {
+                const targetShop = allShops.find(s => s.id === shopParam);
+                if (targetShop) {
+                    sessionStorage.setItem('dazzle_landing_done', 'true');
+                    setTimeout(() => {
+                        showPanel(targetShop);
+                        if (targetShop.lat && targetShop.lng) {
+                            map.morph(new naver.maps.LatLng(targetShop.lat, targetShop.lng), 16);
+                        }
+                    }, 500);
+                    return;
+                }
+            }
             showLandingScreen();
         }
     }
@@ -934,7 +931,7 @@
     }
 
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js?v=4.0')
+        navigator.serviceWorker.register('./sw.js?v=4.1')
             .catch(err => console.log('서비스 워커 실패', err));
 
         // 새 SW가 활성화되면 자동 새로고침
@@ -957,6 +954,10 @@
     if (isInApp && !isStandalone) {
         const banner = document.getElementById('inappBanner');
         banner.style.display = 'flex';
+        // 배너 높이만큼 body 상단 여백 추가 (카테고리 가림 방지)
+        setTimeout(() => {
+            document.body.style.paddingTop = banner.offsetHeight + 'px';
+        }, 50);
         document.getElementById('inappOpenBtn').addEventListener('click', () => {
             const currentUrl = location.href;
             if (isAndroid) {
