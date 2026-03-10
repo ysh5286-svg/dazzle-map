@@ -723,6 +723,7 @@
                 const targetShop = allShops.find(s => s.id === shopParam);
                 if (targetShop) {
                     sessionStorage.setItem('dazzle_landing_done', 'true');
+                    document.getElementById('loadingOverlay').classList.add('fade-out');
                     setTimeout(() => {
                         showPanel(targetShop);
                         if (targetShop.lat && targetShop.lng) {
