@@ -61,7 +61,10 @@
             <span>로그인·인증 등 일부 기능이 제한됩니다</span>
         </div>
         <button id="inappOpenBtn" class="inapp-banner-btn">외부 브라우저로 열기</button>
+        <button id="inappCloseBtn" class="inapp-close-btn">✕</button>
     </div>
+    <!-- 접힌 상태: 작은 플로팅 버튼 -->
+    <div id="inappMiniBtn" class="inapp-mini-btn" style="display:none;">🌐</div>
 
     <div id="loadingOverlay">
         <div class="spinner"></div>
@@ -964,6 +967,16 @@
     if (isInApp && !isStandalone) {
         const banner = document.getElementById('inappBanner');
         banner.style.display = 'flex';
+        // X 버튼: 배너 접기 → 미니 버튼으로 변환
+        document.getElementById('inappCloseBtn').addEventListener('click', () => {
+            banner.style.display = 'none';
+            document.getElementById('inappMiniBtn').style.display = 'flex';
+        });
+        // 미니 버튼 클릭: 배너 다시 펼치기
+        document.getElementById('inappMiniBtn').addEventListener('click', () => {
+            document.getElementById('inappMiniBtn').style.display = 'none';
+            banner.style.display = 'flex';
+        });
         document.getElementById('inappOpenBtn').addEventListener('click', () => {
             const currentUrl = location.href;
             if (isAndroid) {
