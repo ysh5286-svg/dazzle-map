@@ -270,7 +270,10 @@
                     <div style="font-size:12px; font-weight:bold; color:#888; margin-bottom:10px;">👑 최후의 승자 👑</div>
                     <div id="wcWinnerImg" style="font-size:80px; margin-bottom:10px;"></div>
                     <div id="wcWinnerName" style="font-size:24px; font-weight:bold; color:#3498db; margin-bottom:20px;"></div>
-                    <button onclick="resetGame()" class="spin-btn" style="background:#333;">처음으로 돌아가기</button>
+                    <div style="display:flex; gap:10px; justify-content:center;">
+                        <button onclick="shareGameResult()" class="spin-btn" style="background:#fee500; color:#3c1e1e;">📤 결과 공유</button>
+                        <button onclick="resetGame()" class="spin-btn" style="background:#333;">🔄 다시하기</button>
+                    </div>
                 </div>
 
                 <div id="rouletteGame" class="roulette-container">
@@ -538,6 +541,19 @@
         function updateWcMatch(){ if(wcIndex>=wcCurrentRound.length/2){ wcCurrentRound=[...wcNextRound]; wcNextRound=[]; wcIndex=0; wcCurrentRound.sort(()=>Math.random()-0.5); } if(wcCurrentRound.length===1){ showWcWinner(wcCurrentRound[0]); return; } document.getElementById('wcRoundBadge').innerText=wcCurrentRound.length===2?"결승":wcCurrentRound.length+"강"; const l=wcCurrentRound[wcIndex*2],r=wcCurrentRound[wcIndex*2+1]; document.getElementById('wcImgLeft').innerText=l.img; document.getElementById('wcNameLeft').innerText=l.name; document.getElementById('wcImgRight').innerText=r.img; document.getElementById('wcNameRight').innerText=r.name; }
         window.wcChoose=function(s){ wcNextRound.push(wcCurrentRound[wcIndex*2+s]); wcIndex++; updateWcMatch(); }
         function showWcWinner(w){ document.getElementById('wcGame').style.display='none'; document.getElementById('wcResult').classList.remove('hidden'); document.getElementById('wcWinnerImg').innerText=w.img; document.getElementById('wcWinnerName').innerText=w.name; fireConfetti(); }
+        window.shareGameResult = function() {
+            const name = document.getElementById('wcWinnerName').innerText;
+            const emoji = document.getElementById('wcWinnerImg').innerText;
+            const text = `🏆 음식 월드컵 결과!\n\n${emoji} 나의 선택: ${name}\n\n대구보물지도에서 도전해보세요!`;
+            const url = 'https://www.heredaegu.com';
+            if (navigator.share) {
+                navigator.share({ title: '음식 월드컵 결과', text: text, url: url }).catch(() => {});
+            } else {
+                navigator.clipboard.writeText(text + '\n' + url)
+                    .then(() => alert('결과가 복사됐어요! 붙여넣기로 공유해보세요 😊'))
+                    .catch(() => prompt('복사해서 공유하세요:', text));
+            }
+        };
         window.startRouletteGame=function(){ document.getElementById('gameMain').classList.add('hidden'); document.getElementById('rouletteGame').style.display='flex'; initRoulette(); setRouletteMode('lunch'); }
         function initRoulette(){ rCanvas=document.getElementById('rouletteCanvas'); rCtx=rCanvas.getContext('2d'); }
         window.setRouletteMode=function(m){ if(isSpinning)return; document.querySelectorAll('.roulette-btn').forEach(b=>b.classList.remove('active')); document.getElementById(`btn-${m}`).classList.add('active'); if(m==='custom'){ currentFoods=[...customFoods]; document.getElementById('customInputArea').style.display='block'; renderCustomItems(); }else{ currentFoods=foodData[m].map(i=>i.name); document.getElementById('customInputArea').style.display='none'; } drawRoulette(); }
