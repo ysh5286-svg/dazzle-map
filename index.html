@@ -944,7 +944,7 @@
     }
 
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js?v=4.2')
+        navigator.serviceWorker.register('./sw.js?v=4.3')
             .catch(err => console.log('서비스 워커 실패', err));
 
         // 새 SW가 활성화되면 자동 새로고침
@@ -984,10 +984,12 @@
                 location.href = 'intent://' + currentUrl.replace(/https?:\/\//, '') + '#Intent;scheme=https;package=com.android.chrome;end';
                 setTimeout(() => { location.href = currentUrl; }, 500);
             } else if (isIos) {
-                // iOS: 사파리로 열기 시도
-                const safariUrl = currentUrl.replace(/^https?:\/\//, '');
-                window.open('https://' + safariUrl, '_blank');
-                alert("사파리(Safari)에서 열어주세요!\n\n현재 브라우저에서는 로그인·인증이 제한됩니다.");
+                // iOS: 클립보드에 URL 복사 + 안내
+                navigator.clipboard.writeText(currentUrl).then(() => {
+                    alert("링크가 복사되었습니다!\n\nSafari를 열고 주소창에 붙여넣기 해주세요 😊");
+                }).catch(() => {
+                    prompt("아래 링크를 복사해서 Safari에서 열어주세요:", currentUrl);
+                });
             }
         });
     }
