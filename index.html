@@ -174,12 +174,12 @@
             <div class="faq-item">
                 <div class="faq-q">🏆 레벨은 어떻게 올리나요?</div>
                 <div class="faq-a">
-                    가게에 도착해서 <b>[📍 여기 왔어요! (GPS 인증)]</b> 버튼만 누르면 끝!<br>
-                    (방문 1회 = 경험치 10점 획득 🎁)
-                    
+                    가게에 도착해서 <b>[📍 인증]</b> 버튼을 누르면 경험치가 올라갑니다! 🎁
+
                     <div class="level-box" style="margin-top:10px; background:#f8f9fa; padding:10px; border-radius:8px; border:1px solid #eee;">
                         <div class="lv-row"><span class="lv-badge lv1">LV.1</span> 가입 즉시 (배고픈 영혼)</div>
-                        <div class="lv-row"><span class="lv-badge lv2">LV.2</span> 방문 5회 (서툰 미식가)</div> <div class="lv-row"><span class="lv-badge lv3">LV.3</span> 방문 10회 (대구의 아들)</div>
+                        <div class="lv-row"><span class="lv-badge lv2">LV.2</span> 방문 5회 (서툰 미식가)</div>
+                        <div class="lv-row"><span class="lv-badge lv3">LV.3</span> 방문 10회 (대구의 아들)</div>
                         <div class="lv-row"><span class="lv-badge lv4">LV.4</span> 방문 30회 (맛의 지배자)</div>
                     </div>
                     <p style="font-size:11px; color:#888; margin-top:5px;">※ 만렙 달성 시 '다즐피플' 시크릿 파티 초대권 증정!</p>
@@ -316,7 +316,7 @@
             <div class="info-row"><span class="info-label">주소</span> <span class="info-text" id="panelAddr"></span></div>
 
             <div class="panel-btn-row" id="panelBtnRow">
-                <a href="#" id="panelLink" target="_blank" class="panel-btn-sm btn-naver">네이버</a>
+                <a href="#" id="panelLink" target="_blank" class="panel-btn-sm btn-naver">플레이스</a>
                 <button id="gpsAuthBtn" class="panel-btn-sm btn-gps" style="display:none;">📍 인증</button>
                 <button id="shareBtn" class="panel-btn-sm btn-share" style="display:none;">💬 공유</button>
             </div>
@@ -474,7 +474,7 @@
             if (shop.parking) { parkingBadge = `<div class="parking-badge">${shop.parking}</div>`; }
             header.innerHTML = `<button class="panel-close" onclick="closePanel()">✕</button>${parkingBadge}`;
             const btnLink = document.getElementById('panelLink');
-            if (shop.link) { btnLink.href = shop.link; btnLink.style.display = 'block'; btnLink.innerText = '네이버 플레이스 보기'; } 
+            if (shop.link) { btnLink.href = shop.link; btnLink.style.display = 'block'; btnLink.innerText = '플레이스'; } 
             else { btnLink.href = '#'; btnLink.style.display = 'none'; }
             document.getElementById('faqPanel').classList.remove('show');
             document.getElementById('selectModal').classList.remove('show');
@@ -1020,7 +1020,12 @@
         } else { alert(`어서오세요, ${user.displayName}님!`); }
     }
 
-    function calculateLevel(exp) { return 1 + Math.floor(exp / 10); }
+    function calculateLevel(exp) {
+        for (let i = LEVEL_EXP.length - 1; i >= 0; i--) {
+            if (exp >= LEVEL_EXP[i]) return i + 1;
+        }
+        return 1;
+    }
 
     function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
         var R = 6371; var dLat = deg2rad(lat2-lat1); var dLon = deg2rad(lon2-lon1); 
