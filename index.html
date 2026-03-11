@@ -490,9 +490,7 @@
             let lines = [`📌 ${shop.name}`];
             if (shop.address) lines.push(`📍 ${shop.address}`);
             if (shop.menu) lines.push(`🍽️ ${Array.isArray(shop.menu) ? shop.menu.join(', ') : shop.menu}`);
-            if (shop.totalScore && parseFloat(shop.totalScore) > 0) lines.push(`⭐ ${shop.totalScore} / 5.0`);
             if (shop.parking) lines.push(`🚗 ${shop.parking}`);
-            if (shop.desc) lines.push(`💬 ${shop.desc}`);
             lines.push('');
             lines.push('대구핫플여기에서 발견한 찐맛집!');
             const text = lines.join('\n');
@@ -1145,7 +1143,7 @@
     }
 
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js?v=5.0')
+        navigator.serviceWorker.register('./sw.js?v=5.1')
             .catch(err => console.log('서비스 워커 실패', err));
 
         // 새 SW가 활성화되면 자동 새로고침
