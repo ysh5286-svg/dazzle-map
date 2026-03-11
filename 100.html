@@ -260,9 +260,9 @@
         <div class="modal-box" style="max-width:620px;">
             <button class="modal-close-x" onclick="closeBulkModal()">×</button>
             <h3 class="modal-title">⚡ 업체 일괄 등록</h3>
-            <p style="font-size:12px; color:#888; margin-bottom:8px;">한 줄에 하나씩 <b>상호명 / 주소</b> 형식으로 입력하세요.</p>
+            <p style="font-size:12px; color:#888; margin-bottom:8px;">한 줄에 하나씩 <b>상호명 / 주소 / 업종 / 분위기</b> 형식으로 입력<br>업종·분위기 생략 시 아래 체크박스 일괄 적용 | 여러 개는 쉼표(,)로 구분</p>
             <div style="margin-bottom:10px;">
-                <label style="font-size:12px; font-weight:bold; color:#333; display:block; margin-bottom:5px;">🍜 업종 (일괄 적용)</label>
+                <label style="font-size:12px; font-weight:bold; color:#333; display:block; margin-bottom:5px;">🍜 업종 (텍스트에 업종 없는 항목에 적용)</label>
                 <div id="bulkCategoryContainer" style="display:flex; flex-wrap:wrap; gap:2px;"></div>
                 <div style="display:flex; gap:4px; margin-top:5px;">
                     <input type="text" id="bulkNewCat" class="admin-search-input" placeholder="새 업종 입력" style="flex:1; font-size:12px;">
@@ -270,13 +270,14 @@
                 </div>
             </div>
             <div style="margin-bottom:10px;">
-                <label style="font-size:12px; font-weight:bold; color:#333; display:block; margin-bottom:5px;">✨ 분위기 (일괄 적용)</label>
+                <label style="font-size:12px; font-weight:bold; color:#333; display:block; margin-bottom:5px;">✨ 분위기 (텍스트에 분위기 없는 항목에 적용)</label>
                 <div id="bulkPurposeContainer" style="display:flex; flex-wrap:wrap; gap:2px;"></div>
             </div>
             <textarea id="bulkDataInput" class="bulk-textarea" placeholder="예시:
-맛있는집 / 대구광역시 중구 동성로 123
-커피하우스 / 대구광역시 수성구 범어로 45
-노포식당 / 대구광역시 남구 대명로 67"></textarea>
+맛있는집 / 대구광역시 중구 동성로 123 / 한식 / 혼밥,가성비
+커피하우스 / 대구광역시 수성구 범어로 45 / 카페,디저트 / 데이트
+노포식당 / 대구광역시 남구 대명로 67
+(업종·분위기 생략 시 아래 체크박스 적용)"></textarea>
             <div id="bulkStatus" class="bulk-status"></div>
             <div class="modal-btns">
                 <button class="btn-save" style="background:#f1c40f; color:#333;" onclick="processBulkData()">🚀 일괄 등록</button>
@@ -993,7 +994,7 @@
                 return '대구 밖';
             }
 
-            // 파싱: "상호명 / 주소" 또는 "상호명/주소"
+            // 파싱: "상호명/주소" 또는 "상호명/주소/업종/분위기"
             const lines = raw.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('//'));
             const items = [];
             for (const line of lines) {
@@ -1002,7 +1003,16 @@
                     statusEl.innerHTML += `⚠️ 형식오류 (건너뜀): ${line}<br>`;
                     continue;
                 }
-                items.push({ name: parts[0], address: parts.slice(1).join('/').trim() });
+                const item = { name: parts[0], address: parts[1] };
+                // 3번째: 업종 (쉼표로 여러 개 가능)
+                if (parts[2] && parts[2].length > 0) {
+                    item.lineCats = parts[2].split(',').map(s => s.trim()).filter(s => s);
+                }
+                // 4번째: 분위기 (쉼표로 여러 개 가능)
+                if (parts[3] && parts[3].length > 0) {
+                    item.linePurs = parts[3].split(',').map(s => s.trim()).filter(s => s);
+                }
+                items.push(item);
             }
 
             if (items.length === 0) { alert("등록할 데이터가 없습니다."); return; }
@@ -1037,13 +1047,16 @@
                 }
 
                 const region = detectRegion(item.address);
+                // 개별 업종/분위기 우선, 없으면 상단 체크박스 일괄 적용
+                const useCats = item.lineCats || bulkCats;
+                const usePurs = item.linePurs || bulkPurs;
                 const data = {
                     name: item.name,
                     address: item.address,
                     lat: coords.lat,
                     lng: coords.lng,
                     region: region,
-                    category: bulkCats, purpose: bulkPurs,
+                    category: useCats, purpose: usePurs,
                     area: '', menu: '', desc: '',
                     imageUrl: '', link: '',
                     parking: '', totalScore: 0,
@@ -1055,7 +1068,9 @@
                 try {
                     await addDoc(collection(db, "shops"), data);
                     ok++;
-                    statusEl.innerHTML += `✅ <b>${item.name}</b> (${region}) 등록 완료<br>`;
+                    const catInfo = useCats.length ? useCats.join(',') : '-';
+                    const purInfo = usePurs.length ? usePurs.join(',') : '-';
+                    statusEl.innerHTML += `✅ <b>${item.name}</b> (${region}) [${catInfo}] [${purInfo}] 등록 완료<br>`;
                 } catch(e) {
                     fail++;
                     statusEl.innerHTML += `❌ <b>${item.name}</b> - 저장 실패: ${e.message}<br>`;
