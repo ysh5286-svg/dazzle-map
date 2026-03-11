@@ -835,6 +835,9 @@
             if (shopParam) {
                 const targetShop = allShops.find(s => s.id === shopParam);
                 if (targetShop) {
+                    // 공유 링크: 테마를 "전체"로 변경 (해당 매장이 항상 보이도록)
+                    document.getElementById('mainThemeSelect').value = 'ALL';
+                    updateVisibleMarkers();
                     sessionStorage.setItem('dazzle_landing_done', 'true');
                     document.getElementById('loadingOverlay').classList.add('fade-out');
                     setTimeout(() => {
