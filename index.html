@@ -498,7 +498,8 @@
             const text = lines.join('\n');
 
             const fullText = `${text}\n${shareUrl}`;
-            if (navigator.share) {
+            const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+            if (navigator.share && isMobile) {
                 navigator.share({ title: '대구핫플여기', text: text, url: shareUrl }).catch(() => {});
             } else {
                 navigator.clipboard.writeText(fullText)
