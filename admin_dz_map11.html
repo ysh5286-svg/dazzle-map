@@ -312,14 +312,41 @@
     </div>
 
     <script type="module">
-        import { db, initMap, createMarker } from "./common.js";
+        import { db, auth, signInWithPopup, onAuthStateChanged, googleProvider, initMap, createMarker } from "./common.js";
         import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, where, getDocs, setDoc, getDoc, arrayUnion, arrayRemove, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         // Expose Firebase for console bulk operations
         window._fb = { db, updateDoc, doc, addDoc, collection, getDocs };
 
-        var password = prompt("관리자 비밀번호:");
-        if (password !== "2364") { document.body.innerHTML = "⛔ 접근 거부"; throw new Error("비밀번호 오류"); }
+        const ADMIN_UIDS = ['qzMF6iubkFY7LuamvKEkbt0EeVU2', '4CfpMckIefQn4IHXk6ivkeLHRNC2'];
+
+        // 관리자 인증 체크 — 페이지 숨기고 인증 후 표시
+        const adminGate = document.createElement('div');
+        adminGate.id = 'adminGate';
+        adminGate.innerHTML = '<p>관리자 인증 중...</p><button id="adminLoginBtn" style="display:none;margin-top:16px;padding:12px 24px;font-size:14px;font-weight:bold;border:none;border-radius:8px;background:#4285f4;color:#fff;cursor:pointer;">🔑 구글 로그인</button>';
+        adminGate.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#fff;display:flex;justify-content:center;align-items:center;flex-direction:column;z-index:99999;font-size:16px;color:#666;';
+        document.body.appendChild(adminGate);
+
+        document.getElementById('adminLoginBtn').onclick = () => {
+            signInWithPopup(auth, googleProvider).catch(err => alert('로그인 실패: ' + err.message));
+        };
+
+        await new Promise((resolve, reject) => {
+            onAuthStateChanged(auth, (user) => {
+                if (!user) {
+                    adminGate.querySelector('p').innerText = '로그인이 필요합니다';
+                    document.getElementById('adminLoginBtn').style.display = 'block';
+                    return;
+                }
+                if (!ADMIN_UIDS.includes(user.uid)) {
+                    adminGate.innerHTML = '<p style="font-size:18px;color:#e74c3c;font-weight:bold;">⛔ 관리자 권한이 없습니다</p>';
+                    reject(new Error('권한 없음'));
+                    return;
+                }
+                adminGate.remove();
+                resolve();
+            });
+        });
 
         var map = initMap();
         let markerList = [];
