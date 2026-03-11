@@ -487,13 +487,19 @@
             const shop = window._currentShop;
             if (!shop) return;
             const shareUrl = `https://www.heredaegu.com?shop=${encodeURIComponent(shop.id)}`;
-            const text = `🗺️ ${shop.name}\n📍 ${shop.address || '대구 맛집'}\n\n대구핫플여기에서 발견한 찐맛집!`;
+            let lines = [`📌 ${shop.name}`];
+            if (shop.address) lines.push(`📍 ${shop.address}`);
+            if (shop.menu) lines.push(`🍽️ ${Array.isArray(shop.menu) ? shop.menu.join(', ') : shop.menu}`);
+            if (shop.totalScore && parseFloat(shop.totalScore) > 0) lines.push(`⭐ ${shop.totalScore} / 5.0`);
+            if (shop.parking) lines.push(`🚗 ${shop.parking}`);
+            if (shop.desc) lines.push(`💬 ${shop.desc}`);
+            lines.push('');
+            lines.push('대구핫플여기에서 발견한 찐맛집!');
+            const text = lines.join('\n');
 
-            // Web Share API (모바일: 카톡/문자/인스타 등 모든 앱 공유)
             if (navigator.share) {
-                navigator.share({ title: `${shop.name} - 대구핫플여기`, text: text, url: shareUrl }).catch(() => {});
+                navigator.share({ title: '대구핫플여기', text: text, url: shareUrl }).catch(() => {});
             } else {
-                // 데스크톱: 클립보드 복사
                 navigator.clipboard.writeText(`${text}\n${shareUrl}`)
                     .then(() => alert('링크가 복사됐어요! 카카오톡에 붙여넣기 해주세요 😊'))
                     .catch(() => prompt('링크를 복사하세요:', shareUrl));
