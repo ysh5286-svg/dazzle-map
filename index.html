@@ -903,9 +903,17 @@
         renderMarkers(visibleShops);
     }
 
+    let _clusterMarkers = [];
+
     function renderMarkers(shops) {
         markerList.forEach(m => m.setMap(null));
         markerList = [];
+        _clusterMarkers.forEach(m => m.setMap(null));
+        _clusterMarkers = [];
+
+        const zoom = map.getZoom();
+
+        // Step 1: 좌표 기반 그룹핑 (같은 건물 = 하나의 마커)
         const groups = {};
         shops.forEach(shop => {
             const key = parseFloat(shop.lat).toFixed(4) + "," + parseFloat(shop.lng).toFixed(4);
@@ -914,21 +922,71 @@
         });
         for(const key in groups) {
             groups[key].sort((a, b) => {
-                // 0순위: groupOrder (관리자 설정, 낮을수록 대표)
                 const orderA = a.groupOrder ?? 999;
                 const orderB = b.groupOrder ?? 999;
                 if(orderA !== orderB) return orderA - orderB;
-                // 1순위: 좋아요 많은 순, 2순위: 최신순
                 const likeA = (a.likedBy || []).length;
                 const likeB = (b.likedBy || []).length;
                 if(likeB !== likeA) return likeB - likeA;
                 return (b.updatedAt?.seconds || 0) - (a.updatedAt?.seconds || 0);
             });
-            const marker = createMarker(map, groups[key], function(clickedList) {
-                if (clickedList.length === 1) showPanel(clickedList[0]);
-                else showSelectModal(clickedList);
-            });
-            if(marker) markerList.push(marker);
+        }
+
+        // Step 2: 줌 레벨에 따라 개별 마커 or 클러스터
+        if (zoom >= 14) {
+            // 확대 → 개별 마커 표시
+            for(const key in groups) {
+                const marker = createMarker(map, groups[key], function(clickedList) {
+                    if (clickedList.length === 1) showPanel(clickedList[0]);
+                    else showSelectModal(clickedList);
+                });
+                if(marker) markerList.push(marker);
+            }
+        } else {
+            // 축소 → 클러스터 (숫자 원형 뱃지)
+            const gridSize = zoom <= 9 ? 0.3 : (zoom <= 11 ? 0.1 : 0.03);
+            const clusters = {};
+            for(const key in groups) {
+                const s = groups[key][0];
+                const clKey = Math.floor(s.lat / gridSize) + "," + Math.floor(s.lng / gridSize);
+                if(!clusters[clKey]) clusters[clKey] = { shops: [], latSum: 0, lngSum: 0, groupCount: 0 };
+                clusters[clKey].shops.push(...groups[key]);
+                clusters[clKey].latSum += s.lat;
+                clusters[clKey].lngSum += s.lng;
+                clusters[clKey].groupCount++;
+            }
+            for(const key in clusters) {
+                const c = clusters[key];
+                const avgLat = c.latSum / c.groupCount;
+                const avgLng = c.lngSum / c.groupCount;
+                const total = c.shops.length;
+                if (total === 1) {
+                    // 1개면 그냥 개별 마커
+                    const marker = createMarker(map, c.shops, function(clickedList) {
+                        if (clickedList.length === 1) showPanel(clickedList[0]);
+                        else showSelectModal(clickedList);
+                    });
+                    if(marker) markerList.push(marker);
+                } else {
+                    // 클러스터 마커
+                    const sizeClass = total >= 20 ? 'cl-lg' : (total >= 8 ? 'cl-md' : 'cl-sm');
+                    const sz = total >= 20 ? 60 : (total >= 8 ? 50 : 40);
+                    const clMarker = new naver.maps.Marker({
+                        position: new naver.maps.LatLng(avgLat, avgLng),
+                        map: map,
+                        icon: {
+                            content: '<div class="cluster-marker ' + sizeClass + '">' + total + '</div>',
+                            size: new naver.maps.Size(sz, sz),
+                            anchor: new naver.maps.Point(sz/2, sz/2)
+                        },
+                        zIndex: 5000
+                    });
+                    naver.maps.Event.addListener(clMarker, 'click', function() {
+                        map.morph(new naver.maps.LatLng(avgLat, avgLng), Math.min(zoom + 3, 15));
+                    });
+                    _clusterMarkers.push(clMarker);
+                }
+            }
         }
     }
 
@@ -1076,7 +1134,7 @@
     }
 
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js?v=4.7')
+        navigator.serviceWorker.register('./sw.js?v=4.8')
             .catch(err => console.log('서비스 워커 실패', err));
 
         // 새 SW가 활성화되면 자동 새로고침
