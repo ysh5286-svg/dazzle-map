@@ -534,16 +534,16 @@ body, html { margin: 0; padding: 0; height: 100%; font-family: 'Noto Sans KR', s
 .cluster-marker {
     display: flex; align-items: center; justify-content: center;
     border-radius: 50%; color: #fff; font-weight: 700;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.35); border: 3px solid #fff;
-    cursor: pointer; transform: translate(-50%, -50%);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.35); border: 3px solid rgba(255,255,255,0.9);
+    cursor: pointer;
     animation: clusterPop 0.25s ease-out;
 }
 .cl-sm { width: 40px; height: 40px; background: #3498db; font-size: 14px; }
 .cl-md { width: 50px; height: 50px; background: #e67e22; font-size: 16px; }
 .cl-lg { width: 60px; height: 60px; background: #e74c3c; font-size: 18px; }
 @keyframes clusterPop {
-    0% { transform: translate(-50%, -50%) scale(0); }
-    100% { transform: translate(-50%, -50%) scale(1); }
+    0% { transform: scale(0); }
+    100% { transform: scale(1); }
 }
 
 /* iOS 설치 가이드 */
