@@ -512,7 +512,7 @@
                 window.closeReportModal();
             } catch (e) {
                 console.error('제보 저장 실패:', e);
-                alert('제보 저장에 실패했습니다. 다시 시도해주세요.');
+                alert('제보 저장 실패: ' + e.code + ' / ' + e.message);
             }
         };
 
