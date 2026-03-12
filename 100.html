@@ -78,6 +78,7 @@
             </div>
             
             <div style="display:flex; gap:5px;">
+                <button onclick="openReportListModal()" style="background:#3498db; color:white; border:none; padding:6px 10px; border-radius:5px; font-weight:bold; cursor:pointer; font-size:12px; white-space:nowrap; position:relative;">📢 제보<span id="reportBadge" style="display:none; position:absolute; top:-5px; right:-5px; background:#e74c3c; color:white; border-radius:50%; width:18px; height:18px; font-size:10px; line-height:18px; text-align:center;"></span></button>
                 <button onclick="openBulkModal()" style="background:#f1c40f; color:#333; border:none; padding:6px 10px; border-radius:5px; font-weight:bold; cursor:pointer; font-size:12px; white-space:nowrap;">⚡ 일괄</button>
                 <button onclick="openHotplModal()" style="background:#e74c3c; color:white; border:none; padding:6px 10px; border-radius:5px; font-weight:bold; cursor:pointer; font-size:12px; white-space:nowrap;">🔥 핫플</button>
                 <button onclick="openAddModal()" style="background:#2c3e50; color:white; border:none; padding:6px 10px; border-radius:5px; font-weight:bold; cursor:pointer; font-size:12px; white-space:nowrap;">➕ 추가</button>
@@ -310,6 +311,16 @@
                 <div id="hotplOrderList" style="overflow-y:auto; flex:1; border:1px solid #eee; border-radius:8px;"></div>
                 <button onclick="saveHotplOrder()" style="margin-top:10px; padding:10px; background:#e74c3c; color:#fff; border:none; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer;">💾 순서 저장</button>
             </div>
+        </div>
+    </div>
+
+    <!-- 제보 목록 모달 -->
+    <div id="reportListModal" class="modal-overlay">
+        <div class="modal-box" style="max-width:500px; max-height:85vh; display:flex; flex-direction:column;">
+            <button class="modal-close-x" onclick="document.getElementById('reportListModal').classList.remove('show')">×</button>
+            <h3 class="modal-title">📢 맛집 제보 목록</h3>
+            <p style="font-size:12px; color:#888; margin-bottom:10px;">유저들이 제보한 맛집입니다. "등록"을 누르면 추가 모달로 이동합니다.</p>
+            <div id="reportList" style="overflow-y:auto; flex:1; border:1px solid #eee; border-radius:8px;"></div>
         </div>
     </div>
 
@@ -1099,6 +1110,68 @@
             document.getElementById('hotplSearch').value = '';
             switchHotplTab('select');
             renderHotplList(allShopsData);
+        };
+
+        // 제보 관리
+        let allReports = [];
+        onSnapshot(collection(db, 'reports'), (snap) => {
+            allReports = [];
+            snap.forEach(d => allReports.push({ id: d.id, ...d.data() }));
+            allReports.sort((a, b) => (b.createdAt?.toDate?.() || 0) - (a.createdAt?.toDate?.() || 0));
+            const badge = document.getElementById('reportBadge');
+            if (allReports.length > 0) {
+                badge.style.display = 'block';
+                badge.textContent = allReports.length;
+            } else {
+                badge.style.display = 'none';
+            }
+        });
+
+        window.openReportListModal = function() {
+            document.getElementById('reportListModal').classList.add('show');
+            renderReportList();
+        };
+
+        function renderReportList() {
+            const el = document.getElementById('reportList');
+            if (allReports.length === 0) {
+                el.innerHTML = '<p style="text-align:center; color:#aaa; padding:30px;">제보가 없습니다.</p>';
+                return;
+            }
+            el.innerHTML = allReports.map(r => {
+                const date = r.createdAt?.toDate ? r.createdAt.toDate().toLocaleDateString('ko-KR') : '';
+                const user = r.userName || '비로그인';
+                return `<div style="padding:12px 14px; border-bottom:1px solid #f0f0f0;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <b style="font-size:14px;">${r.name}</b>
+                        <span style="font-size:11px; color:#aaa;">${date} · ${user}</span>
+                    </div>
+                    <div style="font-size:12px; color:#555; margin-top:4px;">${r.address}</div>
+                    ${r.reason ? `<div style="font-size:12px; color:#888; margin-top:2px; font-style:italic;">"${r.reason}"</div>` : ''}
+                    <div style="display:flex; gap:6px; margin-top:8px;">
+                        <button onclick="registerReport('${r.id}')" style="flex:1; padding:6px; background:#2ecc71; color:white; border:none; border-radius:5px; font-size:12px; font-weight:bold; cursor:pointer;">등록</button>
+                        <button onclick="deleteReport('${r.id}')" style="flex:1; padding:6px; background:#e74c3c; color:white; border:none; border-radius:5px; font-size:12px; font-weight:bold; cursor:pointer;">삭제</button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        window.registerReport = async function(reportId) {
+            const report = allReports.find(r => r.id === reportId);
+            if (!report) return;
+            document.getElementById('reportListModal').classList.remove('show');
+            openAddModal();
+            $('#shopName').val(report.name);
+            $('#shopAddress').val(report.address);
+            if (report.reason) $('#shopDesc').val(report.reason);
+            try { await deleteDoc(doc(db, 'reports', reportId)); } catch(e) { console.error(e); }
+        };
+
+        window.deleteReport = async function(reportId) {
+            if (!confirm('이 제보를 삭제할까요?')) return;
+            try {
+                await deleteDoc(doc(db, 'reports', reportId));
+            } catch(e) { alert('삭제 실패'); console.error(e); }
         };
 
         // 탭 전환
