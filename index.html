@@ -490,32 +490,6 @@
             navigator.clipboard.writeText(uid).then(() => alert('복사됐어요! 사장님께 전달해주세요 😊'));
         }
 
-        // 맛집 제보
-        window.submitReport = async function() {
-            const name = document.getElementById('reportName').value.trim();
-            const address = document.getElementById('reportAddress').value.trim();
-            const reason = document.getElementById('reportReason').value.trim();
-            if (!name) { alert('상호명을 입력해주세요.'); return; }
-            if (!address) { alert('주소 또는 위치를 입력해주세요.'); return; }
-            try {
-                const user = auth.currentUser;
-                await addDoc(collection(db, 'reports'), {
-                    name, address, reason: reason || '',
-                    userId: user ? user.uid : null,
-                    userName: user ? (user.displayName || user.email || '') : '',
-                    createdAt: new Date()
-                });
-                alert('제보 완료! 검토 후 등록할게요 😊');
-                document.getElementById('reportName').value = '';
-                document.getElementById('reportAddress').value = '';
-                document.getElementById('reportReason').value = '';
-                window.closeReportModal();
-            } catch (e) {
-                console.error('제보 저장 실패:', e);
-                alert('제보 저장 실패: ' + e.code + ' / ' + e.message);
-            }
-        };
-
         window.shareShop = function() {
             const shop = window._currentShop;
             if (!shop) return;
@@ -647,6 +621,32 @@
         import { db, initMap, createMarker, auth, googleProvider, signInWithPopup, signOut, onAuthStateChanged } from "./common.js";
     // 🔥 [수정됨] arrayUnion, arrayRemove 추가됨 (좋아요 기능용)
     import { collection, getDocs, doc, getDoc, setDoc, updateDoc, addDoc, increment, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    // 맛집 제보
+    window.submitReport = async function() {
+        const name = document.getElementById('reportName').value.trim();
+        const address = document.getElementById('reportAddress').value.trim();
+        const reason = document.getElementById('reportReason').value.trim();
+        if (!name) { alert('상호명을 입력해주세요.'); return; }
+        if (!address) { alert('주소 또는 위치를 입력해주세요.'); return; }
+        try {
+            const user = auth.currentUser;
+            await addDoc(collection(db, 'reports'), {
+                name, address, reason: reason || '',
+                userId: user ? user.uid : null,
+                userName: user ? (user.displayName || user.email || '') : '',
+                createdAt: new Date()
+            });
+            alert('제보 완료! 검토 후 등록할게요 😊');
+            document.getElementById('reportName').value = '';
+            document.getElementById('reportAddress').value = '';
+            document.getElementById('reportReason').value = '';
+            window.closeReportModal();
+        } catch (e) {
+            console.error('제보 저장 실패:', e);
+            alert('제보 저장 실패: ' + e.code + ' / ' + e.message);
+        }
+    };
 
     var map = initMap();
     let allShops = [];
