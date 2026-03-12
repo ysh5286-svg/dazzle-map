@@ -56,33 +56,34 @@
 </head>
 <body>
     <div class="search-container">
-        <div class="search-box-wrapper" style="background:#c0392b; color:white; flex-direction:row; align-items:center; padding: 10px;">
-            <div style="display:flex; align-items:center; gap:5px; flex-wrap:wrap; flex:1;">
-                <strong style="white-space:nowrap;">🔒 관리</strong>
-                
-                <select id="adminRegion" class="admin-select" onchange="applyAdminFilters()">
-                    <option value="">📍 지역 전체</option><option value="중구">중구</option><option value="수성구">수성구</option><option value="동구">동구</option><option value="서구">서구</option><option value="남구">남구</option><option value="북구">북구</option><option value="달서구">달서구</option><option value="달성군">달성군</option><option value="경산">경산</option><option value="군위군">군위군</option><option value="칠곡군">칠곡군</option><option value="대구 밖">대구 밖</option>
-                </select>
-                <select id="adminCategory" class="admin-select" onchange="applyAdminFilters()">
-                    <option value="">🍜 업종 전체</option><option value="한식">한식</option><option value="중식">중식</option><option value="일식">일식</option><option value="양식">양식</option><option value="분식">분식</option><option value="고기/구이">고기/구이</option><option value="회/해산물">회/해산물</option><option value="아시안">아시안</option><option value="술집">술집</option><option value="카페/디저트">카페/디저트</option><option value="빵집">빵집</option><option value="패스트푸드">패스트푸드</option><option value="포장/배달">포장/배달</option>
-                </select>
-                <select id="adminPurpose" class="admin-select" onchange="applyAdminFilters()">
-                    <option value="">✨ 분위기 전체</option><option value="노포">노포</option><option value="데이트">데이트</option><option value="단체회식">단체회식</option><option value="혼밥/혼술">혼밥/혼술</option><option value="무한리필">무한리필</option><option value="이색맛집">이색맛집</option><option value="뷰맛집">뷰맛집</option><option value="상견례">상견례</option><option value="야간영업">야간영업</option>
-                </select>
-
-                <input type="text" id="adminSearch" class="admin-search-input" placeholder="🔍 이름 검색" onkeyup="applyAdminFilters()">
-                <label style="display:flex; align-items:center; gap:4px; background:#e74c3c; border:2px solid white; border-radius:6px; padding:4px 8px; cursor:pointer; white-space:nowrap; font-size:12px; font-weight:bold;">
-                    <input type="checkbox" id="filterNoImage" onchange="applyAdminFilters()" style="width:14px; height:14px; cursor:pointer; accent-color:white;">
-                    📷 사진없음만
-                </label>
+        <div class="search-box-wrapper" style="background:#c0392b; color:white; padding:8px 10px; gap:6px;">
+            <!-- 1줄: 관리 + 버튼들 -->
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:5px;">
+                <strong style="white-space:nowrap; font-size:13px;">🔒 관리</strong>
+                <div style="display:flex; gap:4px; flex-wrap:wrap;">
+                    <button onclick="openReportListModal()" style="background:#3498db; color:white; border:none; padding:4px 8px; border-radius:4px; font-weight:bold; cursor:pointer; font-size:11px; white-space:nowrap; position:relative;">📢 제보<span id="reportBadge" style="display:none; position:absolute; top:-5px; right:-5px; background:#e74c3c; color:white; border-radius:50%; width:16px; height:16px; font-size:9px; line-height:16px; text-align:center;"></span></button>
+                    <button onclick="openBulkModal()" style="background:#f1c40f; color:#333; border:none; padding:4px 8px; border-radius:4px; font-weight:bold; cursor:pointer; font-size:11px; white-space:nowrap;">⚡ 일괄</button>
+                    <button onclick="openHotplModal()" style="background:#e74c3c; color:white; border:none; padding:4px 8px; border-radius:4px; font-weight:bold; cursor:pointer; font-size:11px; white-space:nowrap;">🔥 핫플</button>
+                    <button onclick="openAddModal()" style="background:#2c3e50; color:white; border:none; padding:4px 8px; border-radius:4px; font-weight:bold; cursor:pointer; font-size:11px; white-space:nowrap;">➕ 추가</button>
+                    <button onclick="location.href='index.html'" style="background:white; color:#c0392b; border:none; padding:4px 8px; border-radius:4px; font-weight:bold; cursor:pointer; font-size:11px; white-space:nowrap;">나가기</button>
+                </div>
             </div>
-            
-            <div style="display:flex; gap:5px;">
-                <button onclick="openReportListModal()" style="background:#3498db; color:white; border:none; padding:6px 10px; border-radius:5px; font-weight:bold; cursor:pointer; font-size:12px; white-space:nowrap; position:relative;">📢 제보<span id="reportBadge" style="display:none; position:absolute; top:-5px; right:-5px; background:#e74c3c; color:white; border-radius:50%; width:18px; height:18px; font-size:10px; line-height:18px; text-align:center;"></span></button>
-                <button onclick="openBulkModal()" style="background:#f1c40f; color:#333; border:none; padding:6px 10px; border-radius:5px; font-weight:bold; cursor:pointer; font-size:12px; white-space:nowrap;">⚡ 일괄</button>
-                <button onclick="openHotplModal()" style="background:#e74c3c; color:white; border:none; padding:6px 10px; border-radius:5px; font-weight:bold; cursor:pointer; font-size:12px; white-space:nowrap;">🔥 핫플</button>
-                <button onclick="openAddModal()" style="background:#2c3e50; color:white; border:none; padding:6px 10px; border-radius:5px; font-weight:bold; cursor:pointer; font-size:12px; white-space:nowrap;">➕ 추가</button>
-                <button onclick="location.href='index.html'" style="background:white; color:#c0392b; border:none; padding:6px 10px; border-radius:5px; font-weight:bold; cursor:pointer; font-size:12px; white-space:nowrap;">나가기</button>
+            <!-- 2줄: 필터 -->
+            <div style="display:flex; align-items:center; gap:4px; flex-wrap:wrap;">
+                <select id="adminRegion" class="admin-select" onchange="applyAdminFilters()" style="padding:5px; font-size:12px;">
+                    <option value="">📍 지역</option><option value="중구">중구</option><option value="수성구">수성구</option><option value="동구">동구</option><option value="서구">서구</option><option value="남구">남구</option><option value="북구">북구</option><option value="달서구">달서구</option><option value="달성군">달성군</option><option value="경산">경산</option><option value="군위군">군위군</option><option value="칠곡군">칠곡군</option><option value="대구 밖">대구 밖</option>
+                </select>
+                <select id="adminCategory" class="admin-select" onchange="applyAdminFilters()" style="padding:5px; font-size:12px;">
+                    <option value="">🍜 업종</option><option value="한식">한식</option><option value="중식">중식</option><option value="일식">일식</option><option value="양식">양식</option><option value="분식">분식</option><option value="고기/구이">고기/구이</option><option value="회/해산물">회/해산물</option><option value="아시안">아시안</option><option value="술집">술집</option><option value="카페/디저트">카페/디저트</option><option value="빵집">빵집</option><option value="패스트푸드">패스트푸드</option><option value="포장/배달">포장/배달</option>
+                </select>
+                <select id="adminPurpose" class="admin-select" onchange="applyAdminFilters()" style="padding:5px; font-size:12px;">
+                    <option value="">✨ 분위기</option><option value="노포">노포</option><option value="데이트">데이트</option><option value="단체회식">단체회식</option><option value="혼밥/혼술">혼밥/혼술</option><option value="무한리필">무한리필</option><option value="이색맛집">이색맛집</option><option value="뷰맛집">뷰맛집</option><option value="상견례">상견례</option><option value="야간영업">야간영업</option>
+                </select>
+                <input type="text" id="adminSearch" class="admin-search-input" placeholder="🔍 검색" onkeyup="applyAdminFilters()" style="padding:5px; font-size:12px; width:80px;">
+                <label style="display:flex; align-items:center; gap:3px; background:#e74c3c; border:1px solid white; border-radius:4px; padding:3px 6px; cursor:pointer; white-space:nowrap; font-size:11px; font-weight:bold;">
+                    <input type="checkbox" id="filterNoImage" onchange="applyAdminFilters()" style="width:12px; height:12px; cursor:pointer; accent-color:white;">
+                    📷 사진없음
+                </label>
             </div>
         </div>
 
