@@ -193,6 +193,7 @@
                     <div style="font-size:13px; font-weight:bold; color:#e74c3c; margin-bottom:8px;">🚩 방문 인증 기록</div>
                     <div id="profileVisitLog" style="font-size:12px; color:#888; text-align:center; padding:10px 0; max-height:200px; overflow-y:auto;">- 최근 방문 인증 내역이 표시됩니다 -</div>
                 </div>
+                <button id="adminModeBtn" onclick="location.href='100.html'" style="display:none; width:100%; padding:10px; margin-bottom:8px; background:#222; color:#fff; border:none; border-radius:8px; font-size:14px; font-weight:bold; cursor:pointer;">🔧 관리자모드</button>
                 <button onclick="googleLogout()" class="profile-logout-btn">로그아웃</button>
             </div>
         </div>
@@ -1198,7 +1199,7 @@
     }
 
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js?v=5.4')
+        navigator.serviceWorker.register('./sw.js?v=5.5')
             .catch(err => console.log('서비스 워커 실패', err));
 
         // 새 SW가 활성화되면 자동 새로고침
@@ -1296,6 +1297,10 @@
         document.getElementById('profileName').innerText = user.displayName;
         document.getElementById('profileUid').value = user.uid;
         document.getElementById('profileModal').classList.add('show');
+
+        // 관리자 버튼 표시
+        const ADMIN_UIDS = ['qzMF6iubkFY7LuamvKEkbt0EeVU2', '4CfpMckIefQn4IHXk6ivkeLHRNC2', 'qtDdBeOiVrgcqWnXJg2Uu9JwmTI3', 'z1pgbzCQCcWufyNBTxptj6v6rHh1'];
+        document.getElementById('adminModeBtn').style.display = ADMIN_UIDS.includes(user.uid) ? 'block' : 'none';
 
         // Firestore에서 유저 데이터 가져오기
         const userRef = doc(db, "users", user.uid);
